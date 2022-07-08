@@ -1,0 +1,6 @@
+*.fits
+*.p
+*.pksc
+dndmtab.npz
+__pycache__/
+catalogs/
