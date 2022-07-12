@@ -3,14 +3,14 @@ import numpy as np
 import pickle
 
 def load_wt_maps(Nscales, nside):
-    CMB_wt_maps = np.zeros((Nscales, 2, 12*nside**2))
-    tSZ_wt_maps = np.zeros((Nscales, 2, 12*nside**2))
+    CMB_wt_maps = [[[]]*2]*Nscales
+    tSZ_wt_maps = [[[]]*2]*Nscales
     for comp in ['CMB', 'tSZ']:
         for scale in range(Nscales):
             for freq in range(2):
-                wt_map_path = f'wt_maps/{comp}needletILCweightmap_freq{freq}_scale{scale}_component_{comp}.fits'
+                wt_map_path = f'wt_maps/{comp}/weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
                 wt_map = hp.read_map(wt_map_path)
-                if comp=='CMB:
+                if comp=='CMB':
                     CMB_wt_maps[scale][freq] = wt_map
                 else:
                     tSZ_wt_maps[scale][freq] = wt_map
@@ -23,15 +23,15 @@ def get_wt_map_spectra(sim, ellmax, Nscales, nside, verbose):
     '''
     ARGUMENTS
     ---------
-    loop_max: int, maximum ell for power spectrum of weight maps
+    ellmax: int, maximum ell for power spectrum of weight maps
 
     RETURNS
     -------
-    mask_power_spectrum: 6D array, index as mask_power_spectrum[0-2][n][m][i][j][l] to get cross spectra at different filter scales and frequencies
+    wt_map_power_spectrum: 6D array, index as wt_map_power_spectrum[0-2][n][m][i][j][l] to get cross spectra at different filter scales and frequencies
     '''
     Nfreqs = 2
     CMB_wt_maps, tSZ_wt_maps = load_wt_maps(Nscales, nside)
-    wt_map_power_spectrum = np.full((3, Nscales, Nscales, Nfreqs, Nfreqs, ellmax), None)
+    wt_map_power_spectrum = np.full((3, Nscales, Nscales, Nfreqs, Nfreqs, ellmax+1), None)
     for c in range(3): #TT, Ty, yy
         for n in range(Nscales):
             for m in range(Nscales):

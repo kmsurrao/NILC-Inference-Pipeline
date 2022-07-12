@@ -1,8 +1,4 @@
 import numpy as np
-import mpmath
-import multiprocessing as mp
-import pickle
-
 
 def calculate_all_cl(nfreqs, ellmax, h, a, cl, M, wigner, delta_ij=False):
     '''
@@ -27,9 +23,9 @@ def calculate_all_cl(nfreqs, ellmax, h, a, cl, M, wigner, delta_ij=False):
     l3 = np.arange(ellmax+1)
     M = M.astype(np.float32)[:,:,:,:,:ellmax+1]
     if not delta_ij:
-        Cl = float(1/(4*mpmath.pi))*np.einsum('p,q,lpq,lpq,p,nl,ml,np,mp,i,j,nmijq->l',2*l2+1,2*l3+1,wigner,wigner,cl,h[:,ellmax+1],h[:,:ellmax+1],h,h,a,a,M,optimize=True)
+        Cl = float(1/(4*np.pi))*np.einsum('p,q,lpq,lpq,p,nl,ml,np,mp,i,j,nmijq->l',2*l2+1,2*l3+1,wigner,wigner,cl,h[:,:ellmax+1],h[:,:ellmax+1],h,h,a,a,M,optimize=True)
     else:
-        Cl = float(1/(4*mpmath.pi))*np.einsum('p,q,lpq,lpq,p,nl,ml,np,mp,i,i,nmiiq->l',2*l2+1,2*l3+1,wigner,wigner,cl,h[:,:ellmax+1],h[:,:ellmax+1],h,h,a,a,M,optimize=True)
+        Cl = float(1/(4*np.pi))*np.einsum('p,q,lpq,lpq,p,nl,ml,np,mp,i,i,nmiiq->l',2*l2+1,2*l3+1,wigner,wigner,cl,h[:,:ellmax+1],h[:,:ellmax+1],h,h,a,a,M,optimize=True)
     return Cl
 
 

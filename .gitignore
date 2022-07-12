@@ -3,6 +3,7 @@
 *.pksc
 *.log
 *.map
+*.pdf
 dndmtab.npz
 __pycache__/
 catalogs/

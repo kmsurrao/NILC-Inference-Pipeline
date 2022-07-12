@@ -1,5 +1,8 @@
 import numpy as np
 import pickle
+import scipy
+from scipy.optimize import minimize
+from scipy import ndimage
 from data_spectra import tsz_spectral_response
 
 
@@ -23,23 +26,25 @@ def get_theory_arrays(ClTTd_array, ClTyd_array, Clyyd_array):
     Clyy = np.mean(Clyyd_array, axis=0)
     return ClTT, ClTy, Clyy
 
+def get_tot_data_spectra(array):
+    #array starts with dim (Nsims, 3, ell), where 3 is for CMB, tSZ, and noise components
+    new_array = np.sum(array, axis=1) #now has dim (Nsims, ells)
+    new_array  = np.transpose(new_array) #now has dim (ells, Nsims)
+    return new_array
 
 def get_PScov_sim(ellmax, ClTTd_array, ClTyd_array, Clyyd_array):
     '''
     each column is one sim
     row 0 is ClTT, row 1 is ClTy, row2 is Clyy
-    ClTTd_array has dimensions (Nsims, 3, ell)
+    original ClTTd_array has dimensions (Nsims, 3, ell)
+    after get_tot_data_spectra, ClTTd_array has dimensions (ell, Nsims)
     '''
-    def cov_helper(array):
-        #array starts with dim (Nsims, 3, ell)
-        array = np.sum(array, axis=1) #now has dim (Nsims, ells)
-        array  = np.transpose(array) #now has dim (ells, Nsims)
-        return array
+
     cov = np.zeros((ellmax+1, 3, 3,))
-    ClTTd_array = cov_helper(ClTTd_array)
-    ClTyd_array = cov_helper(ClTyd_array)
-    Clyyd_array = cov_helper(Clyyd_array)
-    Clpqd_array = np.array([[ClTTd_array[l], ClTyd_array[l], Clyyd_array[l]] for l in range(ellmax+1)]) #dim (ells,3,Nsims)
+    ClTTd_array = get_tot_data_spectra(ClTTd_array)
+    ClTyd_array = get_tot_data_spectra(ClTyd_array)
+    Clyyd_array = get_tot_data_spectra(Clyyd_array)
+    Clpqd_array = [[ClTTd_array[l], ClTyd_array[l], Clyyd_array[l]] for l in range(ellmax+1)] #dim (ells, 3 for ClTT ClTy and Clyy, Nsims)
     cov = np.array([np.cov(Clpqd_array[l]) for l in range(ellmax+1)]) #dim (ells,3,3)
     return cov
 
@@ -48,7 +53,8 @@ def ClpqA(Acmb, Atsz):
     '''
     model for theoretical spectra Clpq including Acmb and Atsz parameters
     '''
-    ClTT, ClTy, Clyy = get_theory_arrays(load_Clpq())
+    ClTTd_array, ClTyd_array, Clyyd_array = load_Clpq()
+    ClTT, ClTy, Clyy = get_theory_arrays(ClTTd_array, ClTyd_array, Clyyd_array)
     ellmax = len(ClTT[0])-1
     return np.array([[[Acmb*ClTT[0][l] + Atsz*ClTT[1][l] + ClTT[2][l], Acmb*ClTy[0][l] + Atsz*ClTy[1][l] + ClTy[2][l]], [Acmb*ClTy[0][l] + Atsz*ClTy[1][l] + ClTy[2][l], Acmb*Clyy[0][l] + Atsz*Clyy[1][l] + Clyy[2][l]]] for l in range(ellmax+1)])
 
@@ -57,11 +63,15 @@ def lnL(pars, f, sim, ellmax, ClTTd_array, ClTyd_array, Clyyd_array, PScov_sim_I
     '''
     Write expression for likelihood for one sim
     (Actually equal to negative lnL since we have to minimize)
+    ClTTd_array has dim (Nsims, 3, ells)
     '''
     model = f(*pars)
-    ClTTd = ClTTd_array[sim]
-    ClTyd = ClTyd_array[sim]
-    Clyyd = Clyyd_array[sim]
+    ClTTd = np.sum(ClTTd_array[sim], axis=0)
+    ClTyd = np.sum(ClTyd_array[sim], axis=0)
+    Clyyd = np.sum(Clyyd_array[sim], axis=0)
+    # print('model.shape: ', model.shape)
+    # print('ClTTd.shape: ', ClTTd.shape)
+    # print('PScov_sim_Inv.shape:', PScov_sim_Inv.shape )
     return np.sum([1/2* \
     ((model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clyyd[l]) \
     + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clyyd[l]) \
@@ -83,6 +93,15 @@ def get_all_acmb_atsz(Nsims, ellmax, verbose):
     ClTT, ClTy, Clyy = get_theory_arrays(ClTTd_array, ClTyd_array, Clyyd_array)
     PScov_sim = get_PScov_sim(ellmax, ClTTd_array, ClTyd_array, Clyyd_array)
     PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(ellmax+1)])
+    # #replace chunk below with line above
+    # PScov_sim_Inv = np.zeros((ellmax+1,3,3))
+    # for l in range(ellmax+1):
+    #     try:
+    #         PScov_sim_Inv[l] = scipy.linalg.inv(PScov_sim[l])
+    #     except np.linalg.LinAlgError:
+    #         print(l)
+    #         print(PScov_sim_Inv[l])
+    #         PScov_sim_Inv[l] = np.identity(3)
     acmb_array = []
     atsz_array = []
     for i in range(Nsims):
@@ -97,7 +116,7 @@ def get_all_acmb_atsz(Nsims, ellmax, verbose):
 
 def get_var(P, edges, scaling):
     P = -0.5*np.log(P) #convert probability to chi^2
-    min, idx_min = min(P), np.argmin(P)
+    min, idx_min = np.amin(P), np.argmin(P)
     lower_idx, upper_idx = None, None
     for i, elt in enumerate(P):
         if i < idx_min:
@@ -106,9 +125,9 @@ def get_var(P, edges, scaling):
         elif i > idx_min:
             if elt-min <= 1.0:
                 upper_idx = i
-    lower = scaling*lower_idx/len(P)+min(edges)
-    upper = scaling*upper_idx/len(P)+min(edges)
-    mean = scaling*idx_min/len(P)+min(edges)
+    lower = scaling*lower_idx/len(P)+np.amin(edges)
+    upper = scaling*upper_idx/len(P)+np.amin(edges)
+    mean = scaling*idx_min/len(P)+np.amin(edges)
     return lower, upper, mean
 
 def get_parameter_cov_matrix(Nsims, ellmax, verbose, nbins=1000, smoothing_factor=0.065):
@@ -116,7 +135,7 @@ def get_parameter_cov_matrix(Nsims, ellmax, verbose, nbins=1000, smoothing_facto
     hist, xedges, yedges = np.histogram2d(acmb, atsz, bins=[nbins, nbins])
     hist = hist/np.sum(hist)
     hist = ndimage.gaussian_filter(hist, nbins*smoothing_factor) #smooth hist
-    scaling = [max(xedges)-min(xedges), max(yedges)-min(yedges)]
+    scaling = [np.amax(xedges)-np.amin(xedges), np.amax(yedges)-np.amin(yedges)]
     lower_acmb, upper_acmb, mean_acmb = get_var(np.sum(hist, axis=1), xedges, scaling[0])
     lower_atsz, upper_atsz, mean_atsz = get_var(np.sum(hist, axis=0), yedges, scaling[1])
     return lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz

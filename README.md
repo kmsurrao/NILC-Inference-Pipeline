@@ -23,7 +23,7 @@ Reads in input yaml file and stores information in the class Info.
 Function generate_freq_maps creates maps consisting of CMB, tSZ (possibly multiplied by an amplification factor), and noise at specified frequencies. The tSZ map is produced by the halosky package. Final frequency maps are stored in the maps/ directory. Returns power spectra of CMB, amplified tSZ, and noise.
 
 ### wt_map_spectra.py
-Calculates power spectra of weight maps outputted by pyilc (must specify output directory for weight maps from pyilc as NILC-Parameter_Pipeline/wt_maps/). Weight map spectra stored in wt_maps. Index weight map spectra M as M[0-2][n][m][i][j], where n and m are needlet filter scales; i and j are frequency channels, and the first index is 0 for TT weight map spectra, 1 for Ty weight may spectra, and 2 for yy weight map spectra.
+Calculates power spectra of weight maps outputted by pyilc (must specify output directory for weight maps from pyilc as NILC-Parameter_Pipeline/wt_maps/). Weight map spectra stored in wt_maps. Index weight map spectra M as M[0-2][n][m][i][j], where n and m are needlet filter scales; i and j are frequency channels; and the first index is 0 for TT weight map spectra, 1 for Ty weight may spectra, and 2 for yy weight map spectra.
 
 ### nilc_power_spectrum_calc.py
 Contains function for calculating propagation of a component's power spectrum to final power spectra of two NILC maps.

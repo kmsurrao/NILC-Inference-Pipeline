@@ -37,6 +37,6 @@ class Info(object):
         self.pyilc_path = p['pyilc_path']
         assert type(self.pyilc_path) is str, "TypeError: pyilc_path"
         self.verbose = p['verbose']
-        self.fremove_files = p['remove_files']
+        self.remove_files = p['remove_files']
 
         

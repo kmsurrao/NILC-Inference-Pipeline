@@ -52,4 +52,4 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     if verbose:
         print(f'created maps/sim{sim}_freq1.fits and maps/sim{sim}_freq2.fits')
 
-    return cmb_cl[:ellmax+1], tsz_cl[:ellmax+1], N[:ellmax+1]
+    return cmb_cl[:ellmax+1], tsz_cl[:ellmax+1], noise_cl[:ellmax+1]
