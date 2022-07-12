@@ -3,8 +3,11 @@ import numpy as np
 import pickle
 
 def load_wt_maps(Nscales, nside):
-    CMB_wt_maps = [[[]]*2]*Nscales
-    tSZ_wt_maps = [[[]]*2]*Nscales
+    CMB_wt_maps = []
+    tSZ_wt_maps = []
+    for n in range(Nscales):
+        CMB_wt_maps.append([[], []])
+        tSZ_wt_maps.append([[], []])
     for comp in ['CMB', 'tSZ']:
         for scale in range(Nscales):
             for freq in range(2):
