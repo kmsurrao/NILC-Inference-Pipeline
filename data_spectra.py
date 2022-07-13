@@ -15,13 +15,13 @@ def tsz_spectral_response(freqs): #input frequency in GHz
         response.append(T_cmb*(x*1/np.tanh(x/2)-4)) #was factor of tcmb microkelvin before
     return np.array(response)
 
-def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15., 10.])):
+def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
     # FWHM need to be in strictly decreasing order, otherwise you'll get nonsense
     if ( any( i <= j for i, j in zip(FWHM_arcmin, FWHM_arcmin[1:]))):
         raise AssertionError
     ell = np.arange(ELLMAX+1)
-    filters = np.zeros((N_scales, ELLMAX+1))
     N_scales = len(FWHM_arcmin) + 1
+    filters = np.zeros((N_scales, ELLMAX+1))
     FWHM = FWHM_arcmin * np.pi/(180.*60.)
     # define gaussians
     Gaussians = np.zeros((N_scales-1, ELLMAX+1))
