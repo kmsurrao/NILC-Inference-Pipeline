@@ -36,10 +36,10 @@ def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
     assert (np.absolute( np.sum( filters**2., axis=0 ) - np.ones(ELLMAX+1,dtype=float)) < 1.e-3).all(), "wavelet filter transmission check failed"
     return ell, filters
 
-def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner_file, CC, T, N, verbose):
+def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner_file, CC, T, N, FWHM_arcmin, verbose):
     wigner = pickle.load(open(wigner_file, 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
     nfreqs = len(freqs)
-    h = GaussianNeedlets(ellmax)[1]
+    h = GaussianNeedlets(ellmax, FWHM_arcmin)[1]
     a = np.array([1., 1.])
     g = tsz_spectral_response(freqs)
     wt_map_spectra = pickle.load(open(f'wt_maps/sim{sim}_wt_map_spectra.p', 'rb')) #[0-2 for TT, Ty, yy][n][m][i][j][l]

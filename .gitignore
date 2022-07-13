@@ -4,6 +4,9 @@
 *.log
 *.map
 *.pdf
+*.out
+*.sh
+*~
 dndmtab.npz
 __pycache__/
 catalogs/

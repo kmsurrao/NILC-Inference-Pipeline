@@ -1,4 +1,5 @@
 import yaml
+import numpy as np
 
 ##########################
 # simple function for opening the file
@@ -38,5 +39,8 @@ class Info(object):
         assert type(self.pyilc_path) is str, "TypeError: pyilc_path"
         self.verbose = p['verbose']
         self.remove_files = p['remove_files']
+        self.GN_FWHM_arcmin = np.asarray(p['GN_FWHM_arcmin'])
+        assert len(self.GN_FWHM_arcmin) == self.Nscales - 1, "GN_FWHM_arcmin"
+        assert all(FWHM_val > 0. for FWHM_val in self.GN_FWHM_arcmin), "GN_FWHM_arcmin"
 
         

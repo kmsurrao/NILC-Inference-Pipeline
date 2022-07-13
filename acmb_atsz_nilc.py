@@ -11,9 +11,9 @@ def load_Clpq():
     load data spectra arrays 
     index like ClTTd_array[sim][0-2 for Acmb, Atsz, or noise component][ell]
     '''
-    ClTTd_array = pickle.load(open('power_spectra/clTT.p', 'rb'))
-    ClTyd_array = pickle.load(open('power_spectra/clTy.p', 'rb'))
-    Clyyd_array = pickle.load(open('power_spectra/clyy.p', 'rb'))
+    ClTTd_array = np.array(pickle.load(open('power_spectra/clTT.p', 'rb')))
+    ClTyd_array = np.array(pickle.load(open('power_spectra/clTy.p', 'rb')))
+    Clyyd_array = np.array(pickle.load(open('power_spectra/clyy.p', 'rb')))
     return ClTTd_array, ClTyd_array, Clyyd_array
 
 def get_theory_arrays(ClTTd_array, ClTyd_array, Clyyd_array):
@@ -69,9 +69,6 @@ def lnL(pars, f, sim, ellmax, ClTTd_array, ClTyd_array, Clyyd_array, PScov_sim_I
     ClTTd = np.sum(ClTTd_array[sim], axis=0)
     ClTyd = np.sum(ClTyd_array[sim], axis=0)
     Clyyd = np.sum(Clyyd_array[sim], axis=0)
-    # print('model.shape: ', model.shape)
-    # print('ClTTd.shape: ', ClTTd.shape)
-    # print('PScov_sim_Inv.shape:', PScov_sim_Inv.shape )
     return np.sum([1/2* \
     ((model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clyyd[l]) \
     + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clyyd[l]) \
@@ -92,16 +89,16 @@ def get_all_acmb_atsz(Nsims, ellmax, verbose):
     ClTTd_array, ClTyd_array, Clyyd_array = load_Clpq()
     ClTT, ClTy, Clyy = get_theory_arrays(ClTTd_array, ClTyd_array, Clyyd_array)
     PScov_sim = get_PScov_sim(ellmax, ClTTd_array, ClTyd_array, Clyyd_array)
-    PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(ellmax+1)])
-    # #replace chunk below with line above
-    # PScov_sim_Inv = np.zeros((ellmax+1,3,3))
-    # for l in range(ellmax+1):
-    #     try:
-    #         PScov_sim_Inv[l] = scipy.linalg.inv(PScov_sim[l])
-    #     except np.linalg.LinAlgError:
-    #         print(l)
-    #         print(PScov_sim_Inv[l])
-    #         PScov_sim_Inv[l] = np.identity(3)
+    # PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(ellmax+1)])
+    #replace chunk below with line above
+    PScov_sim_Inv = np.zeros((ellmax+1,3,3))
+    for l in range(ellmax+1):
+        try:
+            PScov_sim_Inv[l] = scipy.linalg.inv(PScov_sim[l])
+        except np.linalg.LinAlgError:
+            print(l)
+            print(PScov_sim_Inv[l])
+            PScov_sim_Inv[l] = np.identity(3)
     acmb_array = []
     atsz_array = []
     for i in range(Nsims):
@@ -130,7 +127,7 @@ def get_var(P, edges, scaling):
     mean = scaling*idx_min/len(P)+np.amin(edges)
     return lower, upper, mean
 
-def get_parameter_cov_matrix(Nsims, ellmax, verbose, nbins=1000, smoothing_factor=0.065):
+def get_parameter_cov_matrix(Nsims, ellmax, verbose, nbins=100, smoothing_factor=0.065):
     acmb, atsz = get_all_acmb_atsz(Nsims, ellmax, verbose)
     hist, xedges, yedges = np.histogram2d(acmb, atsz, bins=[nbins, nbins])
     hist = hist/np.sum(hist)

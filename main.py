@@ -27,10 +27,10 @@ def one_sim(sim, inp=inp, env=my_env):
     
     #get NILC weight maps for preserved component CMB and preserved component tSZ
     #note: need to remove after each sim run
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/CMB_preserved.yml"], shell=True, env=env)
+    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/CMB_preserved.yml {sim}"], shell=True, env=env)
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component CMB, sim {sim}')
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/tSZ_preserved.yml"], shell=True, env=env)
+    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/tSZ_preserved.yml {sim}"], shell=True, env=env)
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}')
     if inp.remove_files: #don't need frequency maps anymore
@@ -39,13 +39,13 @@ def one_sim(sim, inp=inp, env=my_env):
     #get power spectra of weight maps--dimensions (3,Nscales,Nscales,Nfreqs,Nfreqs,ellmax)
     get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose)
     #don't need pyilc outputs anymore
-    subprocess.call('rm wt_maps/CMB/*', shell=True, env=env)
-    subprocess.call('rm wt_maps/tSZ/*', shell=True, env=env)
+    subprocess.call(f'rm wt_maps/CMB/{sim}*', shell=True, env=env)
+    subprocess.call(f'rm wt_maps/tSZ/{sim}*', shell=True, env=env)
     
 
     #get contributions to ClTT, ClTy, and Clyy from Acmb, Atsz, and noise components
     #0th index is sim number; 1st index is 0 for Acmb, 1 for Atsz, 2 for noise; 2nd index is ell
-    get_data_spectra(sim, inp.freqs, inp.Nscales, inp.tsz_amp, inp.ellmax, inp.wigner_file, CC, T, N, inp.verbose)
+    get_data_spectra(sim, inp.freqs, inp.Nscales, inp.tsz_amp, inp.ellmax, inp.wigner_file, CC, T, N, inp.GN_FWHM_arcmin, inp.verbose)
     if inp.remove_files: #don't need weight map spectra anymore
         subprocess.call(f'rm wt_maps/sim{sim}_wt_map_spectra.p', shell=True, env=env)
 
