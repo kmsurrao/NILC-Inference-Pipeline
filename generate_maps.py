@@ -2,6 +2,9 @@ import os
 import healpy as hp
 import numpy as np
 import subprocess
+import warnings
+from astropy.utils.exceptions import AstropyDeprecationWarning
+warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 
 
 def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky_scripts_path, verbose, include_noise=True):
@@ -14,7 +17,7 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     my_env = os.environ.copy()
 
     #create tSZ map from halosky
-    subprocess.run([f"python {halosky_scripts_path}/example.py"], shell=True, text=True, capture_output=True, env=my_env)
+    subprocess.run([f"python {halosky_scripts_path}/example.py"], shell=True, env=my_env)
     if verbose:
         print('finished creating tSZ map from halosky')
     tsz_map = hp.read_map('maps/tsz_00000.fits')
@@ -55,7 +58,7 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     hp.write_map(f'maps/sim{sim}_freq1.fits', sim_map_1, overwrite=True)
     hp.write_map(f'maps/sim{sim}_freq2.fits', sim_map_2, overwrite=True)
     if verbose:
-        print(f'created maps/sim{sim}_freq1.fits and maps/sim{sim}_freq2.fits')
+        print(f'created maps/sim{sim}_freq1.fits and maps/sim{sim}_freq2.fits', flush=True)
 
     if include_noise:
         return cmb_cl[:ellmax+1], tsz_cl[:ellmax+1], noise_cl[:ellmax+1]

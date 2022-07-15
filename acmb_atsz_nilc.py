@@ -11,9 +11,10 @@ def load_Clpq():
     load data spectra arrays 
     index like ClTTd_array[sim][0-2 for Acmb, Atsz, or noise component][ell]
     '''
-    ClTTd_array = np.array(pickle.load(open('power_spectra/clTT.p', 'rb')))
-    ClTyd_array = np.array(pickle.load(open('power_spectra/clTy.p', 'rb')))
-    Clyyd_array = np.array(pickle.load(open('power_spectra/clyy.p', 'rb')))
+    data_spectra = pickle.load(open('data_spectra.p', 'rb'))
+    ClTTd_array = data_spectra[:,0,:,:]
+    ClTyd_array = data_spectra[:,1,:,:]
+    Clyyd_array = data_spectra[:,2,:,:]
     return ClTTd_array, ClTyd_array, Clyyd_array
 
 def get_theory_arrays(ClTTd_array, ClTyd_array, Clyyd_array):

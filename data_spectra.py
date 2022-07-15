@@ -36,13 +36,12 @@ def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
     assert (np.absolute( np.sum( filters**2., axis=0 ) - np.ones(ELLMAX+1,dtype=float)) < 1.e-3).all(), "wavelet filter transmission check failed"
     return ell, filters
 
-def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner_file, CC, T, N, FWHM_arcmin, verbose):
+def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner_file, CC, T, N, wt_map_spectra, FWHM_arcmin, verbose):
     wigner = pickle.load(open(wigner_file, 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
     nfreqs = len(freqs)
     h = GaussianNeedlets(ellmax, FWHM_arcmin)[1]
     a = np.array([1., 1.])
     g = tsz_spectral_response(freqs)
-    wt_map_spectra = pickle.load(open(f'wt_maps/sim{sim}_wt_map_spectra.p', 'rb')) #[0-2 for TT, Ty, yy][n][m][i][j][l]
     ClTT = np.zeros((3, ellmax+1))
     ClTy = np.zeros((3, ellmax+1))
     Clyy = np.zeros((3, ellmax+1))
@@ -63,24 +62,6 @@ def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner_file, CC, T, N
             Clyy[1] = T[:ellmax+1]
             Clyy[2] = calculate_all_cl(nfreqs, ellmax, h, a, N, M, wigner, delta_ij=True)
 
-    if sim == 0:
-        ClTT_array, ClTy_array, Clyy_array = [], [], []
-    else:
-        ClTT_array = pickle.load(open('power_spectra/clTT.p', 'rb'))
-        ClTy_array = pickle.load(open('power_spectra/clTy.p', 'rb'))
-        Clyy_array = pickle.load(open('power_spectra/clyy.p', 'rb'))       
-
-    ClTT_array.append(ClTT)
-    ClTy_array.append(ClTy)
-    Clyy_array.append(Clyy)
-
-    pickle.dump(ClTT_array, open('power_spectra/clTT.p', 'wb'))
-    pickle.dump(ClTy_array, open('power_spectra/clTy.p', 'wb'))
-    pickle.dump(Clyy_array, open('power_spectra/clyy.p', 'wb'))
-
-    if verbose:
-        print('modified files power_spectra/clTT.p, power_spectra/clTy.p, power_spectra/clyy.p')
-
-    return ClTT, ClTy, Clyy
+    return np.array([ClTT, ClTy, Clyy]) #has dim (3 for ClTT ClTy Clyy, 3 for CMB tSZ noise components, ellmax+1)
 
 
