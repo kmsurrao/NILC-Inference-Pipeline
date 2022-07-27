@@ -28,6 +28,7 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     cmb_alm = hp.read_alm(cmb_alm_file)
     cmb_cl = hp.alm2cl(cmb_alm)*10**(-12)
     cmb_map = hp.synfast(cmb_cl, nside)
+    hp.write_map('maps/cmb_map.fits', cmb_map)
 
     #noise map realization
     if include_noise:
