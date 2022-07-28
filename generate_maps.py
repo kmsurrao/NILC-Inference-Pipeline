@@ -22,12 +22,13 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
         print('finished creating tSZ map from halosky')
     tsz_map = hp.read_map('maps/tsz_00000.fits')
     tsz_map = tsz_amp*hp.ud_grade(tsz_map, nside) 
-    tsz_cl = hp.anafast(tsz_map)
+    tsz_cl = hp.anafast(tsz_map, lmax=ellmax)
 
     #realization of CMB from lensed alm
     cmb_alm = hp.read_alm(cmb_alm_file)
     cmb_cl = hp.alm2cl(cmb_alm)*10**(-12)
     cmb_map = hp.synfast(cmb_cl, nside)
+    cmb_cl = hp.anafast(cmb_map, lmax=ellmax)
     hp.write_map('maps/cmb_map.fits', cmb_map)
 
     #noise map realization
@@ -38,6 +39,7 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
         ells = np.arange(3*nside)
         noise_cl = W**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
         noise_map = hp.synfast(noise_cl, nside)
+        noise_cl = hp.anafast(noise_map, lmax=ellmax)
 
     #tSZ spectral response
     T_cmb = 2.726
