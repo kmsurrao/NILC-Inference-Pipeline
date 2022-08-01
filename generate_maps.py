@@ -17,10 +17,10 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     my_env = os.environ.copy()
 
     #create tSZ map from halosky
-    subprocess.run([f"python {halosky_scripts_path}/example.py"], shell=True, env=my_env)
+    subprocess.run([f"python {halosky_scripts_path}/example.py {sim}"], shell=True, env=my_env)
     if verbose:
-        print('finished creating tSZ map from halosky')
-    tsz_map = hp.read_map('maps/tsz_00000.fits')
+        print(f'finished creating tSZ map sim {sim} from halosky')
+    tsz_map = hp.read_map(f'maps/{sim}_tsz_00000.fits')
     tsz_map = tsz_amp*hp.ud_grade(tsz_map, nside) 
     tsz_cl = hp.anafast(tsz_map, lmax=ellmax)
 
@@ -29,7 +29,7 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     cmb_cl = hp.alm2cl(cmb_alm)*10**(-12)
     cmb_map = hp.synfast(cmb_cl, nside)
     cmb_cl = hp.anafast(cmb_map, lmax=ellmax)
-    hp.write_map('maps/cmb_map.fits', cmb_map)
+    hp.write_map(f'maps/{sim}_cmb_map.fits', cmb_map, overwrite=True)
 
     #noise map realization
     if include_noise:

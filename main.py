@@ -4,6 +4,8 @@ import subprocess
 import multiprocessing as mp
 from input import Info
 import pickle
+from __future__ import print_function
+from scoop import futures
 from generate_maps import *
 from wt_map_spectra import *
 from data_spectra import *
@@ -13,17 +15,6 @@ import warnings
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 hp.disable_warnings()
 
-# main input file containing most specifications 
-try:
-    input_file = (sys.argv)[1]
-except IndexError:
-    input_file = 'example.yaml'
-
-# read in the input file and set up relevant info object
-inp = Info(input_file)
-
-# current environment, also environment in which to run subprocesses
-my_env = os.environ.copy()
 
 def one_sim(sim, inp=inp, env=my_env):
     #create frequency maps (GHz) consisting of CMB, tSZ, and noise
@@ -40,7 +31,9 @@ def one_sim(sim, inp=inp, env=my_env):
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}', flush=True)
     if inp.remove_files: #don't need frequency maps anymore
         subprocess.call(f'rm maps/sim{sim}_freq1.fits maps/sim{sim}_freq2.fits', shell=True, env=env)
+        subprocess.call('rm maps/{sim}_tsz_00000.fits', shell=True, env=env)
         subprocess.call('rm maps/tsz_00000*', shell=True, env=env)
+        subprocess.call('rm maps/{sim}_cmb_map.fits', shell=True, env=env)
 
     #get power spectra of weight maps--dimensions (3,Nscales,Nscales,Nfreqs,Nfreqs,ellmax)
     wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose)
@@ -60,17 +53,36 @@ def one_sim(sim, inp=inp, env=my_env):
 
     return data_spectra
 
-pool = mp.Pool(inp.num_parallel)
-results = pool.starmap(one_sim, [(sim, inp, my_env) for sim in range(inp.Nsims)])
-pool.close()
-results = np.asarray(results, dtype=np.float32) #dim (Nsims, 3 for ClTT ClTy Clyy, 3 for CMB tSZ noise components, ellmax+1)
-try:
-    pickle.dump(results, open('data_spectra.p', 'wb'), protocol=4)
-    if inp.verbose:
-        print('created file data_spectra.p', flush=True)
-except Exception:
-    print('could not create file data_spectra.p', flush=True)
+# pool = mp.Pool(inp.num_parallel)
+# results = pool.starmap(one_sim, [(sim, inp, my_env) for sim in range(inp.Nsims)])
+# pool.close()
+# results = np.asarray(results, dtype=np.float32) #dim (Nsims, 3 for ClTT ClTy Clyy, 3 for CMB tSZ noise components, ellmax+1)
 
-lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(inp.Nsims, inp.ellmax, inp.verbose)
-print(f'Acmb={mean_acmb}+{upper_acmb-mean_acmb}-{mean_acmb-lower_acmb}', flush=True)
-print(f'Atsz={mean_atsz}+{upper_atsz-mean_atsz}-{mean_atsz-lower_atsz}', flush=True)
+if __name__ == "__main__":
+
+    # main input file containing most specifications 
+    try:
+        input_file = (sys.argv)[1]
+    except IndexError:
+        input_file = 'example.yaml'
+
+    # read in the input file and set up relevant info object
+    inp = Info(input_file)
+
+    # current environment, also environment in which to run subprocesses
+    my_env = os.environ.copy()
+
+
+    results = list(futures.map(one_sim, [(sim, inp, my_env) for sim in range(inp.Nsims)]))
+    results = np.asarray(results, dtype=np.float32) #dim (Nsims, 3 for ClTT ClTy Clyy, 3 for CMB tSZ noise components, ellmax+1)
+
+    try:
+        pickle.dump(results, open('data_spectra.p', 'wb'), protocol=4)
+        if inp.verbose:
+            print('created file data_spectra.p', flush=True)
+    except Exception:
+        print('could not create file data_spectra.p', flush=True)
+
+    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(inp.Nsims, inp.ellmax, inp.verbose)
+    print(f'Acmb={mean_acmb}+{upper_acmb-mean_acmb}-{mean_acmb-lower_acmb}', flush=True)
+    print(f'Atsz={mean_atsz}+{upper_atsz-mean_atsz}-{mean_atsz-lower_atsz}', flush=True)

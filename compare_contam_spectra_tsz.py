@@ -86,8 +86,8 @@ T_sim = hp.anafast(T_ILC, lmax=inp.ellmax)
 
 #plot comparison of our approach and simulation
 ells = np.arange(inp.ellmax+1)
-plt.plot(ells[2:], (ells*(ells+1)*T_nilc/(2*np.pi))[2:], label='tSZ from our approach')
 plt.plot(ells[2:], (ells*(ells+1)*T_sim/(2*np.pi))[2:], label='tSZ directly calculated from simulation')
+plt.plot(ells[2:], (ells*(ells+1)*T_nilc/(2*np.pi))[2:], label='tSZ from analytic model')
 plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{yy}}{2\pi}$ [$\mathrm{K}^2$]')
@@ -101,4 +101,6 @@ if inp.verbose:
 if inp.remove_files:
     # subprocess.call(f'rm wt_maps/CMB/{sim}_*', shell=True, env=my_env)
     subprocess.call(f'rm maps/sim{sim}_freq1.fits maps/sim{sim}_freq2.fits', shell=True, env=my_env)
-    subprocess.call('rm maps/tsz_00000*', shell=True, env=my_env)
+    subprocess.call('rm maps/{sim}_tsz_00000.fits', shell=True, env=env)
+    subprocess.call('rm maps/tsz_00000*', shell=True, env=env)
+    subprocess.call('rm maps/{sim}_cmb_map.fits', shell=True, env=env)
