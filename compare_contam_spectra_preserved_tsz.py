@@ -53,8 +53,9 @@ h = GaussianNeedlets(inp.ellmax, inp.GN_FWHM_arcmin)[1]
 a = np.array([1., 1.])
 g = tsz_spectral_response(inp.freqs)
 CC_nilc = calculate_all_cl(nfreqs, inp.ellmax, h, a, CC, M, wigner) #CMB propagation from our equation
+T_nilc = calculate_all_cl(nfreqs, inp.ellmax, h, g, T, M, wigner) #tSZ propagation from our equation, should be unbiased
 if inp.verbose:
-    print('calculated CC_nilc', flush=True)
+    print('calculated CC_nilc and T_nilc', flush=True)
 del wigner #free up memory
 
 
@@ -65,7 +66,7 @@ npix = 12*inp.nside**2
 nfreqs = len(inp.freqs)
 all_maps = np.zeros((inp.Nscales,npix)) #index as all_maps[n][pixel]
 for i in range(nfreqs):
-    map_ = a[i]*hp.read_map('maps/cmb_map.fits')
+    map_ = a[i]*hp.read_map(f'maps/{sim}_cmb_map.fits')
     alm_orig = hp.map2alm(map_)
     for n in range(inp.Nscales):
         alm = hp.almxfl(alm_orig,filters[n]) #initial needlet filtering
@@ -83,7 +84,7 @@ for n in range(inp.Nscales):
 T_ILC = np.sum(np.array([hp.alm2map(T_ILC_n[n],inp.nside) for n in range(len(T_ILC_n))]), axis=0) #adding maps from all scales
 CC_sim = hp.anafast(T_ILC, lmax=inp.ellmax)
 
-#plot comparison of our approach and simulation
+#plot comparison of our approach and simulation for CMB
 ells = np.arange(inp.ellmax+1)
 plt.plot(ells[2:], (ells*(ells+1)*CC_sim/(2*np.pi))[2:],label='CMB directly calculated from simulation')
 plt.plot(ells[2:], (ells*(ells+1)*CC_nilc/(2*np.pi))[2:],label='CMB from analytic model')
@@ -91,14 +92,49 @@ plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
 # plt.yscale('log')
-plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ.png')
+plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB.png')
 if inp.verbose:
-    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ.png', flush=True)
+    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB.png', flush=True)
+
+#find T from simulation directly
+all_maps = np.zeros((inp.Nscales,npix)) #index as all_maps[n][pixel]
+for i in range(nfreqs):
+    map_ = g[i]*hp.read_map(f'maps/{sim}_tsz_00000.fits')
+    alm_orig = hp.map2alm(map_)
+    for n in range(inp.Nscales):
+        alm = hp.almxfl(alm_orig,filters[n]) #initial needlet filtering
+        map_ = hp.alm2map(alm, inp.nside)
+        NILC_weights = hp.ud_grade(wt_maps[n][i],inp.nside)
+        map_ = map_*NILC_weights #application of weight map
+        all_maps[n] = np.add(all_maps[n],map_) #add maps at all frequencies for each scale
+T_ILC_n = None
+for n in range(inp.Nscales):
+    T_ILC_alm = hp.map2alm(all_maps[n])
+    tmp = hp.almxfl(T_ILC_alm,filters[n]) #final needlet filtering
+    if T_ILC_n is None:
+        T_ILC_n = np.zeros((inp.Nscales,len(tmp)),dtype=np.complex128)
+    T_ILC_n[n]=tmp
+T_ILC = np.sum(np.array([hp.alm2map(T_ILC_n[n],inp.nside) for n in range(len(T_ILC_n))]), axis=0) #adding maps from all scales
+T_sim = hp.anafast(T_ILC, lmax=inp.ellmax)
+
+
+#plot comparison of our approach and simulation for tSZ
+ells = np.arange(inp.ellmax+1)
+plt.clf()
+plt.plot(ells[2:], (ells*(ells+1)*T_sim/(2*np.pi))[2:],label='tSZ directly calculated from simulation')
+plt.plot(ells[2:], (ells*(ells+1)*T_nilc/(2*np.pi))[2:],label='tSZ from analytic model')
+plt.legend()
+plt.xlabel(r'$\ell$')
+plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
+# plt.yscale('log')
+plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ.png')
+if inp.verbose:
+    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ.png', flush=True)
+
 
 #delete files
 if inp.remove_files:
     # subprocess.call(f'rm wt_maps/tSZ/{sim}_*', shell=True, env=my_env)
     subprocess.call(f'rm maps/sim{sim}_freq1.fits maps/sim{sim}_freq2.fits', shell=True, env=my_env)
-    subprocess.call('rm maps/{sim}_tsz_00000.fits', shell=True, env=env)
-    subprocess.call('rm maps/tsz_00000*', shell=True, env=env)
-    subprocess.call('rm maps/{sim}_cmb_map.fits', shell=True, env=env)
+    subprocess.call(f'rm maps/{sim}_tsz_00000*', shell=True, env=my_env)
+    subprocess.call(f'rm maps/{sim}_cmb_map.fits', shell=True, env=my_env)
