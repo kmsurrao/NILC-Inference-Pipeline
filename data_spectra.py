@@ -34,10 +34,14 @@ def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
     filters[N_scales-1] = np.sqrt(1. - Gaussians[N_scales-2]**2.)
     # simple check to ensure that sum of squared transmission is unity as needed for NILC algorithm
     assert (np.absolute( np.sum( filters**2., axis=0 ) - np.ones(ELLMAX+1,dtype=float)) < 1.e-3).all(), "wavelet filter transmission check failed"
+    taper_width = 200.
+    taper_func = (1.0 - 0.5*(np.tanh(0.025*(ell - (ELLMAX - taper_width))) + 1.0)) #smooth taper to zero from ELLMAX-taper_width to ELLMAX
+    taper_func *= 0.5*(np.tanh(0.5*(ell-4)))+0.5 #smooth taper to zero for low ell
+    for i, filt in enumerate(filters):
+        filters[i] = filters[i]*taper_func
     return ell, filters
 
-def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner_file, CC, T, N, wt_map_spectra, FWHM_arcmin, verbose):
-    wigner = pickle.load(open(wigner_file, 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
+def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner, CC, T, N, wt_map_spectra, FWHM_arcmin, verbose):
     nfreqs = len(freqs)
     h = GaussianNeedlets(ellmax, FWHM_arcmin)[1]
     a = np.array([1., 1.])
