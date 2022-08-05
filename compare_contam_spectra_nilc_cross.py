@@ -10,7 +10,6 @@ from nilc_power_spectrum_calc import calculate_all_cl
 from generate_maps import *
 from wt_map_spectra import *
 from data_spectra import *
-from compare_contam_spectra_nilc_cross import sim_propagation
 import warnings
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 hp.disable_warnings()
@@ -33,20 +32,21 @@ sim = 101
 # Generate frequency maps with include_noise=False and get CC, T
 CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_scripts_path, inp.verbose, include_noise=True)
 
-# Get NILC weight maps just for preserved tSZ
+#get NILC weight maps for preserved component CMB and preserved component tSZ
+subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/CMB_preserved.yml {sim}"], shell=True, env=my_env)
+if inp.verbose:
+    print(f'generated NILC weight maps for preserved component CMB, sim {sim}', flush=True)
 subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/tSZ_preserved.yml {sim}"], shell=True, env=my_env)
 if inp.verbose:
     print(f'generated NILC weight maps for preserved component tSZ, sim {sim}', flush=True)
 
 # Get weight map power spectra
-wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose, comps=['tSZ'])
-#get final NILC map and then don't need pyilc outputs anymore
-NILC_map = hp.read_map(f'wt_maps/tSZ/{sim}_needletILCmap_component_tSZ.fits')
+wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose, comps=['CMB', 'tSZ'])
 if inp.verbose:
     print(f'calculated weight map spectra for sim {sim}', flush=True)
 
-# Calculate propagation of CC and T to NILC preserved tSZ weight map
-M = wt_map_power_spectrum[2]
+# Calculate propagation of CC and T to tSZ NILC CMB NILC cross spectrum
+M = wt_map_power_spectrum[1]
 del wt_map_power_spectrum #free up memory
 wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
 nfreqs = len(inp.freqs)
@@ -60,10 +60,36 @@ if inp.verbose:
 del wigner #free up memory
 
 
+def sim_propagation(wt_maps, sim_map_file, spectral_response, inp=inp):
+    ell, filters = GaussianNeedlets(inp.ellmax, FWHM_arcmin=inp.GN_FWHM_arcmin)
+    npix = 12*inp.nside**2
+    nfreqs = len(inp.freqs)
+    all_maps = np.zeros((inp.Nscales,npix)) #index as all_maps[n][pixel]
+    for i in range(nfreqs):
+        map_ = spectral_response[i]*hp.read_map(sim_map_file)
+        alm_orig = hp.map2alm(map_)
+        for n in range(inp.Nscales):
+            alm = hp.almxfl(alm_orig,filters[n]) #initial needlet filtering
+            map_ = hp.alm2map(alm, inp.nside)
+            NILC_weights = hp.ud_grade(wt_maps[n][i],inp.nside)
+            map_ = map_*NILC_weights #application of weight map
+            all_maps[n] = np.add(all_maps[n],map_) #add maps at all frequencies for each scale
+    T_ILC_n = None
+    for n in range(inp.Nscales):
+        T_ILC_alm = hp.map2alm(all_maps[n])
+        tmp = hp.almxfl(T_ILC_alm,filters[n]) #final needlet filtering
+        if T_ILC_n is None:
+            T_ILC_n = np.zeros((inp.Nscales,len(tmp)),dtype=np.complex128)
+        T_ILC_n[n]=tmp
+    T_ILC = np.sum(np.array([hp.alm2map(T_ILC_n[n],inp.nside) for n in range(len(T_ILC_n))]), axis=0) #adding maps from all scales
+    return T_ILC
+
 #find CC from simulation directly
-wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, comps=['tSZ'])[1]
-CMB_in_tSZ_NILC = sim_propagation(wt_maps, f'maps/{sim}_cmb_map.fits', a, inp)
-CC_sim = hp.anafast(CMB_in_tSZ_NILC, lmax=inp.ellmax)
+CMB_wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, comps=['CMB'])[0]
+tSZ_wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, comps=['tSZ'])[1]
+CMB_in_CMB_NILC = sim_propagation(CMB_wt_maps, f'maps/{sim}_cmb_map.fits', a, inp)
+CMB_in_tSZ_NILC = sim_propagation(tSZ_wt_maps, f'maps/{sim}_cmb_map.fits', a, inp)
+CC_sim = hp.anafast(CMB_in_CMB_NILC, CMB_in_tSZ_NILC, lmax=inp.ellmax)
 
 #plot comparison of our approach and simulation for CMB
 ells = np.arange(inp.ellmax+1)
@@ -73,13 +99,15 @@ plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
 # plt.yscale('log')
-plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB.png')
+plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_cross_compCMB.png')
 if inp.verbose:
-    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB.png', flush=True)
+    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_cross_compCMB.png', flush=True)
 
 #find T from simulation directly
-tSZ_in_tSZ_NILC = sim_propagation(wt_maps, f'maps/{sim}_tsz_00000.fits', g, inp)
-T_sim = hp.anafast(tSZ_in_tSZ_NILC, lmax=inp.ellmax)
+tSZ_in_CMB_NILC = sim_propagation(CMB_wt_maps, f'maps/{sim}_tsz_00000.fits', g, inp)
+tSZ_in_tSZ_NILC = sim_propagation(tSZ_wt_maps, f'maps/{sim}_tsz_00000.fits', g, inp)
+T_sim = hp.anafast(tSZ_in_CMB_NILC, tSZ_in_tSZ_NILC, lmax=inp.ellmax)
+
 
 #plot comparison of our approach and simulation for tSZ
 ells = np.arange(inp.ellmax+1)
@@ -90,9 +118,9 @@ plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
 # plt.yscale('log')
-plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ.png')
+plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_cross_comptSZ.png')
 if inp.verbose:
-    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ.png', flush=True)
+    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_cross_comptSZ.png', flush=True)
 
 
 #delete files
