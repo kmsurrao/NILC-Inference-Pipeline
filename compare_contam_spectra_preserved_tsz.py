@@ -81,7 +81,7 @@ if inp.verbose:
     print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB_includenoise{include_noise}.png', flush=True)
 
 #find T from simulation directly
-tsz_map = inp.tsz_amp*hp.read_map(f'{halosky_maps_path}/tsz_{sim:05d}.fits')
+tsz_map = inp.tsz_amp*hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
 tSZ_in_tSZ_NILC = sim_propagation(wt_maps, tsz_map, g, inp)
 T_sim = hp.anafast(tSZ_in_tSZ_NILC, lmax=inp.ellmax)
 
@@ -103,5 +103,5 @@ if inp.verbose:
 #delete files
 if inp.remove_files:
     subprocess.call(f'rm {inp.scratch_path}/wt_maps/tSZ/{sim}_*', shell=True, env=my_env)
-    subprocess.call(f'rm {inp.scratch_path}/maps/sim{sim}_freq1.fits maps/sim{sim}_freq2.fits', shell=True, env=my_env)
+    subprocess.call(f'rm {inp.scratch_path}/maps/sim{sim}_freq1.fits {inp.scratch_path}/maps/sim{sim}_freq2.fits', shell=True, env=my_env)
     subprocess.call(f'rm {inp.scratch_path}/maps/{sim}_cmb_map.fits', shell=True, env=my_env)

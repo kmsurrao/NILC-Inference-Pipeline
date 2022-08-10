@@ -64,7 +64,7 @@ del wigner #free up memory
 
 #find T from simulation directly
 wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, inp.scratch_path, comps=['CMB'])[0]
-tsz_map = inp.tsz_amp*hp.read_map(f'{halosky_maps_path}/tsz_{sim:05d}.fits')
+tsz_map = inp.tsz_amp*hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
 tSZ_in_CMB_NILC = sim_propagation(wt_maps, tsz_map, g, inp)
 T_sim = hp.anafast(tSZ_in_CMB_NILC, lmax=inp.ellmax)
 
@@ -109,5 +109,5 @@ if inp.verbose:
 #delete files
 if inp.remove_files:
     subprocess.call(f'rm {inp.scratch_path}/wt_maps/CMB/{sim}_*', shell=True, env=my_env)
-    subprocess.call(f'rm {inp.scratch_path}/maps/sim{sim}_freq1.fits maps/sim{sim}_freq2.fits', shell=True, env=my_env)
+    subprocess.call(f'rm {inp.scratch_path}/maps/sim{sim}_freq1.fits {inp.scratch_path}/maps/sim{sim}_freq2.fits', shell=True, env=my_env)
     subprocess.call(f'rm {inp.scratch_path}/maps/{sim}_cmb_map.fits', shell=True, env=my_env)

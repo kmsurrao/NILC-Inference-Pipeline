@@ -28,8 +28,7 @@ inp = Info(input_file)
 my_env = os.environ.copy()
 
 def one_sim(sim, inp=inp, env=my_env):
-    #create frequency maps (GHz) consisting of CMB, tSZ, and noise
-    #get power spectra of component maps (CC, T, and N)
+    #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
     CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.scratch_path, inp.verbose)
     
     #get NILC weight maps for preserved component CMB and preserved component tSZ
