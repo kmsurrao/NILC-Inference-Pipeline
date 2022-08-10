@@ -40,14 +40,14 @@ def one_sim(sim, inp=inp, env=my_env):
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}', flush=True)
     if inp.remove_files: #don't need frequency maps anymore
-        subprocess.call(f'rm {scratch_path}/maps/sim{sim}_freq1.fits {scratch_path}/maps/sim{sim}_freq2.fits', shell=True, env=env)
-        subprocess.call(f'rm {scratch_path}/maps/{sim}_cmb_map.fits', shell=True, env=env)
+        subprocess.call(f'rm {inp.scratch_path}/maps/sim{sim}_freq1.fits {inp.scratch_path}/maps/sim{sim}_freq2.fits', shell=True, env=env)
+        subprocess.call(f'rm {inp.scratch_path}/maps/{sim}_cmb_map.fits', shell=True, env=env)
 
     #get power spectra of weight maps--dimensions (3,Nscales,Nscales,Nfreqs,Nfreqs,ellmax)
-    wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose)
+    wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose, inp.scratch_path)
     #don't need pyilc outputs anymore
-    subprocess.call(f'rm {scratch_path}/wt_maps/CMB/{sim}_*', shell=True, env=env)
-    subprocess.call(f'rm {scratch_path}/wt_maps/tSZ/{sim}_*', shell=True, env=env)
+    subprocess.call(f'rm {inp.scratch_path}/wt_maps/CMB/{sim}_*', shell=True, env=env)
+    subprocess.call(f'rm {inp.scratch_path}/wt_maps/tSZ/{sim}_*', shell=True, env=env)
     if inp.verbose:
         print(f'calculated weight map spectra for sim {sim}', flush=True)
 

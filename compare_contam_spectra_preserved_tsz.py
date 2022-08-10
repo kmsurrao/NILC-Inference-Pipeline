@@ -34,7 +34,7 @@ sim = 101
 
 # Generate frequency maps with include_noise=False and get CC, T
 include_noise = True
-CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.verbose, include_noise=include_noise)
+CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.scratch_path, inp.verbose, include_noise=include_noise)
 
 # Get NILC weight maps just for preserved tSZ
 subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/tSZ_preserved.yml {sim}"], shell=True, env=my_env)
@@ -42,7 +42,7 @@ if inp.verbose:
     print(f'generated NILC weight maps for preserved component tSZ, sim {sim}', flush=True)
 
 # Get weight map power spectra
-wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose, comps=['tSZ'])
+wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose, inp.scratch_path, comps=['tSZ'])
 if inp.verbose:
     print(f'calculated weight map spectra for sim {sim}', flush=True)
 
@@ -62,7 +62,7 @@ del wigner #free up memory
 
 
 #find CC from simulation directly
-wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, comps=['tSZ'])[1]
+wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, inp.scratch_path, comps=['tSZ'])[1]
 cmb_map = hp.read_map(f'maps/{sim}_cmb_map.fits')
 CMB_in_tSZ_NILC = sim_propagation(wt_maps, cmb_map, a, inp)
 CC_sim = hp.anafast(CMB_in_tSZ_NILC, lmax=inp.ellmax)
@@ -102,6 +102,6 @@ if inp.verbose:
 
 #delete files
 if inp.remove_files:
-    subprocess.call(f'rm wt_maps/tSZ/{sim}_*', shell=True, env=my_env)
-    subprocess.call(f'rm maps/sim{sim}_freq1.fits maps/sim{sim}_freq2.fits', shell=True, env=my_env)
-    subprocess.call(f'rm maps/{sim}_cmb_map.fits', shell=True, env=my_env)
+    subprocess.call(f'rm {inp.scratch_path}/wt_maps/tSZ/{sim}_*', shell=True, env=my_env)
+    subprocess.call(f'rm {inp.scratch_path}/maps/sim{sim}_freq1.fits maps/sim{sim}_freq2.fits', shell=True, env=my_env)
+    subprocess.call(f'rm {inp.scratch_path}/maps/{sim}_cmb_map.fits', shell=True, env=my_env)

@@ -5,14 +5,14 @@ import warnings
 from astropy.utils.exceptions import AstropyDeprecationWarning
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 
-def load_wt_maps(sim, Nscales, nside, comps=['CMB', 'tSZ']):
+def load_wt_maps(sim, Nscales, nside, scratch_path, comps=['CMB', 'tSZ']):
     nfreqs = 2
     CMB_wt_maps = [[[],[]] for i in range(Nscales)]
     tSZ_wt_maps = [[[],[]] for i in range(Nscales)]
     for comp in comps:
         for scale in range(Nscales):
             for freq in range(2):
-                wt_map_path = f'wt_maps/{comp}/{sim}_weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
+                wt_map_path = f'{scratch_path}/wt_maps/{comp}/{sim}_weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
                 wt_map = hp.read_map(wt_map_path)
                 if comp=='CMB':
                     CMB_wt_maps[scale][freq] = wt_map*10**(-6) #since pyilc outputs CMB map in uK
@@ -37,7 +37,7 @@ def get_wt_map_spectrum_two_maps(comp1_wt_maps, comp2_wt_maps, ellmax, n,m,i,j):
 
 
 
-def get_wt_map_spectra(sim, ellmax, Nscales, nside, verbose, comps=['CMB', 'tSZ']):
+def get_wt_map_spectra(sim, ellmax, Nscales, nside, verbose, scratch_path, comps=['CMB', 'tSZ']):
     '''
     ARGUMENTS
     ---------
@@ -49,7 +49,7 @@ def get_wt_map_spectra(sim, ellmax, Nscales, nside, verbose, comps=['CMB', 'tSZ'
     '''
     hp.disable_warnings() 
     Nfreqs = 2
-    CMB_wt_maps, tSZ_wt_maps = load_wt_maps(sim, Nscales, nside, comps)
+    CMB_wt_maps, tSZ_wt_maps = load_wt_maps(sim, Nscales, nside, scratch_path, comps)
     wt_map_power_spectrum = np.full((3, Nscales, Nscales, Nfreqs, Nfreqs, ellmax+1), None)
     for c in range(3): #TT, Ty, yy
         for n in range(Nscales):
