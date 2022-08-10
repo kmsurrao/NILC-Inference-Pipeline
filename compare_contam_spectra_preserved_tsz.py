@@ -34,7 +34,7 @@ sim = 101
 
 # Generate frequency maps with include_noise=False and get CC, T
 include_noise = True
-CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_scripts_path, inp.verbose, include_noise=include_noise)
+CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.verbose, include_noise=include_noise)
 
 # Get NILC weight maps just for preserved tSZ
 subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/tSZ_preserved.yml {sim}"], shell=True, env=my_env)
@@ -63,7 +63,8 @@ del wigner #free up memory
 
 #find CC from simulation directly
 wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, comps=['tSZ'])[1]
-CMB_in_tSZ_NILC = sim_propagation(wt_maps, f'maps/{sim}_cmb_map.fits', a, inp)
+cmb_map = hp.read_map(f'maps/{sim}_cmb_map.fits')
+CMB_in_tSZ_NILC = sim_propagation(wt_maps, cmb_map, a, inp)
 CC_sim = hp.anafast(CMB_in_tSZ_NILC, lmax=inp.ellmax)
 
 #plot comparison of our approach and simulation for CMB
@@ -80,7 +81,8 @@ if inp.verbose:
     print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB_includenoise{include_noise}.png', flush=True)
 
 #find T from simulation directly
-tSZ_in_tSZ_NILC = sim_propagation(wt_maps, f'maps/{sim}_tsz_00000.fits', g, inp)
+tsz_map = inp.tsz_amp*hp.read_map(f'{halosky_maps_path}/tsz_{sim:05d}.fits')
+tSZ_in_tSZ_NILC = sim_propagation(wt_maps, tsz_map, g, inp)
 T_sim = hp.anafast(tSZ_in_tSZ_NILC, lmax=inp.ellmax)
 
 #plot comparison of our approach and simulation for tSZ
@@ -92,7 +94,7 @@ plt.plot(ells[2:], (ells*(ells+1)*T_nilc/(2*np.pi))[2:],label='tSZ from analytic
 plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
-plt.yscale('log')
+# plt.yscale('log')
 plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ_includenoise{include_noise}.png')
 if inp.verbose:
     print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ_includenoise{include_noise}.png', flush=True)
@@ -102,5 +104,4 @@ if inp.verbose:
 if inp.remove_files:
     subprocess.call(f'rm wt_maps/tSZ/{sim}_*', shell=True, env=my_env)
     subprocess.call(f'rm maps/sim{sim}_freq1.fits maps/sim{sim}_freq2.fits', shell=True, env=my_env)
-    subprocess.call(f'rm maps/{sim}_tsz_00000*', shell=True, env=my_env)
     subprocess.call(f'rm maps/{sim}_cmb_map.fits', shell=True, env=my_env)

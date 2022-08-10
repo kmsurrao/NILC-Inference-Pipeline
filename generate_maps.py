@@ -7,7 +7,7 @@ from astropy.utils.exceptions import AstropyDeprecationWarning
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 
 
-def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky_scripts_path, verbose, include_noise=True, include_cmb=True, include_tsz=True):
+def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky_maps_path, scratch_path, verbose, include_noise=True, include_cmb=True, include_tsz=True):
 
     '''
     saves freq map files 
@@ -17,12 +17,8 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     my_env = os.environ.copy()
 
     #create tSZ map from halosky
-    subprocess.run([f"python {halosky_scripts_path}/example.py {sim}"], shell=True, env=my_env)
-    if verbose:
-        print(f'finished creating tSZ map sim {sim} from halosky')
-    tsz_map = hp.read_map(f'maps/{sim}_tsz_00000.fits')
-    tsz_map = tsz_amp*hp.ud_grade(tsz_map, nside) 
-    hp.write_map(f'maps/{sim}_tsz_00000.fits', tsz_map, overwrite=True)
+    tsz_map = hp.read_map(f'{halosky_maps_path}/tsz_{sim:05d}.fits')
+    tsz_map = tsz_amp*hp.ud_grade(tsz_map, nside)
     tsz_cl = hp.anafast(tsz_map, lmax=ellmax)
 
     #realization of CMB from lensed alm
@@ -30,7 +26,7 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     cmb_cl = hp.alm2cl(cmb_alm)*10**(-12)
     cmb_map = hp.synfast(cmb_cl, nside)
     cmb_cl = hp.anafast(cmb_map, lmax=ellmax)
-    hp.write_map(f'maps/{sim}_cmb_map.fits', cmb_map, overwrite=True)
+    hp.write_map(f'{scratch_path}/maps/{sim}_cmb_map.fits', cmb_map, overwrite=True)
 
     #noise map realization
     theta_fwhm = (1.4/60.)*(np.pi/180.)
@@ -57,9 +53,9 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     if include_noise:
         sim_map_1 += noise_map
         sim_map_2 += noise_map
-    hp.write_map(f'maps/sim{sim}_freq1.fits', sim_map_1, overwrite=True)
-    hp.write_map(f'maps/sim{sim}_freq2.fits', sim_map_2, overwrite=True)
+    hp.write_map(f'{scratch_path}/maps/sim{sim}_freq1.fits', sim_map_1, overwrite=True)
+    hp.write_map(f'{scratch_path}/maps/sim{sim}_freq2.fits', sim_map_2, overwrite=True)
     if verbose:
-        print(f'created maps/sim{sim}_freq1.fits and maps/sim{sim}_freq2.fits', flush=True)
+        print(f'created {scratch_path}/maps/sim{sim}_freq1.fits and {scratch_path}/maps/sim{sim}_freq2.fits', flush=True)
 
     return cmb_cl[:ellmax+1], tsz_cl[:ellmax+1], noise_cl[:ellmax+1]

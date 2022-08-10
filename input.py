@@ -39,12 +39,14 @@ class Info(object):
 
         self.pyilc_path = p['pyilc_path']
         assert type(self.pyilc_path) is str, "TypeError: pyilc_path"
-        self.halosky_scripts_path = p['halosky_scripts_path']
-        assert type(self.halosky_scripts_path) is str, "TypeError: halosky_scripts_path"
+        self.halosky_maps_path = p['halosky_maps_path']
+        assert type(self.halosky_maps_path) is str, "TypeError: halosky_maps_path"
         self.cmb_alm_file = p['cmb_alm_file']
         assert type(self.cmb_alm_file) is str, "TypeError: cmb_alm_file"
         self.wigner_file = p['wigner_file']
         assert type(self.wigner_file) is str, "TypeError: wigner_file"
+        self.scratch_path = ['scratch_path']
+        assert type(self.scratch_path) is str, "TypeError: scratch_path"
 
         self.verbose = p['verbose']
         self.remove_files = p['remove_files']
