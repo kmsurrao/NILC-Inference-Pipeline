@@ -7,7 +7,7 @@ from astropy.utils.exceptions import AstropyDeprecationWarning
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 
 
-def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky_scripts_path, verbose, include_noise=True):
+def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky_scripts_path, verbose, include_noise=True, include_cmb=True, include_tsz=True):
 
     '''
     saves freq map files 
@@ -22,6 +22,7 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
         print(f'finished creating tSZ map sim {sim} from halosky')
     tsz_map = hp.read_map(f'maps/{sim}_tsz_00000.fits')
     tsz_map = tsz_amp*hp.ud_grade(tsz_map, nside) 
+    hp.write_map(f'maps/{sim}_tsz_00000.fits', tsz_map, overwrite=True)
     tsz_cl = hp.anafast(tsz_map, lmax=ellmax)
 
     #realization of CMB from lensed alm
@@ -32,14 +33,13 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     hp.write_map(f'maps/{sim}_cmb_map.fits', cmb_map, overwrite=True)
 
     #noise map realization
-    if include_noise:
-        theta_fwhm = (1.4/60.)*(np.pi/180.)
-        sigma = theta_fwhm/np.sqrt(8.*np.log(2.))
-        W = (1/60.)*(np.pi/180.)
-        ells = np.arange(3*nside)
-        noise_cl = W**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
-        noise_map = hp.synfast(noise_cl, nside)
-        noise_cl = hp.anafast(noise_map, lmax=ellmax)
+    theta_fwhm = (1.4/60.)*(np.pi/180.)
+    sigma = theta_fwhm/np.sqrt(8.*np.log(2.))
+    W = (1/60.)*(np.pi/180.)
+    ells = np.arange(3*nside)
+    noise_cl = W**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
+    noise_map = hp.synfast(noise_cl, nside)
+    noise_cl = hp.anafast(noise_map, lmax=ellmax)
 
     #tSZ spectral response
     T_cmb = 2.726
@@ -52,17 +52,14 @@ def generate_freq_maps(sim, freqs, tsz_amp, nside, ellmax, cmb_alm_file, halosky
     g1, g2 = tsz_spectral_response(freqs[0]), tsz_spectral_response(freqs[1])
 
     #create maps at freq1 and freq2 (in GHz)
+    sim_map_1 = cmb_map + g1*tsz_map
+    sim_map_2 = cmb_map + g2*tsz_map 
     if include_noise:
-        sim_map_1 = cmb_map + g1*tsz_map + noise_map
-        sim_map_2 = cmb_map + g2*tsz_map + noise_map
-    else:
-        sim_map_1 = cmb_map + g1*tsz_map
-        sim_map_2 = cmb_map + g2*tsz_map
+        sim_map_1 += noise_map
+        sim_map_2 += noise_map
     hp.write_map(f'maps/sim{sim}_freq1.fits', sim_map_1, overwrite=True)
     hp.write_map(f'maps/sim{sim}_freq2.fits', sim_map_2, overwrite=True)
     if verbose:
         print(f'created maps/sim{sim}_freq1.fits and maps/sim{sim}_freq2.fits', flush=True)
 
-    if include_noise:
-        return cmb_cl[:ellmax+1], tsz_cl[:ellmax+1], noise_cl[:ellmax+1]
-    return cmb_cl[:ellmax+1], tsz_cl[:ellmax+1]
+    return cmb_cl[:ellmax+1], tsz_cl[:ellmax+1], noise_cl[:ellmax+1]
