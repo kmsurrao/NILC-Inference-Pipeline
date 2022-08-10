@@ -15,6 +15,8 @@ import warnings
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 hp.disable_warnings()
 
+print('starting script compare_contam_spectra_preserved_tsz.py', flush=True)
+
 # main input file containing most specifications
 try:
     input_file = (sys.argv)[1]
@@ -31,7 +33,8 @@ my_env = os.environ.copy()
 sim = 101
 
 # Generate frequency maps with include_noise=False and get CC, T
-CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_scripts_path, inp.verbose, include_noise=True)
+include_noise = True
+CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_scripts_path, inp.verbose, include_noise=include_noise)
 
 # Get NILC weight maps just for preserved tSZ
 subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/tSZ_preserved.yml {sim}"], shell=True, env=my_env)
@@ -40,8 +43,6 @@ if inp.verbose:
 
 # Get weight map power spectra
 wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose, comps=['tSZ'])
-#get final NILC map and then don't need pyilc outputs anymore
-NILC_map = hp.read_map(f'wt_maps/tSZ/{sim}_needletILCmap_component_tSZ.fits')
 if inp.verbose:
     print(f'calculated weight map spectra for sim {sim}', flush=True)
 
@@ -67,15 +68,16 @@ CC_sim = hp.anafast(CMB_in_tSZ_NILC, lmax=inp.ellmax)
 
 #plot comparison of our approach and simulation for CMB
 ells = np.arange(inp.ellmax+1)
+plt.plot(ells[2:], (ells*(ells+1)*CC/(2*np.pi))[2:],label='CMB input')
 plt.plot(ells[2:], (ells*(ells+1)*CC_sim/(2*np.pi))[2:],label='CMB directly calculated from simulation')
 plt.plot(ells[2:], (ells*(ells+1)*CC_nilc/(2*np.pi))[2:],label='CMB from analytic model')
 plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
-# plt.yscale('log')
-plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB.png')
+plt.yscale('log')
+plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB_includenoise{include_noise}.png')
 if inp.verbose:
-    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB.png', flush=True)
+    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB_includenoise{include_noise}.png', flush=True)
 
 #find T from simulation directly
 tSZ_in_tSZ_NILC = sim_propagation(wt_maps, f'maps/{sim}_tsz_00000.fits', g, inp)
@@ -84,20 +86,21 @@ T_sim = hp.anafast(tSZ_in_tSZ_NILC, lmax=inp.ellmax)
 #plot comparison of our approach and simulation for tSZ
 ells = np.arange(inp.ellmax+1)
 plt.clf()
+plt.plot(ells[2:], (ells*(ells+1)*T/(2*np.pi))[2:],label='tSZ input')
 plt.plot(ells[2:], (ells*(ells+1)*T_sim/(2*np.pi))[2:],label='tSZ directly calculated from simulation')
 plt.plot(ells[2:], (ells*(ells+1)*T_nilc/(2*np.pi))[2:],label='tSZ from analytic model')
 plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
-# plt.yscale('log')
-plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ.png')
+plt.yscale('log')
+plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ_includenoise{include_noise}.png')
 if inp.verbose:
-    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ.png', flush=True)
+    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ_includenoise{include_noise}.png', flush=True)
 
 
 #delete files
 if inp.remove_files:
-    # subprocess.call(f'rm wt_maps/tSZ/{sim}_*', shell=True, env=my_env)
+    subprocess.call(f'rm wt_maps/tSZ/{sim}_*', shell=True, env=my_env)
     subprocess.call(f'rm maps/sim{sim}_freq1.fits maps/sim{sim}_freq2.fits', shell=True, env=my_env)
     subprocess.call(f'rm maps/{sim}_tsz_00000*', shell=True, env=my_env)
     subprocess.call(f'rm maps/{sim}_cmb_map.fits', shell=True, env=my_env)
