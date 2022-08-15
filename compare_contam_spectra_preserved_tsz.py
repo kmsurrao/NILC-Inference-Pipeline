@@ -32,9 +32,8 @@ my_env = os.environ.copy()
 #set sim number to 101 (to not conflict with runs from main.py)
 sim = 101
 
-# Generate frequency maps with include_noise=False and get CC, T
-include_noise = True
-CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.scratch_path, inp.verbose, include_noise=include_noise)
+# Generate frequency maps and get CC, T
+CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.noise, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.scratch_path, inp.verbose)
 
 # Get NILC weight maps just for preserved tSZ
 subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/tSZ_preserved.yml {sim}"], shell=True, env=my_env)
@@ -76,9 +75,9 @@ plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
 plt.yscale('log')
-plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB_includenoise{include_noise}.png')
+plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_compCMB.png')
 if inp.verbose:
-    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_compCMB_includenoise{include_noise}.png', flush=True)
+    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_compCMB.png', flush=True)
 
 #find T from simulation directly
 tsz_map = inp.tsz_amp*hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
@@ -95,9 +94,9 @@ plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
 # plt.yscale('log')
-plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ_includenoise{include_noise}.png')
+plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_comptSZ.png')
 if inp.verbose:
-    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_preservedtSZ_comptSZ_includenoise{include_noise}.png', flush=True)
+    print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_comptSZ.png', flush=True)
 
 
 #delete files

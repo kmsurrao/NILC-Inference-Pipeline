@@ -41,7 +41,7 @@ def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
         filters[i] = filters[i]*taper_func
     return ell, filters
 
-def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner, CC, T, N, wt_map_spectra, FWHM_arcmin, verbose):
+def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner, CC, T, N, wt_map_spectra, FWHM_arcmin, scratch_path, verbose):
     nfreqs = len(freqs)
     h = GaussianNeedlets(ellmax, FWHM_arcmin)[1]
     a = np.array([1., 1.])
@@ -65,7 +65,10 @@ def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner, CC, T, N, wt_
             Clyy[0] = calculate_all_cl(nfreqs, ellmax, h, a, CC, M, wigner)
             Clyy[1] = T[:ellmax+1]
             Clyy[2] = calculate_all_cl(nfreqs, ellmax, h, a, N, M, wigner, delta_ij=True)
-
-    return np.array([ClTT, ClTy, Clyy]) #has dim (3 for ClTT ClTy Clyy, 3 for CMB tSZ noise components, ellmax+1)
+    output = np.array([ClTT, ClTy, Clyy]) #has dim (3 for ClTT ClTy Clyy, 3 for CMB tSZ noise components, ellmax+1)
+    pickle.dump(output, open(f'{scratch_path}/power_spectra/{sim}_data_spectra.p', 'wb'), protocol=4)
+    if verbose:
+        print(f'created {scratch_path}/power_spectra/{sim}_data_spectra.p', flush=True)
+    return output 
 
 

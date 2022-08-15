@@ -34,6 +34,7 @@ def sim_propagation(wt_maps, sim_map, spectral_response, inp):
         T_ILC_alm = hp.map2alm(all_maps[n])
         tmp = hp.almxfl(T_ILC_alm,filters[n]) #final needlet filtering
         if T_ILC_n is None:
+            # T_ILC_n = np.zeros((inp.Nscales,len(tmp)),dtype=np.complex128)
             T_ILC_n = np.zeros((inp.Nscales,len(tmp)),dtype=np.complex128)
         T_ILC_n[n]=tmp
     T_ILC = np.sum(np.array([hp.alm2map(T_ILC_n[n],inp.nside) for n in range(len(T_ILC_n))]), axis=0) #adding maps from all scales
@@ -58,9 +59,8 @@ if __name__=='__main__':
     #set sim number to 101 (to not conflict with runs from main.py)
     sim = 101
 
-    # Generate frequency maps with include_noise=False and get CC, T
-    include_noise = True
-    CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.scratch_path, inp.verbose, include_noise=include_noise)
+    # Generate frequency maps and get CC, T
+    CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.noise, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.scratch_path, inp.verbose)
 
     #get NILC weight maps for preserved component CMB and preserved component tSZ
     subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/CMB_preserved.yml {sim}"], shell=True, env=my_env)
@@ -108,9 +108,9 @@ if __name__=='__main__':
     plt.xlabel(r'$\ell$')
     plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
     # plt.yscale('log')
-    plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_cross_compCMB_includenoise{include_noise}.png')
+    plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_cross_compCMB.png')
     if inp.verbose:
-        print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_cross_compCMB_includenoise{include_noise}.png', flush=True)
+        print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_cross_compCMB.png', flush=True)
 
     #find T from simulation directly
     tsz_map = inp.tsz_amp*hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
@@ -128,9 +128,9 @@ if __name__=='__main__':
     plt.xlabel(r'$\ell$')
     plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
     # plt.yscale('log')
-    plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_cross_comptSZ_includenoise{include_noise}.png')
+    plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_cross_comptSZ.png')
     if inp.verbose:
-        print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_cross_comptSZ_includenoise{include_noise}.png', flush=True)
+        print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_cross_comptSZ.png', flush=True)
 
 
     #delete files

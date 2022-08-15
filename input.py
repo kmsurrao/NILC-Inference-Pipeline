@@ -36,6 +36,8 @@ class Info(object):
         assert all(FWHM_val > 0. for FWHM_val in self.GN_FWHM_arcmin), "GN_FWHM_arcmin"
         self.tsz_amp = p['tSZ_amp']
         assert self.tsz_amp >= 0, 'tSZ_amp'
+        self.noise = p['noise']
+        assert self.noise >= 0, 'noise'
 
         self.pyilc_path = p['pyilc_path']
         assert type(self.pyilc_path) is str, "TypeError: pyilc_path"

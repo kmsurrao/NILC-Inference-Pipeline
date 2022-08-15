@@ -1,16 +1,17 @@
-Nsims: 2 #number of simulations to run
-num_parallel: 2 #number of sims to run in parallel
+Nsims: 3 #number of simulations to run
+num_parallel: 3 #number of sims to run in parallel
 
 nside: 1024 #nside of NILC maps
 ellmax: 1000 #ellmax for power spectra
-tSZ_amp: 1000. #amplification factor for tSZ spectra
+tSZ_amp: 1. #amplification factor for tSZ spectra
+noise: 100. #noise level in uK arcmin
 freqs: [90., 150.] #frequencies for maps, in GHz
 Nscales: 6 #number of needlet filter scales
 GN_FWHM_arcmin: [300., 120., 60., 30., 15.]
 # GN_FWHM_arcmin: [1100., 100., 15., 7.5]
 
 verbose: 1 #set to 0 if do not want intermediate printing
-remove_files: 1 #set to 0 if do not want to remove intermediate files between each sim
+remove_files: 0 #set to 0 if do not want to remove intermediate files between each sim
 
 
 halosky_maps_path: '/global/cscratch1/sd/kmsurrao/halosky/scripts/maps'
