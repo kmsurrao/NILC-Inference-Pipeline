@@ -62,7 +62,7 @@ del wigner #free up memory
 
 #find CC from simulation directly
 wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, inp.scratch_path, comps=['tSZ'])[1]
-cmb_map = hp.read_map(f'maps/{sim}_cmb_map.fits')
+cmb_map = hp.read_map(f'{inp.scratch_path}/maps/{sim}_cmb_map.fits')
 CMB_in_tSZ_NILC = sim_propagation(wt_maps, cmb_map, a, inp)
 CC_sim = hp.anafast(CMB_in_tSZ_NILC, lmax=inp.ellmax)
 
@@ -97,6 +97,28 @@ plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
 plt.savefig(f'contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_comptSZ.png')
 if inp.verbose:
     print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_comptSZ.png', flush=True)
+
+
+#plot ratio CC_nilc/CC_sim
+plt.clf()
+plt.plot(ells[2:], (CC_nilc/CC_sim)[2:])
+plt.xlabel(r'$\ell$')
+plt.ylabel(r'$\frac{CC_{\mathrm{nilc}}}{CC_{\mathrm{sim}}}$')
+plt.savefig(f'ratio_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_compCMB.png')
+plt.close('all')
+if inp.verbose:
+    print(f'saved ratio_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_compCMB.png', flush=True)
+
+
+#plot ratio T_nilc/T_sim
+plt.clf()
+plt.plot(ells[2:], (T_nilc/T_sim)[2:])
+plt.xlabel(r'$\ell$')
+plt.ylabel(r'$\frac{T_{\mathrm{nilc}}}{T_{\mathrm{sim}}}$')
+plt.savefig(f'ratio_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_comptSZ.png')
+plt.close('all')
+if inp.verbose:
+    print(f'saved ratio_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedtSZ_comptSZ.png', flush=True)
 
 
 #delete files

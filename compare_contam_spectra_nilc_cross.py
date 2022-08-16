@@ -95,7 +95,7 @@ if __name__=='__main__':
     #find CC from simulation directly
     CMB_wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, inp.scratch_path, comps=['CMB'])[0]
     tSZ_wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, inp.scratch_path, comps=['tSZ'])[1]
-    cmb_map = hp.read_map(f'maps/{sim}_cmb_map.fits')
+    cmb_map = hp.read_map(f'{inp.scratch_path}/maps/{sim}_cmb_map.fits')
     CMB_in_CMB_NILC = sim_propagation(CMB_wt_maps, cmb_map, a, inp)
     CMB_in_tSZ_NILC = sim_propagation(tSZ_wt_maps, cmb_map, a, inp)
     CC_sim = hp.anafast(CMB_in_CMB_NILC, CMB_in_tSZ_NILC, lmax=inp.ellmax)

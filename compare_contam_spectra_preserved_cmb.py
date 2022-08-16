@@ -84,7 +84,7 @@ if inp.verbose:
 
 
 #find CC from simulation directly
-cmb_map = hp.read_map(f'maps/{sim}_cmb_map.fits')
+cmb_map = hp.read_map(f'{inp.scratch_path}/maps/{sim}_cmb_map.fits')
 CMB_in_CMB_NILC = sim_propagation(wt_maps, cmb_map, a, inp)
 CC_sim = hp.anafast(CMB_in_CMB_NILC, lmax=inp.ellmax)
 
@@ -104,6 +104,46 @@ plt.close('all')
 if inp.verbose:
     print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_compCMB.png', flush=True)
 
+
+#plot ratio T_nilc/T_sim
+plt.clf()
+plt.plot(ells[2:], (T_nilc/T_sim)[2:])
+plt.xlabel(r'$\ell$')
+plt.ylabel(r'$\frac{T_{\mathrm{nilc}}}{T_{\mathrm{sim}}}$')
+plt.savefig(f'ratio_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_comptSZ.png')
+plt.close('all')
+if inp.verbose:
+    print(f'saved ratio_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_comptSZ.png', flush=True)
+
+#plot ratio CC_nilc/CC_sim
+plt.clf()
+plt.plot(ells[2:], (CC_nilc/CC_sim)[2:])
+plt.xlabel(r'$\ell$')
+plt.ylabel(r'$\frac{CC_{\mathrm{nilc}}}{CC_{\mathrm{sim}}}$')
+plt.savefig(f'ratio_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_compCMB.png')
+plt.close('all')
+if inp.verbose:
+    print(f'saved ratio_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_compCMB.png', flush=True)
+
+#plot ratio CC_nilc/CC
+plt.clf()
+plt.plot(ells[2:], (CC_nilc/CC)[2:])
+plt.xlabel(r'$\ell$')
+plt.ylabel(r'$\frac{CC_{\mathrm{nilc}}}{CC}$')
+plt.savefig(f'ratioCCnilcCC_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_compCMB.png')
+plt.close('all')
+if inp.verbose:
+    print(f'saved ratioCCnilcCC_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_compCMB.png', flush=True)
+
+#plot ratio CC_sim/CC
+plt.clf()
+plt.plot(ells[2:], (CC_sim/CC)[2:])
+plt.xlabel(r'$\ell$')
+plt.ylabel(r'$\frac{CC_{\mathrm{sim}}}{CC}$')
+plt.savefig(f'ratioCCsimCC_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_compCMB.png')
+plt.close('all')
+if inp.verbose:
+    print(f'saved ratioCCsimCC_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_compCMB.png', flush=True)
 
 #delete files
 if inp.remove_files:
