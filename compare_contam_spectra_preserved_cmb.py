@@ -64,6 +64,7 @@ del wigner #free up memory
 #find T from simulation directly
 wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, inp.scratch_path, comps=['CMB'])[0]
 tsz_map = inp.tsz_amp*hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
+tsz_map = hp.read_map(f'{inp.scratch_path}/test_maps/{sim}_tsz_map.fits') #remove this later
 tSZ_in_CMB_NILC = sim_propagation(wt_maps, tsz_map, g, inp)
 T_sim = hp.anafast(tSZ_in_CMB_NILC, lmax=inp.ellmax)
 

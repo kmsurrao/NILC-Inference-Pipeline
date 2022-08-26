@@ -20,6 +20,8 @@ def generate_freq_maps(sim, freqs, tsz_amp, noise, nside, ellmax, cmb_alm_file, 
     tsz_map = hp.read_map(f'{halosky_maps_path}/tsz_{sim:05d}.fits')
     tsz_map = tsz_amp*hp.ud_grade(tsz_map, nside)
     tsz_cl = hp.anafast(tsz_map, lmax=ellmax)
+    # tsz_map = hp.synfast(tsz_cl, nside) #remove this later, keep for gaussian tSZ
+    # hp.write_map(f'{scratch_path}/test_maps/{sim}_tsz_map.fits', tsz_map, overwrite=True) #remove this later, keep for gaussian tSZ
 
     #realization of CMB from lensed alm
     cmb_alm = hp.read_alm(cmb_alm_file)
