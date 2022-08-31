@@ -13,3 +13,5 @@ dndmtab.npz
 __pycache__/
 catalogs/
 test_images/
+corrs/
+test_sums/

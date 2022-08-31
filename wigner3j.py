@@ -124,7 +124,7 @@ def get_wigner3j_zero_m(inp, save=False):
         pool = mp.Pool(32)
         pool.starmap(get_wigner3j_zero_m_one_ell, [(l1, inp, True) for l1 in range(0,inp.ellmax+1)])
         pool.close()
-            all_wigner = pickle.load(open(f'{inp.scratch_path}/wigner3j_zero_m/0.p', 'rb'))
+        all_wigner = pickle.load(open(f'{inp.scratch_path}/wigner3j_zero_m/0.p', 'rb'))
         for l1 in range(1,inp.ellmax+1):
             new = pickle.load(open(f'{inp.scratch_path}/wigner3j_zero_m/{l1}.p', 'rb'))
             all_wigner = np.concatenate((all_wigner, new), axis=0)
@@ -147,7 +147,7 @@ def get_wigner3j_nonzero_m(l1, inp, save=False):
         pool = mp.Pool(32)
         pool.starmap(get_wigner3j_nonzero_m_one_ell, [(l1, inp, True) for l1 in range(0,inp.ellmax+1)])
         pool.close()
-            all_wigner = pickle.load(open(f'{inp.scratch_path}/wigner3j_nonzero_m/0.p', 'rb'))
+        all_wigner = pickle.load(open(f'{inp.scratch_path}/wigner3j_nonzero_m/0.p', 'rb'))
         for l1 in range(1,inp.ellmax+1):
             new = pickle.load(open(f'{inp.scratch_path}/wigner3j_nonzero_m/{l1}.p', 'rb'))
             all_wigner = np.concatenate((all_wigner, new), axis=0)

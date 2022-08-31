@@ -1,6 +1,8 @@
 print('starting script compare_contam_spectra_preserved_cmb.py', flush=True)
 
 import sys
+sys.path.insert(0, "./../" )
+sys.path.insert(0, "./../pipeline" )
 import os
 import subprocess
 import numpy as np

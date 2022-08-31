@@ -1,4 +1,6 @@
 import sys
+sys.path.insert(0, "./../" )
+sys.path.insert(0, "./../pipeline" )
 import os
 import subprocess
 import numpy as np
@@ -6,7 +8,7 @@ import healpy as hp
 import matplotlib.pyplot as plt
 import pickle
 from input import Info
-from nilc_power_spectrum_calc import calculate_all_cl
+from nilc_power_spectrum_calc import calculate_all_cl_corrected
 from generate_maps import *
 from wt_map_spectra import *
 from data_spectra import *
@@ -75,18 +77,28 @@ if __name__=='__main__':
     wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.verbose, inp.scratch_path, comps=['CMB', 'tSZ'])
     if inp.verbose:
         print(f'calculated weight map spectra for sim {sim}', flush=True)
-
-    # Calculate propagation of CC and T to tSZ NILC CMB NILC cross spectrum
     M = wt_map_power_spectrum[1]
     del wt_map_power_spectrum #free up memory
+    
+    #load component maps
+    cmb_map = hp.read_map(f'{inp.scratch_path}/maps/{sim}_cmb_map.fits')
+    tsz_map = inp.tsz_amp*hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
+
+    # Get component map and weight map cross spectra
+    W_tsz = get_comp_and_wt_map_cross_spectra(sim, inp.ellmax, inp.Nscales, tsz_map, inp.verbose, inp.scratch_path, ['CMB', 'tSZ'])
+    W_cmb = get_comp_and_wt_map_cross_spectra(sim, inp.ellmax, inp.Nscales, cmb_map, inp.verbose, inp.scratch_path, ['CMB', 'tSZ'])
+    if inp.verbose:
+        print(f'calculated component map and weight map cross spectra for sim {sim}', flush=True)
+
+    # Calculate propagation of CC and T to tSZ NILC CMB NILC cross spectrum
     wigner_zero_m = get_wigner3j_zero_m(inp, save=False)
     wigner_nonzero_m = get_wigner3j_nonzero_m(inp, save=False)
     nfreqs = len(inp.freqs)
     h = GaussianNeedlets(inp.ellmax, inp.GN_FWHM_arcmin)[1]
     a = np.array([1., 1.])
     g = tsz_spectral_response(inp.freqs)
-    CC_nilc = calculate_all_cl(nfreqs, inp.ellmax, h, a, CC, M, wigner) #CMB propagation from our equation
-    T_nilc = calculate_all_cl(nfreqs, inp.ellmax, h, g, T, M, wigner) #tSZ propagation from our equation, should be unbiased
+    CC_nilc = calculate_all_cl_corrected(nfreqs, inp.ellmax, h, a, CC, M, W_cmb[0], W_cmb[1], wigner_zero_m, wigner_nonzero_m) #CMB propagation from our equation
+    T_nilc = calculate_all_cl_corrected(nfreqs, inp.ellmax, h, g, T, M, W_tsz[0], W_tsz[1], wigner_zero_m, wigner_nonzero_m) #tSZ propagation from our equation, should be unbiased
     if inp.verbose:
         print('calculated CC_nilc and T_nilc', flush=True)
     del wigner #free up memory
@@ -97,7 +109,6 @@ if __name__=='__main__':
     #find CC from simulation directly
     CMB_wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, inp.scratch_path, comps=['CMB'])[0]
     tSZ_wt_maps = load_wt_maps(sim, inp.Nscales, inp.nside, inp.scratch_path, comps=['tSZ'])[1]
-    cmb_map = hp.read_map(f'{inp.scratch_path}/maps/{sim}_cmb_map.fits')
     CMB_in_CMB_NILC = sim_propagation(CMB_wt_maps, cmb_map, a, inp)
     CMB_in_tSZ_NILC = sim_propagation(tSZ_wt_maps, cmb_map, a, inp)
     CC_sim = hp.anafast(CMB_in_CMB_NILC, CMB_in_tSZ_NILC, lmax=inp.ellmax)
@@ -115,7 +126,6 @@ if __name__=='__main__':
         print(f'saved contam_spectra_comparison_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_cross_compCMB.png', flush=True)
 
     #find T from simulation directly
-    tsz_map = inp.tsz_amp*hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
     tSZ_in_CMB_NILC = sim_propagation(CMB_wt_maps, tsz_map, g, inp)
     tSZ_in_tSZ_NILC = sim_propagation(tSZ_wt_maps, tsz_map, g, inp)
     T_sim = hp.anafast(tSZ_in_CMB_NILC, tSZ_in_tSZ_NILC, lmax=inp.ellmax)

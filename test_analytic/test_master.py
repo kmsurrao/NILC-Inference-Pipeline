@@ -1,4 +1,6 @@
 import sys
+sys.path.insert(0, "./../" )
+sys.path.insert(0, "./../pipeline" )
 import os
 import subprocess
 import numpy as np
@@ -6,7 +8,7 @@ import healpy as hp
 import matplotlib.pyplot as plt
 import pickle
 from input import Info
-from nilc_power_spectrum_calc import calculate_all_cl
+from nilc_power_spectrum_calc import calculate_all_cl_corrected
 from generate_maps import *
 from wt_map_spectra import *
 from data_spectra import *

@@ -71,7 +71,6 @@ def calculate_all_cl_corrected(nfreqs, ellmax, h, g, cl, M, Wp, Wq, wigner_zero_
             m.append(-1)
     m = np.array(m)
 
-
     if not delta_ij:
         term1 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,nl,ml,na,ma,i,j,nmijb->l',2*l2+1,2*l3+1,wigner_zero_m,wigner_zero_m,cl,h[:,:ellmax+1],h[:,:ellmax+1],h,h,g,g,M,optimize=True)
         term2 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,nl,ml,na,mb,i,j,mja,nib->l',2*l2+1,2*l3+1,wigner_zero_m,wigner_zero_m,h[:,:ellmax+1],h[:,:ellmax+1],h,h,g,g,Wq,Wp,optimize=True)
@@ -80,5 +79,6 @@ def calculate_all_cl_corrected(nfreqs, ellmax, h, g, cl, M, Wp, Wq, wigner_zero_
         term1 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,nl,ml,na,ma,i,i,nmiib->l',2*l2+1,2*l3+1,wigner_zero_m,wigner_zero_m,cl,h[:,:ellmax+1],h[:,:ellmax+1],h,h,g,g,M,optimize=True)
         term2 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,nl,ml,na,mb,i,i,mia,nib->l',2*l2+1,2*l3+1,wigner_zero_m,wigner_zero_m,h[:,:ellmax+1],h[:,:ellmax+1],h,h,g,g,Wq,Wp,optimize=True)
         term3 = float(1/(4*np.pi))*np.einsum('a,b,laa,lbb,lac,lbd,nl,ml,na,mb,i,i,nia,mib,c,d->l',2*l2+1,2*l3+1,wigner_zero_m,wigner_zero_m,wigner_nonzero_m,wigner_nonzero_m,h[:,:ellmax+1],h[:,:ellmax+1],h,h,g,g,Wp,Wq,m,m,optimize=True)
+    
     Cl = term1 + term2 + term3
     return Cl
