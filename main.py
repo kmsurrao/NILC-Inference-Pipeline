@@ -35,7 +35,7 @@ def one_sim(sim, inp, env, wigner_zero_m, wigner_nonzero_m):
         subprocess.call(f'rm {inp.scratch_path}/maps/{sim}_cmb_map.fits', shell=True, env=env)
 
     #get power spectra of weight maps--dimensions (3,Nscales,Nscales,Nfreqs,Nfreqs,ellmax)
-    wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose, inp.scratch_path)
+    wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.verbose, inp.scratch_path)
     if inp.verbose:
         print(f'calculated weight map spectra for sim {sim}', flush=True)
     if inp.remove_files: #don't need pyilc outputs anymore

@@ -42,7 +42,7 @@ if inp.verbose:
     print(f'generated NILC weight maps for preserved component tSZ, sim {sim}', flush=True)
 
 # Get weight map power spectra
-wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.nside, inp.verbose, inp.scratch_path, comps=['tSZ'])
+wt_map_power_spectrum = get_wt_map_spectra(sim, inp.ellmax, inp.Nscales, inp.verbose, inp.scratch_path, comps=['tSZ'])
 if inp.verbose:
     print(f'calculated weight map spectra for sim {sim}', flush=True)
 
