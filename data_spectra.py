@@ -1,7 +1,7 @@
 import numpy as np
 import pickle
 import healpy as hp
-from nilc_power_spectrum_calc import calculate_all_cl
+from nilc_power_spectrum_calc import calculate_all_cl_corrected
 
 
 def tsz_spectral_response(freqs): #input frequency in GHz
@@ -41,7 +41,7 @@ def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
         filters[i] = filters[i]*taper_func
     return ell, filters
 
-def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner, CC, T, N, wt_map_spectra, FWHM_arcmin, scratch_path, verbose):
+def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner_zero_m, wigner_nonzero_m, CC, T, N, wt_map_spectra, FWHM_arcmin, scratch_path, verbose):
     nfreqs = len(freqs)
     h = GaussianNeedlets(ellmax, FWHM_arcmin)[1]
     a = np.array([1., 1.])
@@ -53,18 +53,18 @@ def get_data_spectra(sim, freqs, Nscales, tsz_amp, ellmax, wigner, CC, T, N, wt_
         if j==0: #ClTT
             M = wt_map_spectra[0]
             ClTT[0] = CC[:ellmax+1]
-            ClTT[1] = calculate_all_cl(nfreqs, ellmax, h, g, T, M, wigner)
-            ClTT[2] = calculate_all_cl(nfreqs, ellmax, h, a, N, M, wigner, delta_ij=True)
+            ClTT[1] = calculate_all_cl_corrected(nfreqs, ellmax, h, g, T, M, Wp, Wq, wigner_zero_m, wigner_nonzero_m)
+            ClTT[2] = calculate_all_cl_corrected(nfreqs, ellmax, h, a, N, M, Wp, Wq, wigner_zero_m, wigner_nonzero_m, delta_ij=True)
         elif j==1: #ClTy
             M = wt_map_spectra[1]
-            ClTy[0] = calculate_all_cl(nfreqs, ellmax, h, a, CC, M, wigner)
-            ClTy[1] = calculate_all_cl(nfreqs, ellmax, h, g, T, M, wigner)
-            ClTy[2] = calculate_all_cl(nfreqs, ellmax, h, a, N, M, wigner, delta_ij=True)
+            ClTy[0] = calculate_all_cl_corrected(nfreqs, ellmax, h, a, CC, M, Wp, Wq, wigner_zero_m, wigner_nonzero_m)
+            ClTy[1] = calculate_all_cl_corrected(nfreqs, ellmax, h, g, T, M, Wp, Wq, wigner_zero_m, wigner_nonzero_m)
+            ClTy[2] = calculate_all_cl_corrected(nfreqs, ellmax, h, a, N, M, Wp, Wq, wigner_zero_m, wigner_nonzero_m, delta_ij=True)
         elif j==2: #Clyy
             M = wt_map_spectra[2]
-            Clyy[0] = calculate_all_cl(nfreqs, ellmax, h, a, CC, M, wigner)
+            Clyy[0] = calculate_all_cl_corrected(nfreqs, ellmax, h, a, CC, M, Wp, Wq, wigner_zero_m, wigner_nonzero_m)
             Clyy[1] = T[:ellmax+1]
-            Clyy[2] = calculate_all_cl(nfreqs, ellmax, h, a, N, M, wigner, delta_ij=True)
+            Clyy[2] = calculate_all_cl_corrected(nfreqs, ellmax, h, a, N, M, Wp, Wq, wigner_zero_m, wigner_nonzero_m, delta_ij=True)
     output = np.array([ClTT, ClTy, Clyy]) #has dim (3 for ClTT ClTy Clyy, 3 for CMB tSZ noise components, ellmax+1)
     pickle.dump(output, open(f'{scratch_path}/power_spectra/{sim}_data_spectra.p', 'wb'), protocol=4)
     if verbose:

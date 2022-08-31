@@ -9,6 +9,7 @@ from input import Info
 from generate_maps import *
 from wt_map_spectra import *
 from data_spectra import *
+from wigner3j import *
 import warnings
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 hp.disable_warnings()
@@ -29,6 +30,7 @@ def calculate_all_cl(scale_n, scale_m, nfreqs, ellmax, h, a, cl, M, wigner, cons
     for (i,j) in [(0,0), (0,1), (1,0), (1,1)]:
         M_tmp = M[:,:,i,j,:]
         Cl_at_ij = a[i]*a[j]*float(1/(4*np.pi))*np.einsum('p,q,lpq,lpq,p,nmq->nml',2*l2+1,2*l3+1,wigner,wigner,cl,M_tmp,optimize=True)
+        # Cl_at_ij = a[i]*a[j]*float(1/(4*np.pi))*np.einsum('p,lpq,lpq,p,nmq->nml',2*l2+1,wigner,wigner,cl,M_tmp,optimize=True) #remove, test to see if had extra factor 2ell3+1
         Cl += Cl_at_ij
         if constituent_plot:
             plt.plot(np.arange(2, ellmax+1), Cl_at_ij[scale_n][scale_m][2:], label=f'i={i}, j={j}')
@@ -38,8 +40,8 @@ def calculate_all_cl(scale_n, scale_m, nfreqs, ellmax, h, a, cl, M, wigner, cons
         plt.xlabel(r'$\ell$')
         plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{i(n),j(m)}}{2\pi}$')
         # plt.yscale('log')
-        plt.savefig('test_sum_freqs_constituents.png')
-        print('saved test_sum_freqs_constituents.png')
+        plt.savefig('test_sums/test_sum_freqs_constituents.png')
+        print('saved test_sums/test_sum_freqs_constituents.png')
     return Cl[scale_n][scale_m]
 
 def sim_propagation(n, m, wt_maps, sim_map, spectral_response, inp):
@@ -89,6 +91,7 @@ def compare(n, m, wt_maps, sim_map, spectral_response, inp, nfreqs, ellmax, h, a
         #analytic equation
         M_tmp = M[:,:,i,j,:]
         analytic_ij = a[i]*a[j]*float(1/(4*np.pi))*np.einsum('p,q,lpq,lpq,p,nmq->nml',2*l2+1,2*l3+1,wigner,wigner,cl,M_tmp,optimize=True)
+        # analytic_ij = a[i]*a[j]*float(1/(4*np.pi))*np.einsum('p,lpq,lpq,p,nmq->nml',2*l2+1,wigner,wigner,cl,M_tmp,optimize=True) #remove, test to see if had extra factor 2ell3+1
         analytic_tot += analytic_ij
 
         ells = np.arange(2, ellmax+1)
@@ -99,16 +102,16 @@ def compare(n, m, wt_maps, sim_map, spectral_response, inp, nfreqs, ellmax, h, a
         plt.xlabel(r'$\ell$')
         plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{nm}}{2\pi}$')
         plt.title(f'i={i}, j={j}, n={n}, m={m}')
-        plt.savefig(f'test_constituents_ij{i}{j}_scales{n}{m}.png')
-        print(f'saved fig test_constituents_ij{i}{j}_scales{n}{m}.png')
+        plt.savefig(f'test_sums/test_constituents_ij{i}{j}_scales{n}{m}.png')
+        print(f'saved test_sums/fig test_constituents_ij{i}{j}_scales{n}{m}.png')
 
         plt.clf()
         plt.plot(ells, analytic_ij[n][m][2:]/sim_ij[2:])
         plt.xlabel(r'$\ell$')
         plt.ylabel('analytic/simulation')
         plt.title(f'Ratio plot i={i}, j={j}, n={n}, m={m}')
-        plt.savefig(f'test_constituents_ratio_ij{i}{j}_scales{n}{m}.png')
-        print(f'saved fig test_constituents_ratio_ij{i}{j}_scales{n}{m}.png')
+        plt.savefig(f'test_sums/test_constituents_ratio_ij{i}{j}_scales{n}{m}.png')
+        print(f'saved fig test_sums/test_constituents_ratio_ij{i}{j}_scales{n}{m}.png')
 
     plt.clf()
     plt.plot(ells, ells*(ells+1)*sim_tot[2:]/(2*np.pi), label=f'sim')
@@ -117,16 +120,16 @@ def compare(n, m, wt_maps, sim_map, spectral_response, inp, nfreqs, ellmax, h, a
     plt.xlabel(r'$\ell$')
     plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{nm}}{2\pi}$')
     plt.title(f'summed over frequencies n={n}, m={m}')
-    plt.savefig(f'test_constituents_tot_scales{n}{m}.png')
-    print(f'saved fig test_constituents_tot_scales{n}{m}.png')
+    plt.savefig(f'test_sums/test_constituents_tot_scales{n}{m}.png')
+    print(f'saved fig test_sums/test_constituents_tot_scales{n}{m}.png')
 
     plt.clf()
     plt.plot(ells, analytic_tot[n][m][2:]/sim_tot[2:])
     plt.xlabel(r'$\ell$')
     plt.ylabel('analytic/simulation')
     plt.title(f'Ratio plot for summed over frequencies n={n}, m={m}')
-    plt.savefig(f'test_constituents_ratio_tot_scales{n}{m}.png')
-    print(f'saved fig test_constituents_ratio_tot_scales{n}{m}.png')
+    plt.savefig(f'test_sums/test_constituents_ratio_tot_scales{n}{m}.png')
+    print(f'saved fig test_sums/test_constituents_ratio_tot_scales{n}{m}.png')
 
     return sim_tot, analytic_tot[n][m]
 
@@ -144,8 +147,8 @@ inp = Info(input_file)
 my_env = os.environ.copy()
 
 #set sim number to 101 (to not conflict with runs from main.py)
-#use sim 103 to use random weight maps. comment out pyilc line
-sim = 103
+#use sim 103 to use random weight maps or 104 for wt maps perfectly correlated to tSZ. comment out pyilc line
+sim = 101
 
 # Generate frequency maps and get CC, T
 CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.noise, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.scratch_path, inp.verbose)
@@ -163,7 +166,8 @@ if inp.verbose:
 # Calculate propagation of T and CC to NILC preserved CMB map
 M = wt_map_power_spectrum[0]
 del wt_map_power_spectrum #free up memory
-wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+wigner_zero_m = get_wigner3j_zero_m(inp, save=False)
+wigner_nonzero_m = get_wigner3j_nonzero_m(inp, save=False)
 nfreqs = len(inp.freqs)
 h = GaussianNeedlets(inp.ellmax, inp.GN_FWHM_arcmin)[1]
 a = np.array([1., 1.])
@@ -190,10 +194,10 @@ plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{yy}}{2\pi}$ [$\mathrm{K}^2$]')
 # plt.yscale('log')
-plt.savefig(f'test_sum_freqs_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_comptSZ.png')
+plt.savefig(f'test_sums/test_sum_freqs_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_comptSZ.png')
 plt.close('all')
 if inp.verbose:
-    print(f'saved test_sum_freqs_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_comptSZ.png', flush=True)
+    print(f'saved test_sums/test_sum_freqs_nside{inp.nside}_ellmax{inp.ellmax}_tSZamp{int(inp.tsz_amp)}_noise{int(inp.noise)}_preservedCMB_comptSZ.png', flush=True)
 
 #make plots of tSZ propagation from direct and analytic calculation, total and at each frequency pair
 tsz_compare_sim_tot, _ = compare(n, m, wt_maps, tsz_map, g, inp, nfreqs, inp.ellmax, h, g, T, M, wigner)
@@ -206,17 +210,17 @@ plt.title(f'tSZ to CMB preserved NILC without filtering, scale {n}, {m}')
 plt.legend()
 plt.xlabel(r'$\ell$')
 plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{yy}}{2\pi}$ [$\mathrm{K}^2$]')
-plt.savefig(f'test_compare_direct_calc.png')
+plt.savefig(f'test_sums/test_compare_direct_calc.png')
 if inp.verbose:
-    print(f'saved test_compare_direct_calc.png', flush=True)
+    print(f'saved test_sums/test_compare_direct_calc.png', flush=True)
 plt.clf()
 plt.plot(ells[2:], (T_sim/tsz_compare_sim_tot)[2:])
 plt.title(f'tSZ to CMB preserved NILC without filtering, scale {n}, {m}')
 plt.xlabel(r'$\ell$')
 plt.ylabel('direct calculation/ sum direct calculation over freqs')
-plt.savefig(f'test_compare_direct_calc_ratio.png')
+plt.savefig(f'test_sums/test_compare_direct_calc_ratio.png')
 if inp.verbose:
-    print(f'saved test_compare_direct_calc_ratio.png', flush=True)
+    print(f'saved test_sums/test_compare_direct_calc_ratio.png', flush=True)
 
 
 

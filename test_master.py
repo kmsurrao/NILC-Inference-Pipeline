@@ -10,6 +10,7 @@ from nilc_power_spectrum_calc import calculate_all_cl
 from generate_maps import *
 from wt_map_spectra import *
 from data_spectra import *
+from wigner3j import *
 from compare_contam_spectra_nilc_cross import sim_propagation
 import warnings
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
@@ -26,7 +27,8 @@ except IndexError:
 inp = Info(input_file)
 
 #load wigner3j symbols
-wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+wigner_zero_m = get_wigner3j_zero_m(inp, save=False)
+wigner_nonzero_m = get_wigner3j_nonzero_m(inp, save=False)
 
 #get halosky map and weight map and calculate their power spectra
 tsz_map = 1000*hp.read_map(f'{inp.halosky_maps_path}/tsz_00000.fits')

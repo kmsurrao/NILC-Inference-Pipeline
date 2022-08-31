@@ -17,6 +17,7 @@ remove_files: 1 #set to 0 if do not want to remove intermediate files between ea
 halosky_maps_path: '/global/cscratch1/sd/kmsurrao/halosky/scripts/maps'
 cmb_alm_file: '/global/homes/k/kmsurrao/websky/lensed_alm.fits'
 pyilc_path: '/global/homes/k/kmsurrao/pyilc'
-wigner_file: '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p'
+wigner_file: '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p' #use empty string if don't have
+wigner_nonzero_m_file: '' #use empty string if don't have
 scratch_path: '/global/cscratch1/sd/kmsurrao/NILC-Parameter-Pipeline-Outputs'
 

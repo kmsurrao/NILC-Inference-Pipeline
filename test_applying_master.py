@@ -9,6 +9,7 @@ from input import Info
 from generate_maps import *
 from wt_map_spectra import *
 from data_spectra import *
+from py3nj import *
 import warnings
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 hp.disable_warnings()
@@ -53,13 +54,13 @@ inp = Info(input_file)
 my_env = os.environ.copy()
 
 #set sim number to 101 (to not conflict with runs from main.py)
-sim = 101
+sim = 103
 
 # Generate frequency maps and get CC, T
 CC, T, N = generate_freq_maps(sim, inp.freqs, inp.tsz_amp, inp.noise, inp.nside, inp.ellmax, inp.cmb_alm_file, inp.halosky_maps_path, inp.scratch_path, inp.verbose)
 
 # Get NILC weight maps just for preserved CMB
-subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/CMB_preserved.yml {sim}"], shell=True, env=my_env)
+# subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.pyilc_path}/input/CMB_preserved.yml {sim}"], shell=True, env=my_env)
 if inp.verbose:
     print(f'generated NILC weight maps for preserved component CMB, sim {sim}', flush=True)
 
@@ -71,7 +72,8 @@ if inp.verbose:
 # Calculate propagation of T and CC to NILC preserved CMB map
 M = wt_map_power_spectrum[0]
 del wt_map_power_spectrum #free up memory
-wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+wigner_zero_m = get_wigner3j_zero_m(inp, save=False)
+wigner_nonzero_m = get_wigner3j_nonzero_m(inp, save=False)
 nfreqs = len(inp.freqs)
 h = GaussianNeedlets(inp.ellmax, inp.GN_FWHM_arcmin)[1]
 a = np.array([1., 1.])

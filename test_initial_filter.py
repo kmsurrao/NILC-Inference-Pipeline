@@ -9,6 +9,7 @@ from input import Info
 from generate_maps import *
 from wt_map_spectra import *
 from data_spectra import *
+from wigner3j import *
 import warnings
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 hp.disable_warnings()
@@ -74,7 +75,8 @@ if inp.verbose:
 # Calculate propagation of T and CC to NILC preserved CMB map
 M = wt_map_power_spectrum[0]
 del wt_map_power_spectrum #free up memory
-wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+wigner_zero_m = get_wigner3j_zero_m(inp, save=False)
+wigner_nonzero_m = get_wigner3j_nonzero_m(inp, save=False)
 nfreqs = len(inp.freqs)
 h = GaussianNeedlets(inp.ellmax, inp.GN_FWHM_arcmin)[1]
 # h = np.ones(h.shape) #remove

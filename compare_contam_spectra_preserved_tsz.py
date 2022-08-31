@@ -10,6 +10,7 @@ from nilc_power_spectrum_calc import calculate_all_cl
 from generate_maps import *
 from wt_map_spectra import *
 from data_spectra import *
+from wigner3j import *
 from compare_contam_spectra_nilc_cross import sim_propagation
 import warnings
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
@@ -48,7 +49,8 @@ if inp.verbose:
 # Calculate propagation of CC and T to NILC preserved tSZ weight map
 M = wt_map_power_spectrum[2]
 del wt_map_power_spectrum #free up memory
-wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+wigner_zero_m = get_wigner3j_zero_m(inp, save=False)
+wigner_nonzero_m = get_wigner3j_nonzero_m(inp, save=False)
 nfreqs = len(inp.freqs)
 h = GaussianNeedlets(inp.ellmax, inp.GN_FWHM_arcmin)[1]
 a = np.array([1., 1.])

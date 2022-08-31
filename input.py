@@ -47,6 +47,8 @@ class Info(object):
         assert type(self.cmb_alm_file) is str, "TypeError: cmb_alm_file"
         self.wigner_file = p['wigner_file']
         assert type(self.wigner_file) is str, "TypeError: wigner_file"
+        self.wigner_nonzero_m_file = p['wigner_nonzero_m_file']
+        assert type(self.wigner_nonzero_m_file) is str, "TypeError: wigner_nonzero_m_file"
         self.scratch_path = p['scratch_path']
         assert type(self.scratch_path) is str, "TypeError: scratch_path"
 

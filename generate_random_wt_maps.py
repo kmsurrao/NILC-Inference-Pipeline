@@ -16,7 +16,7 @@ def generate_random_weight_maps(sim, inp, g, comp, check_summation_constraint=Tr
     NILC_weights_Nside = inp.nside
     NILC_weights_Npix = 12*NILC_weights_Nside**2
     NILC_weights = np.zeros((Nbands_NILC,Nfreqs,NILC_weights_Npix))
-    NILC_weights = 2*(np.random.rand(Nbands_NILC, Nfreqs, NILC_weights_Npix)-0.5)
+    NILC_weights = np.random.rand(Nbands_NILC, Nfreqs, NILC_weights_Npix)
     tot = np.einsum('nip,i->np', NILC_weights, g)
     inv_tot = 1/tot
     NILC_weights = np.einsum('nip,np->nip', NILC_weights, inv_tot)
@@ -24,11 +24,13 @@ def generate_random_weight_maps(sim, inp, g, comp, check_summation_constraint=Tr
         sums = np.einsum('nip,i->np',NILC_weights,g)
         max_diff = np.amax(np.absolute(sums-1.))
         print('maximum diff: ', max_diff)
+        print(sums)
+        print(NILC_weights)
     for n in range(Nbands_NILC):
         for i in range(Nfreqs):
-            hp.write_map(inp.scratch_path + f'/{sim}_weightmap_freq{i}_scale{n}_component_{comp}.fits', NILC_weights[n][i], overwrite=True)
+            hp.write_map(inp.scratch_path + f'/wt_maps/{comp}/{sim}_weightmap_freq{i}_scale{n}_component_{comp}.fits', NILC_weights[n][i], overwrite=True)
             if inp.verbose:
-                print('saved ' + inp.scratch_path + f'/{sim}_weightmap_freq{i}_scale{n}_component_{comp}.fits', flush=True)
+                print('saved ' + inp.scratch_path + f'/wt_maps/{comp}/{sim}_weightmap_freq{i}_scale{n}_component_{comp}.fits', flush=True)
     return NILC_weights
 
 
@@ -53,9 +55,9 @@ def generate_random_weight_maps_dirichlet(sim, inp, g, comp, check_summation_con
         print('maximum diff: ', max_diff)
     for n in range(Nbands_NILC):
         for i in range(Nfreqs):
-            hp.write_map(inp.scratch_path + f'/{sim}_weightmap_freq{i}_scale{n}_component_{comp}.fits', NILC_weights[n][i], overwrite=True)
+            hp.write_map(inp.scratch_path + f'/wt_maps/{comp}/{sim}_weightmap_freq{i}_scale{n}_component_{comp}.fits', NILC_weights[n][i], overwrite=True)
             if inp.verbose:
-                print('saved ' + inp.scratch_path + f'/{sim}_weightmap_freq{i}_scale{n}_component_{comp}.fits', flush=True)
+                print('saved ' + inp.scratch_path + f'/wt_maps/{comp}/{sim}_weightmap_freq{i}_scale{n}_component_{comp}.fits', flush=True)
     return NILC_weights
 
 
@@ -73,6 +75,6 @@ inp = Info(input_file)
 sim = 103
 
 #write files with random weight maps to scratch_path
-g = np.ones(len(inp.freqs))
+a = np.ones(len(inp.freqs))
 comp = 'CMB'
-generate_random_weight_maps(sim, inp, g, comp, check_summation_constraint=True)
+generate_random_weight_maps(sim, inp, a, comp, check_summation_constraint=True)
