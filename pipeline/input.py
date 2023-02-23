@@ -28,14 +28,20 @@ class Info(object):
         assert type(self.nside) is int and self.nside>0, "nside"
         self.ellmax = p['ellmax']
         assert type(self.ellmax) is int and self.ellmax>0, "ellmax"
+        self.ell_sum_max = p['ell_sum_max']
+        assert type(self.ell_sum_max) is int and self.ell_sum_max>0, "ellmax"
         self.freqs = p['freqs']
         self.Nscales = p['Nscales']
         assert type(self.Nscales) is int and self.Nscales > 0, "Nscales"
-        self.GN_FWHM_arcmin = np.asarray(p['GN_FWHM_arcmin'])
+        self.GN_FWHM_arcmin = p['GN_FWHM_arcmin']
         assert len(self.GN_FWHM_arcmin) == self.Nscales - 1, "GN_FWHM_arcmin"
         assert all(FWHM_val > 0. for FWHM_val in self.GN_FWHM_arcmin), "GN_FWHM_arcmin"
         self.tsz_amp = p['tSZ_amp']
         assert self.tsz_amp >= 0, 'tSZ_amp'
+        self.dl_bispectrum = p['dl_bispectrum']
+        assert type(self.dl_bispectrum) is int and self.dl_bispectrum>0 and self.ellmax%self.dl_bispectrum==0, "dl_bispectrum"
+        self.dl_trispectrum = p['dl_trispectrum']
+        assert type(self.dl_trispectrum) is int and self.dl_trispectrum>0 and self.ellmax%self.dl_trispectrum==0, "dl_trispectrum"
         self.noise = p['noise']
         assert self.noise >= 0, 'noise'
 
@@ -43,17 +49,18 @@ class Info(object):
         assert type(self.pyilc_path) is str, "TypeError: pyilc_path"
         self.halosky_maps_path = p['halosky_maps_path']
         assert type(self.halosky_maps_path) is str, "TypeError: halosky_maps_path"
-        self.cmb_alm_file = p['cmb_alm_file']
-        assert type(self.cmb_alm_file) is str, "TypeError: cmb_alm_file"
+        self.cmb_map_file = p['cmb_map_file']
+        assert type(self.cmb_map_file) is str, "TypeError: cmb_map_file"
         self.wigner_file = p['wigner_file']
         assert type(self.wigner_file) is str, "TypeError: wigner_file"
-        self.wigner_nonzero_m_file = p['wigner_nonzero_m_file']
-        assert type(self.wigner_nonzero_m_file) is str, "TypeError: wigner_nonzero_m_file"
-        self.scratch_path = p['scratch_path']
-        assert type(self.scratch_path) is str, "TypeError: scratch_path"
+        self.output_dir = p['output_dir']
+        assert type(self.output_dir) is str, "TypeError: output_dir"
 
         self.verbose = p['verbose']
         self.remove_files = p['remove_files']
+
+        self.plot = p['plot']
+        self.save_files = p['save_files']
 
 
         
