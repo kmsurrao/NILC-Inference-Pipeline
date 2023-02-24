@@ -2,6 +2,7 @@ import sys
 import os
 import subprocess
 import pickle
+import time
 from input import Info
 from generate_maps import generate_freq_maps
 from pyilc_interface import setup_pyilc
@@ -26,9 +27,6 @@ def one_sim(sim, inp, env):
 
     #load weight maps and then remove pyilc weight map files
     CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim)
-    if inp.remove_files: #don't need pyilc output files anymore
-        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
-        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
 
     #get power spectra of components, index as Clzz[z,l]
     Clzz = get_Clzz(CC, T, N)
@@ -71,6 +69,7 @@ def one_sim(sim, inp, env):
         print(f'calculated bispectra for map, map, weight map for sim {sim}', flush=True)
     if inp.save_files:
         pickle.dump(bispectrum_zzw, open(f'{inp.output_dir}/n_point_funcs/bispectrum_zzw.p', 'wb'))
+    # bispectrum_zzw = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/bispectrum_zzw.p', 'rb')) #remove and uncomment section above
     
     #get bispectrum for two weight maps and one factor of map, index as bispectrum_wzw[p,n,i,z,q,m,j,b1,b2,b3]
     bispectrum_wzw = get_bispectrum_wzw(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps)
@@ -78,6 +77,7 @@ def one_sim(sim, inp, env):
         print(f'calculated bispectra for weight map, map, weight map for sim {sim}', flush=True)
     if inp.save_files:
         pickle.dump(bispectrum_wzw, open(f'{inp.output_dir}/n_point_funcs/bispectrum_wzw.p', 'wb'))
+    # bispectrum_wzw = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/bispectrum_wzw.p', 'rb')) #remove and uncomment section above
     
     #get unnormalized trispectrum estimator rho, index as rho[z,p,n,i,q,m,j,b2,b4,b3,b5,b1]
     Rho = get_rho(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps)
@@ -85,30 +85,49 @@ def one_sim(sim, inp, env):
         print(f'calculated unnormalized trispectrum estimator rho for sim {sim}', flush=True)
     if inp.save_files:
         pickle.dump(Rho, open(f'{inp.output_dir}/n_point_funcs/Rho.p', 'wb'))
+    # Rho = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/Rho.p', 'rb')) #remove and uncomment section above
     
     #get needlet filters and spectral responses
-    h = GaussianNeedlets(inp.ellmax, inp.FWHM_arcmin)[1]
+    h = GaussianNeedlets(inp.ell_sum_max, np.array(inp.GN_FWHM_arcmin))[1]
     g_cmb = np.array([1., 1.])
     g_tsz = tsz_spectral_response(inp.freqs)
 
     #get contributions to Clpq from each comp, index as Cl_{comp}[p,q,l] and contrib_{comp}[reMASTERed term, p,q,l]
     Cl_CMB, contrib_CMB = calculate_all_cl(inp, h, g_cmb, Clzz[0], Clw1w2, Clzw[0], w, a[0],
             bispectrum_zzw[0], bispectrum_wzw[:,:,:,0,:,:,:,:,:,:], Rho[0], delta_ij=False)
-    Cl_tSZ, contrib_tSZ = calculate_all_cl(inp, h, g_cmb, Clzz[1], Clw1w2, Clzw[1], w, a[1],
+    Cl_tSZ, contrib_tSZ = calculate_all_cl(inp, h, g_tsz, Clzz[1], Clw1w2, Clzw[1], w, a[1],
             bispectrum_zzw[1], bispectrum_wzw[:,:,:,1,:,:,:,:,:,:], Rho[1], delta_ij=False)
     Cl_noise, contrib_noise = calculate_all_cl(inp, h, g_cmb, Clzz[2], Clw1w2, Clzw[2], w, a[2],
             bispectrum_zzw[2], bispectrum_wzw[:,:,:,2,:,:,:,:,:,:], Rho[2], delta_ij=True)
     Clpq = np.array([contrib_CMB, contrib_tSZ, contrib_noise], dtype=np.float32) #indices (z, reMASTERed term, p,q,l)
     Clpq = np.transpose(Clpq, axes=(2,3,0,1,4)) #indices (p,q,z, reMASTERed term,l)
 
+    #get directly computed Clpq of NILC maps from pyilc
+    CMB_NILC_map = hp.read_map(f'{inp.output_dir}/pyilc_outputs/sim{sim}needletILCmap_component_CMB.fits')
+    tSZ_NILC_map = hp.read_map(f'{inp.output_dir}/pyilc_outputs/sim{sim}needletILCmap_component_tSZ.fits')
+    Clpq_direct = np.zeros((2,2,inp.ellmax+1))
+    Clpq_direct[0][0] = hp.anafast(CMB_NILC_map, lmax=inp.ellmax)
+    Clpq_direct[1][1] = hp.anafast(tSZ_NILC_map, lmax=inp.ellmax)
+    Clpq_direct[0][1] = hp.anafast(CMB_NILC_map, tSZ_NILC_map, lmax=inp.ellmax)
+    Clpq_direct[1][0] = Clpq_direct[0][1]
+
+
     if inp.save_files:
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
+        pickle.dump(Clpq_direct, open(f'{inp.output_dir}/data_vecs/Clpq_direct.p', 'wb'), protocol=4)
 
+    if inp.remove_files: #don't need pyilc output files anymore
+        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
+        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
+    
     return Clpq
 
 
 
 if __name__ == '__main__':
+
+    start_time = time.time()
+
     # main input file containing most specifications 
     try:
         input_file = (sys.argv)[1]
@@ -131,5 +150,8 @@ if __name__ == '__main__':
     setup_output_dir(inp, my_env)
     
     Clpq = one_sim(0, inp, my_env)
+
+    print('PROGRAM FINISHED RUNNING')
+    print("--- %s seconds ---" % (time.time() - start_time), flush=True)
     
 

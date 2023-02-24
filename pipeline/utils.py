@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import subprocess
+import healpy as hp
 
 def setup_output_dir(inp, env):
     '''

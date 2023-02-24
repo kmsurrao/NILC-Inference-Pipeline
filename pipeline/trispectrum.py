@@ -79,8 +79,8 @@ def Tl_numerator(inp, data1, data2, data3, data4,
     
     ## Define maps of A^{ab}_lm = int[dn Y_lm(n) I^a(n)I^b(n)] for two I maps
     if inp.verbose: print("Computing A^{ab} maps")
-    A12_lm = [[hp.map2alm(I1_map[b1]*I2_map[b2]) for b2 in range(Nl_sum)] for b1 in range(Nl_sum)]
-    A34_lm = [[hp.map2alm(I3_map[b3]*I4_map[b4]) for b4 in range(Nl_sum)] for b3 in range(Nl_sum)]
+    A12_lm = [[to_lm(inp,I1_map[b1]*I2_map[b2]) for b2 in range(Nl_sum)] for b1 in range(Nl_sum)]
+    A34_lm = [[to_lm(inp,I3_map[b3]*I4_map[b4]) for b4 in range(Nl_sum)] for b3 in range(Nl_sum)]
     
     # Create output arrays (for 4-field, 2-field and 0-field terms)
     t4_num_ideal = np.zeros((Nl_sum,Nl_sum,Nl_sum,Nl_sum,Nl), dtype=np.float32)

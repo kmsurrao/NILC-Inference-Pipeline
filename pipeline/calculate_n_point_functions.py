@@ -264,5 +264,5 @@ def get_rho(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps):
                                 nside = min(hp.get_nside(comp_maps[z]), hp.get_nside(wt_maps[p][n][i]), hp.get_nside(wt_maps[q][m][j]))
                                 if 3*nside-1 < inp.ell_sum_max:
                                     max_bin = (3*nside-1-inp.ellmin)//inp.dl
-                                    Rho[z,p,n,i,q,m,j,max_bin+1:,max_bin+1:,max_bin+1:,max_bin+1,max_bin+1].fill(0.)
+                                    Rho[z,p,n,i,q,m,j,max_bin+1:,max_bin+1:,max_bin+1:,max_bin+1:,max_bin+1:].fill(0.)
     return Rho
