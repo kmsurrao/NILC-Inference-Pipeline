@@ -1,2 +1,21 @@
 *.fits
+<<<<<<< HEAD
 *.p
+=======
+*.p
+*.pksc
+*.log
+*.map
+*.pdf
+*.out
+*.sh
+*~
+*.png
+#*#
+dndmtab.npz
+__pycache__/
+catalogs/
+test_images/
+corrs/
+test_sums/
+>>>>>>> 5be6096f9a394ec31fb81ccdb26835bfacba1447
