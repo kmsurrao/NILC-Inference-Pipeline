@@ -17,7 +17,24 @@ warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 hp.disable_warnings()
 
 
-def one_sim(sim, inp, env):
+def get_data_vectors(sim, inp, env):
+    '''
+    ARGUMENTS
+    ---------
+    sim: int, simulation number
+    inp: Info object, contains input parameter specifications
+    env: environment object, current environment in which to run subprocesses
+
+    RETURNS
+    -------
+    Clpq: (N_preserved_comps, N_preserved_comps, N_comps, 4, ellmax+1) numpy array,
+            contains contributions from each component to the power spectrum of NILC maps
+            with preserved components p and q,
+            index as Clpq[p,q,z,reMASTERed term,l]
+    Clpq_direct: (N_preserved_comps, N_preserved_comps, ellmax+1) numpy array,
+            directly computed auto- and cross- spectra of NILC maps from pyilc,
+            index as Clpq_direct[p,q,l]
+    '''
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
     CC, T, N, CMB_map, tSZ_map, noise_map = generate_freq_maps(sim, inp)
@@ -33,59 +50,59 @@ def one_sim(sim, inp, env):
     if inp.verbose:
         print(f'calculated component map spectra for sim {sim}', flush=True)
     if inp.save_files:
-        pickle.dump(Clzz, open(f'{inp.output_dir}/n_point_funcs/Clzz.p', 'wb'))
+        pickle.dump(Clzz, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Clzz.p', 'wb'))
 
     #get power spectra of weight maps, index as Clw1w2[p,q,n,m,i,j,l]
     Clw1w2 = get_Clw1w2(inp, CMB_wt_maps, tSZ_wt_maps)
     if inp.verbose:
         print(f'calculated weight map spectra for sim {sim}', flush=True)
     if inp.save_files:
-        pickle.dump(Clw1w2, open(f'{inp.output_dir}/n_point_funcs/Clw1w2.p', 'wb'))
+        pickle.dump(Clw1w2, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Clw1w2.p', 'wb'))
 
     #get cross-spectra of component maps and weight maps, index as Clzw[z,p,n,i,l]
     Clzw = get_Clzw(inp, CMB_wt_maps, tSZ_wt_maps, CMB_map, tSZ_map, noise_map)
     if inp.verbose:
         print(f'calculated component and weight map cross-spectra for sim {sim}', flush=True)
     if inp.save_files:
-        pickle.dump(Clzw, open(f'{inp.output_dir}/n_point_funcs/Clzw.p', 'wb'))
+        pickle.dump(Clzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Clzw.p', 'wb'))
     
     #get means of weight maps, index as w[p,n,i]
     w = get_w(inp, CMB_wt_maps, tSZ_wt_maps)
     if inp.verbose:
         print(f'calculated weight map means for sim {sim}', flush=True)
     if inp.save_files:
-        pickle.dump(w, open(f'{inp.output_dir}/n_point_funcs/w.p', 'wb'))
+        pickle.dump(w, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_w.p', 'wb'))
 
     #get means of component maps, index as a[z]
     a = get_a(CMB_map, tSZ_map, noise_map)
     if inp.verbose:
         print(f'calculated component map means for sim {sim}', flush=True)
     if inp.save_files:
-        pickle.dump(a, open(f'{inp.output_dir}/n_point_funcs/a.p', 'wb'))
+        pickle.dump(a, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_a.p', 'wb'))
     
     #get bispectrum for two factors of map and one factor of weight map, index as bispectrum_zzw[z,q,m,j,b1,b2,b3]
     bispectrum_zzw = get_bispectrum_zzw(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps)
     if inp.verbose:
         print(f'calculated bispectra for map, map, weight map for sim {sim}', flush=True)
     if inp.save_files:
-        pickle.dump(bispectrum_zzw, open(f'{inp.output_dir}/n_point_funcs/bispectrum_zzw.p', 'wb'))
-    # bispectrum_zzw = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/bispectrum_zzw.p', 'rb')) #remove and uncomment section above
+        pickle.dump(bispectrum_zzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_bispectrum_zzw.p', 'wb'))
+    # bispectrum_zzw = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_bispectrum_zzw.p', 'rb')) #remove and uncomment section above
     
     #get bispectrum for two weight maps and one factor of map, index as bispectrum_wzw[p,n,i,z,q,m,j,b1,b2,b3]
     bispectrum_wzw = get_bispectrum_wzw(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps)
     if inp.verbose:
         print(f'calculated bispectra for weight map, map, weight map for sim {sim}', flush=True)
     if inp.save_files:
-        pickle.dump(bispectrum_wzw, open(f'{inp.output_dir}/n_point_funcs/bispectrum_wzw.p', 'wb'))
-    # bispectrum_wzw = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/bispectrum_wzw.p', 'rb')) #remove and uncomment section above
+        pickle.dump(bispectrum_wzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_bispectrum_wzw.p', 'wb'))
+    # bispectrum_wzw = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_bispectrum_wzw.p', 'rb')) #remove and uncomment section above
     
     #get unnormalized trispectrum estimator rho, index as rho[z,p,n,i,q,m,j,b2,b4,b3,b5,b1]
     Rho = get_rho(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps)
     if inp.verbose:
         print(f'calculated unnormalized trispectrum estimator rho for sim {sim}', flush=True)
     if inp.save_files:
-        pickle.dump(Rho, open(f'{inp.output_dir}/n_point_funcs/Rho.p', 'wb'))
-    # Rho = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/Rho.p', 'rb')) #remove and uncomment section above
+        pickle.dump(Rho, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Rho.p', 'wb'))
+    # Rho = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_Rho.p', 'rb')) #remove and uncomment section above
     
     #get needlet filters and spectral responses
     h = GaussianNeedlets(inp.ell_sum_max, np.array(inp.GN_FWHM_arcmin))[1]
@@ -113,14 +130,14 @@ def one_sim(sim, inp, env):
 
 
     if inp.save_files:
-        pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
-        pickle.dump(Clpq_direct, open(f'{inp.output_dir}/data_vecs/Clpq_direct.p', 'wb'), protocol=4)
+        pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/sim{sim}_Clpq.p', 'wb'), protocol=4)
+        pickle.dump(Clpq_direct, open(f'{inp.output_dir}/data_vecs/sim{sim}_Clpq_direct.p', 'wb'), protocol=4)
 
     if inp.remove_files: #don't need pyilc output files anymore
         subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
         subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
     
-    return Clpq
+    return Clpq, Clpq_direct
 
 
 
@@ -149,7 +166,7 @@ if __name__ == '__main__':
     #set up output directory
     setup_output_dir(inp, my_env)
     
-    Clpq = one_sim(0, inp, my_env)
+    Clpq, Clpq_direct = get_data_vectors(0, inp, my_env)
 
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
