@@ -31,17 +31,18 @@ def Tl_numerator(inp, data1, data2, data3, data4,
     t4_num_ideal+t2_num_ideal+t0_num_ideal: 5D numpy array, indexed with [b1,b2,b3,b4,bL]
     """
 
-    l_arr,m_arr = hp.Alm.getlm(inp.ell_sum_max)
+    lmax_data = 3*inp.nside-1
+    l_arr,m_arr = hp.Alm.getlm(lmax_data+1)
     Nl = inp.ellmax//inp.dl_trispectrum
     Nl_sum = inp.ell_sum_max//inp.dl_trispectrum
 
-    Cl1_interp = InterpolatedUnivariateSpline(np.arange(inp.ell_sum_max+1),Cl1_th)
+    Cl1_interp = InterpolatedUnivariateSpline(np.arange(lmax_data+1),Cl1_th)
     Cl1_lm = Cl1_interp(l_arr)
-    Cl2_interp = InterpolatedUnivariateSpline(np.arange(inp.ell_sum_max+1),Cl2_th)
+    Cl2_interp = InterpolatedUnivariateSpline(np.arange(lmax_data+1),Cl2_th)
     Cl2_lm = Cl2_interp(l_arr)
-    Cl3_interp = InterpolatedUnivariateSpline(np.arange(inp.ell_sum_max+1),Cl3_th)
+    Cl3_interp = InterpolatedUnivariateSpline(np.arange(lmax_data+1),Cl3_th)
     Cl3_lm = Cl3_interp(l_arr)
-    Cl4_interp = InterpolatedUnivariateSpline(np.arange(inp.ell_sum_max+1),Cl4_th)
+    Cl4_interp = InterpolatedUnivariateSpline(np.arange(lmax_data+1),Cl4_th)
     Cl4_lm = Cl4_interp(l_arr)
     
     # Define ell bins

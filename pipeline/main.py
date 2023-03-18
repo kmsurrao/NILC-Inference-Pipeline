@@ -14,12 +14,10 @@ warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 
 def main(inp, env):
 
-    Clpq = np.zeros((inp.Nsims, 2, 2, 3, 4, inp.ellmax+1))
-
     pool = mp.Pool(inp.num_parallel)
     results = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
     pool.close()
-    Clpq = np.asarray(results[:,0], dtype=np.float32)
+    Clpq = np.asarray(results[:,0], dtype=np.float32) #shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=3, reMASTERed_terms=4, ellmax+1)
     
     acmb_array, atsz_array = get_all_acmb_atsz(inp, Clpq)
     lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(acmb_array, atsz_array, nbins=100, smoothing_factor=0.065) 

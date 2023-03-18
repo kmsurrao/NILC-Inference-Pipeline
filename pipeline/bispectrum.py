@@ -19,13 +19,13 @@ def check_bin(inp, bin1, bin2, bin3):
     int: 1 if center of bin satsifies Wigner 3j triangle relations and 0 otherwise
     '''
 
-    l1 = (bin1+0.5)*inp.dl_bispectrum
-    l2 = (bin2+0.5)*inp.dl_bispectrum
-    l3 = (bin3+0.5)*inp.dl_bispectrum
-    if l3<abs(l1-l2) or l3>l1+l2:
-        return 0
-    else:
-        return 1
+    l1 = int((bin1+0.5)*inp.dl_bispectrum)
+    l2 = int((bin2+0.5)*inp.dl_bispectrum)
+    l3 = int((bin3+0.5)*inp.dl_bispectrum)
+    if l3<abs(l1-l2) or l3>l1+l2: return 0
+    if l1<abs(l2-l3) or l1>l2+l3: return 0
+    if l2<abs(l1-l3) or l2>l1+l3: return 0
+    return 1
 
 def safe_divide(x,y):
     """
@@ -60,7 +60,7 @@ def to_map(input_lm, Nside):
     """
     return hp.alm2map(input_lm, Nside, pol=False)
 
-def to_lm(inp,input_map):
+def to_lm(inp, input_map):
     """
     Convert from map-space to harmonic-space
 
@@ -72,7 +72,7 @@ def to_lm(inp,input_map):
     -------
     alm of map in healpy order, up to 3*Nside-1
     """
-    return hp.map2alm(input_map, pol=False, lmax=inp.ell_sum_max)
+    return hp.map2alm(input_map, pol=False, lmax=3*inp.nside-1)
 
 
 def Bl_norm(inp, Cl1, Cl2, Cl3):
@@ -105,6 +105,8 @@ def Bl_norm(inp, Cl1, Cl2, Cl3):
                         for l3 in range(bin3*inp.dl_bispectrum, (bin3+1)*inp.dl_bispectrum):
                             if (-1)**(l1+l2+l3)==-1: continue # 3j = 0 here
                             if l3<abs(l1-l2) or l3>l1+l2: continue
+                            if l1<abs(l2-l3) or l1>l2+l3: continue
+                            if l2<abs(l1-l3) or l2>l1+l3: continue
                             value += inp.wigner3j[l1,l2,l3]**2*(2.*l1+1.)*(2.*l2+1.)*(2.*l3+1.)/(4.*np.pi)/Cl1[l1]/Cl2[l2]/Cl3[l3]
                 norm[bin1, bin2, bin3] = value
 
@@ -129,15 +131,16 @@ def Bl_numerator(inp, data1, data2, data3, Cl1, Cl2, Cl3, equal12=False,equal23=
     b_num_ideal: 3D numpy array, indexed as b_num_ideal[l1,l2,l3]
     """
 
-    l_arr,m_arr = hp.Alm.getlm(inp.ell_sum_max)
+    lmax_data = 3*inp.nside-1
+    l_arr,m_arr = hp.Alm.getlm(lmax_data)
     Nl = inp.ellmax//inp.dl_bispectrum
     Nl_sum = inp.ell_sum_max//inp.dl_bispectrum
 
-    Cl1_interp = InterpolatedUnivariateSpline(np.arange(inp.ell_sum_max+1),Cl1)
+    Cl1_interp = InterpolatedUnivariateSpline(np.arange(lmax_data+1),Cl1)
     Cl1_lm = Cl1_interp(l_arr)
-    Cl2_interp = InterpolatedUnivariateSpline(np.arange(inp.ell_sum_max+1),Cl2)
+    Cl2_interp = InterpolatedUnivariateSpline(np.arange(lmax_data+1),Cl2)
     Cl2_lm = Cl2_interp(l_arr)
-    Cl3_interp = InterpolatedUnivariateSpline(np.arange(inp.ell_sum_max+1),Cl3)
+    Cl3_interp = InterpolatedUnivariateSpline(np.arange(lmax_data+1),Cl3)
     Cl3_lm = Cl3_interp(l_arr)
 
     # Define pixel area
@@ -191,9 +194,9 @@ def Bispectrum(inp, data1, data2, data3, equal12=False,equal23=False,equal13=Fal
     -------
     bl_out: 3D numpy array, indexed as bl_out[bin1,bin2,bin3]
     '''
-    Cl1 = hp.anafast(data1, lmax=inp.ell_sum_max)
-    Cl2 = hp.anafast(data2, lmax=inp.ell_sum_max)
-    Cl3 = hp.anafast(data3, lmax=inp.ell_sum_max)
+    Cl1 = hp.anafast(data1, lmax=3*inp.nside-1)
+    Cl2 = hp.anafast(data2, lmax=3*inp.nside-1)
+    Cl3 = hp.anafast(data3, lmax=3*inp.nside-1)
     bl_norm = Bl_norm(inp, Cl1, Cl2, Cl3)
     bl_out = Bl_numerator(inp, data1, data2, data3, Cl1, Cl2, Cl3, equal12=equal12, equal23=equal23, equal13=equal13)
     # Normalize bispectrum
