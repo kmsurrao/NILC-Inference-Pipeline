@@ -159,10 +159,11 @@ def rho(inp, a_map, w1_map, w2_map, remove_two_point=True):
     tl_out: 5D numpy array, indexed as tl_out[l2,l4,l3,l5,l1]
 
     '''
-    Cl_aa = hp.anafast(a_map, lmax=inp.ell_sum_max)
-    Cl_w1w1 = hp.anafast(w1_map, lmax=inp.ell_sum_max)
-    Cl_w2w2 = hp.anafast(w2_map, lmax=inp.ell_sum_max)
-    Cl_w1w2 = hp.anafast(w1_map, w2_map, lmax=inp.ell_sum_max)
+    lmax_data = 3*inp.nside-1
+    Cl_aa = hp.anafast(a_map, lmax=lmax_data)
+    Cl_w1w1 = hp.anafast(w1_map, lmax=lmax_data)
+    Cl_w2w2 = hp.anafast(w2_map, lmax=lmax_data)
+    Cl_w1w2 = hp.anafast(w1_map, w2_map, lmax=lmax_data)
     tl_out = Tl_numerator(inp,a_map,w1_map,a_map,w2_map,
                           Cl_aa, Cl_w1w1, Cl_aa, Cl_w2w2,
                           Cl_aa, Cl_w1w2, equal13=True, 
