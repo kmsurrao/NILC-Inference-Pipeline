@@ -18,17 +18,46 @@ def get_data_arrays(Clpq):
     RETURNS
     -------
     ClTTd: (Nsims, N_comps, ellmax+1) ndarray, contains contributions to CMB preserved NILC power spectrum
-        index as ClTT[sim][0-2 for CMB, tSZ, or noise component][l]
+        index as ClTT[sim][0-1 for CMB or tSZ component][l]
     ClTyd: (Nsims, N_comps, ellmax+1) ndarray, contains contributions to CMB preserved NILC and tSZ preserved NILC cross-spectrum
-        index as ClTy[sim][0-2 for CMB, tSZ, or noise component][l]
+        index as ClTy[sim][0-1 for CMB or tSZ component][l]
     Clyyd: (Nsims, N_comps, ellmax+1) ndarray, contains contributions to tSZ preserved NILC power spectrum
-        index as Clyy[sim][0-2 for CMB, tSZ, or noise component][l]
+        index as Clyy[sim][0-1 for CMB or tSZ component][l]
+    Note: noise contributions not included here
     '''
     sum_reMASTERed_terms = np.sum(Clpq, axis=4)
     ClTTd = sum_reMASTERed_terms[:,0,0,:,:]
     ClTyd = sum_reMASTERed_terms[:,0,1,:,:]
     Clyyd = sum_reMASTERed_terms[:,1,1,:,:]
     return ClTTd, ClTyd, Clyyd
+
+
+def get_data_arrays_with_noise(Clpq_direct):
+    '''
+    Get arrays of ClTT, ClTy, and Clyy for each simulation
+
+    ARGUMENTS
+    ---------
+    Clpq_direct: (Nsims, N_preserved_comps, N_preserved_comps, ellmax+1) ndarray,
+        contains directly calculated power spectra of NILC maps
+        with preserved components p and q,
+        index as Clpq_direct[sim,p,q,l]
+    
+    RETURNS
+    -------
+    ClTTd_with_noise: (Nsims, ellmax+1) ndarray, contains CMB preserved NILC power spectrum
+        index as ClTT[sim][l]
+    ClTyd_with_noise: (Nsims, ellmax+1) ndarray, contains CMB preserved NILC and tSZ preserved NILC cross-spectrum
+        index as ClTy[sim][l]
+    Clyyd_with_noise: (Nsims, ellmax+1) ndarray, contains tSZ preserved NILC power spectrum
+        index as Clyy[sim][l]
+    Note: noise contributions are included here
+    '''
+
+    ClTTd_with_noise = Clpq_direct[:,0,0,:]
+    ClTyd_with_noise = Clpq_direct[:,0,1,:]
+    Clyyd_with_noise = Clpq_direct[:,1,1,:]
+    return ClTTd_with_noise, ClTyd_with_noise, Clyyd_with_noise
 
 def get_theory_arrays(ClTTd, ClTyd, Clyyd):
     '''
@@ -37,20 +66,20 @@ def get_theory_arrays(ClTTd, ClTyd, Clyyd):
     ARGUMENTS
     ---------
     ClTTd: (Nsims, N_comps, ellmax+1) ndarray, contains contributions to CMB preserved NILC power spectrum
-        index as ClTT[sim][0-2 for CMB, tSZ, or noise component][l]
+        index as ClTT[sim][0-1 for CMB or tSZ component][l]
     ClTyd: (Nsims, N_comps, ellmax+1) ndarray, contains contributions to CMB preserved NILC and tSZ preserved NILC cross-spectrum
-        index as ClTy[sim][0-2 for CMB, tSZ, or noise component][l]
+        index as ClTy[sim][0-1 for CMB or tSZ component][l]
     Clyyd: (Nsims, N_comps, ellmax+1) ndarray, contains contributions to tSZ preserved NILC power spectrum
-        index as Clyy[sim][0-2 for CMB, tSZ, or noise component][l]
+        index as Clyy[sim][0-1 for CMB or tSZ component][l]
     
     RETURNS
     -------
     ClTT: (N_comps, ellmax+1) ndarray, contains contributions to CMB preserved NILC power spectrum
-        index as ClTT[0-2 for CMB, tSZ, or noise component][l]
+        index as ClTT[0-1 for CMB or tSZ component][l]
     ClTy: (N_comps, ellmax+1) ndarray, contains contributions to CMB preserved NILC and tSZ preserved NILC cross-spectrum
-        index as ClTy[0-2 for CMB, tSZ, or noise component][l]
+        index as ClTy[0-1 for CMB or tSZ component][l]
     Clyy: (N_comps, ellmax+1) ndarray, contains contributions to tSZ preserved NILC power spectrum
-        index as Clyy[0-2 for CMB, tSZ, or noise component][l]
+        index as Clyy[0-1 for CMB or tSZ component][l]
     '''
     ClTT = np.mean(ClTTd, axis=0)
     ClTy = np.mean(ClTyd, axis=0)
@@ -58,17 +87,17 @@ def get_theory_arrays(ClTTd, ClTyd, Clyyd):
     return ClTT, ClTy, Clyy
 
 
-def get_PScov_sim(inp, ClTTd, ClTyd, Clyyd):
+def get_PScov_sim(inp, ClTTd_with_noise, ClTyd_with_noise, Clyyd_with_noise):
     '''
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    ClTTd: (Nsims, N_comps, ellmax+1) ndarray, contains contributions to CMB preserved NILC power spectrum
-        index as ClTT[sim][0-2 for CMB, tSZ, or noise component][l]
-    ClTyd: (Nsims, N_comps, ellmax+1) ndarray, contains contributions to CMB preserved NILC and tSZ preserved NILC cross-spectrum
-        index as ClTy[sim][0-2 for CMB, tSZ, or noise component][l]
-    Clyyd: (Nsims, N_comps, ellmax+1) ndarray, contains contributions to tSZ preserved NILC power spectrum
-        index as Clyy[sim][0-2 for CMB, tSZ, or noise component][l]
+    ClTTd_with_noise: (Nsims, ellmax+1) ndarray, contains contributions to CMB preserved NILC power spectrum
+        index as ClTT[sim][0-1 for CMB or tSZ component][l]
+    ClTyd_with_noise: (Nsims, ellmax+1) ndarray, contains contributions to CMB preserved NILC and tSZ preserved NILC cross-spectrum
+        index as ClTy[sim][0-1 for CMB or tSZ component][l]
+    Clyyd_with_noise: (Nsims, ellmax+1) ndarray, contains contributions to tSZ preserved NILC power spectrum
+        index as Clyy[sim][0-1 for CMB or tSZ component][l]
     
 
     RETURNS
@@ -76,7 +105,7 @@ def get_PScov_sim(inp, ClTTd, ClTyd, Clyyd):
     cov: (ellmax+1,3,3) ndarray containing covariance matrix Cov_{pq,rs}
         index as cov[l, 0-2 for ClTT ClTy Clyy, 0-2 for ClTT ClTy Clyy]
     '''
-    Clpqd_array = np.array([np.sum(ClTTd,axis=1), np.sum(ClTyd,axis=1), np.sum(Clyyd,axis=1)]) #shape (3 for ClTT ClTy Clyy, Nsims, ellmax+1)
+    Clpqd_array = np.array([ClTTd_with_noise, ClTyd_with_noise, Clyyd_with_noise]) #shape (3 for ClTT ClTy Clyy, Nsims, ellmax+1)
     Clpqd_array = np.transpose(Clpqd_array, axes=(2,0,1)) #shape (ellmax+1, 3 for ClTT ClTy and Clyy, Nsims)
     cov = np.array([np.cov(Clpqd_array[l]) for l in range(inp.ellmax+1)]) #shape (ellmax+1,3,3)
     return cov
@@ -85,15 +114,17 @@ def get_PScov_sim(inp, ClTTd, ClTyd, Clyyd):
 
 
 
-def get_all_acmb_atsz(inp, Clpq):
+def get_all_acmb_atsz(inp, Clpq, Clpq_direct):
     '''
     ARGUMENTS
     ---------
-    inp: Info object containing input parameter specificaitons 
-    Clpq: (Nsims, N_preserved_comps, N_preserved_comps, N_comps=3, 4, ellmax+1) ndarray,
+    inp: Info object containing input parameter specifications 
+    Clpq: (Nsims, N_preserved_comps, N_preserved_comps, N_comps=2, 4, ellmax+1) ndarray,
         contains contributions from each component to the power spectrum of NILC maps
         with preserved components p and q,
         index as Clpq[sim, p,q,z,reMASTERed term,l]
+    Clpq_direct: (Nsims, N_preserved_comps, N_preserved_comps, ellmax+1) ndarray
+        index as Clpq_direct[sim, p, q, l]
 
     RETURNS
     -------
@@ -164,8 +195,9 @@ def get_all_acmb_atsz(inp, Clpq):
         return res.x #acmb, atsz
     
     ClTTd, ClTyd, Clyyd = get_data_arrays(Clpq)
+    ClTTd_with_noise, ClTyd_with_noise, Clyyd_with_noise = get_data_arrays_with_noise(Clpq_direct)
     ClTT, ClTy, Clyy = get_theory_arrays(ClTTd, ClTyd, Clyyd)
-    PScov_sim = get_PScov_sim(inp, ClTTd, ClTyd, Clyyd)
+    PScov_sim = get_PScov_sim(inp, ClTTd_with_noise, ClTyd_with_noise, Clyyd_with_noise)
     PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
 
     acmb_array = np.ones(inp.Nsims, dtype=np.float32)

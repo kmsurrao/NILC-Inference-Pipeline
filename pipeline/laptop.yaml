@@ -1,12 +1,12 @@
 Nsims: 1 #number of simulations to run
 num_parallel: 1 #number of sims to run in parallel
 
-nside: 128 #nside of NILC maps
-ellmax: 100 #ellmax for power spectra
-ell_sum_max: 250 #maximum ell to loop over
+nside: 32 #nside of NILC maps
+ellmax: 50 #ellmax for power spectra
+ell_sum_max: 50 #maximum ell to loop over
 tSZ_amp: 1000. #amplification factor for tSZ map
-dl_bispectrum: 50 #ell-space bin width for bispectrum calculation
-dl_trispectrum: 50 #ell-space bin width for trispectrum calculation
+dl_bispectrum: 1 #ell-space bin width for bispectrum calculation
+dl_trispectrum: 10 #ell-space bin width for trispectrum calculation
 noise: 1. #noise level in uK arcmin
 freqs: [90., 150.] #frequencies for maps, in GHz
 # Nscales: 3 #number of needlet filter scales

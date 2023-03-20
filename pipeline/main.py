@@ -17,9 +17,10 @@ def main(inp, env):
     pool = mp.Pool(inp.num_parallel)
     results = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
     pool.close()
-    Clpq = np.asarray(results[:,0], dtype=np.float32) #shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=3, reMASTERed_terms=4, ellmax+1)
-    
-    acmb_array, atsz_array = get_all_acmb_atsz(inp, Clpq)
+    Clpq = np.asarray([elt[0] for elt in results], dtype=np.float32) #shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=2, reMASTERed_terms=4, ellmax+1)
+    Clpq_direct = np.asarray([elt[1] for elt in results], dtype=np.float32) #shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, ellmax+1)
+
+    acmb_array, atsz_array = get_all_acmb_atsz(inp, Clpq, Clpq_direct)
     lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(acmb_array, atsz_array, nbins=100, smoothing_factor=0.065) 
 
     return lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz

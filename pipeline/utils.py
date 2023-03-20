@@ -84,9 +84,9 @@ def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
     filters[N_scales-1] = np.sqrt(1. - Gaussians[N_scales-2]**2.)
     # simple check to ensure that sum of squared transmission is unity as needed for NILC algorithm
     assert (np.absolute( np.sum( filters**2., axis=0 ) - np.ones(ELLMAX+1,dtype=float)) < 1.e-3).all(), "wavelet filter transmission check failed"
-    taper_width = 200.
-    taper_func = (1.0 - 0.5*(np.tanh(0.025*(ell - (ELLMAX - taper_width))) + 1.0)) #smooth taper to zero from ELLMAX-taper_width to ELLMAX
-    taper_func *= 0.5*(np.tanh(0.5*(ell-10)))+0.5 #smooth taper to zero for low ell
-    for i, filt in enumerate(filters):
-        filters[i] = filters[i]*taper_func
+    # taper_width = 20.
+    # taper_func = (1.0 - 0.5*(np.tanh(0.025*(ell - (ELLMAX - taper_width))) + 1.0)) #smooth taper to zero from ELLMAX-taper_width to ELLMAX
+    # taper_func *= 0.5*(np.tanh(0.5*(ell-10)))+0.5 #smooth taper to zero for low ell
+    # for i, filt in enumerate(filters):
+    #     filters[i] = filters[i]*taper_func
     return ell, filters

@@ -4,6 +4,7 @@ import healpy as hp
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
+
 def check_bin(inp, bin1, bin2, bin3):
     '''
     Return one if modes in the bin satisfy the even-parity triangle conditions, or zero else.
@@ -42,6 +43,7 @@ def safe_divide(x,y):
 
     """
     out = np.zeros_like(x)
+    y = np.nan_to_num(y, posinf=0, neginf=0)
     out[y!=0] = x[y!=0]/y[y!=0]
     return out
 
@@ -107,9 +109,9 @@ def Bl_norm(inp, Cl1, Cl2, Cl3):
                             if l3<abs(l1-l2) or l3>l1+l2: continue
                             if l1<abs(l2-l3) or l1>l2+l3: continue
                             if l2<abs(l1-l3) or l2>l1+l3: continue
+                            if Cl1[l1]==0 or Cl2[l2]==0 or Cl3[l3]==0: continue
                             value += inp.wigner3j[l1,l2,l3]**2*(2.*l1+1.)*(2.*l2+1.)*(2.*l3+1.)/(4.*np.pi)/Cl1[l1]/Cl2[l2]/Cl3[l3]
                 norm[bin1, bin2, bin3] = value
-
     return norm
 
 
@@ -174,8 +176,7 @@ def Bl_numerator(inp, data1, data2, data3, Cl1, Cl2, Cl3, equal12=False,equal23=
                 # skip bins outside the triangle conditions
                 if not check_bin(inp,bin1,bin2,bin3): continue
                 # compute numerators
-                b_num_ideal[bin1,bin2,bin3] = A_pix*np.sum(I1_map[bin1]*I2_map[bin2]*I3_map[bin3])    
-
+                b_num_ideal[bin1,bin2,bin3] = A_pix*np.sum(I1_map[bin1]*I2_map[bin2]*I3_map[bin3])
     return b_num_ideal
 
 

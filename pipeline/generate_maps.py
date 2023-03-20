@@ -1,8 +1,5 @@
-import os
 import healpy as hp
 import numpy as np
-import subprocess
-import warnings
 from utils import tsz_spectral_response
 
 
@@ -13,7 +10,7 @@ def generate_freq_maps(sim, inp):
     returns power spectra of CMB, tSZ, and noise (CC, T, N)
     '''
 
-    my_env = os.environ.copy()
+    np.random.seed(sim)
 
     #Read tSZ halosky map
     tsz_map = hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')

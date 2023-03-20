@@ -28,19 +28,18 @@ def get_cross_spectrum_two_maps(map1, map2, ellmax):
     else:
         return np.pad(hp.anafast(map1, map2 = map2), (0, ellmax-(3*nside-1)), 'constant', constant_values=(0., 0.))
 
-def get_Clzz(CC, T, N):
+def get_Clzz(CC, T):
     '''
     ARGUMENTS
     ---------
     CC: 1D numpy array of length ell_sum_max containing CMB power spectrum
     T: 1D numpy array of length ell_sum_max containing tSZ power spectrum
-    N: 1D numpy array of length ell_sum_max containing noise power spectrum
 
     RETURNS
     -------
-    (3, ell_sum_max) numpy array containing CMB, tSZ, and noise power spectra
+    (2, ell_sum_max) numpy array containing CMB and tSZ power spectra
     '''
-    return np.array([CC,T,N])
+    return np.array([CC,T])
 
 def get_Clw1w2(inp, CMB_wt_maps, tSZ_wt_maps):
     '''
@@ -76,7 +75,7 @@ def get_Clw1w2(inp, CMB_wt_maps, tSZ_wt_maps):
     return wt_map_power_spectrum
 
 
-def get_Clzw(inp, CMB_wt_maps, tSZ_wt_maps, CMB_map, tSZ_map, noise_map):
+def get_Clzw(inp, CMB_wt_maps, tSZ_wt_maps, CMB_map, tSZ_map):
     '''
     ARGUMENTS
     ---------
@@ -85,7 +84,6 @@ def get_Clzw(inp, CMB_wt_maps, tSZ_wt_maps, CMB_map, tSZ_map, noise_map):
     tSZ_wt_maps: (Nscales, Nfreqs) list, NILC weight maps for preserved component tSZ, index as tSZ_wt_maps[n][i]
     CMB_map: 1D numpy array, map for CMB in healpix format
     tSZ_map: 1D numpy array, map for tSZ in healpix format
-    noise_map: 1D numpy array, map for noise in healpix format
 
     RETURNS
     -------
@@ -93,10 +91,10 @@ def get_Clzw(inp, CMB_wt_maps, tSZ_wt_maps, CMB_map, tSZ_map, noise_map):
     index as cross_spectra[z,p,n,i,l]
 
     '''
-    N_comps = 3
+    N_comps = 2
     N_preserved_comps = 2
     Nfreqs = 2
-    comp_maps = [CMB_map, tSZ_map, noise_map]
+    comp_maps = [CMB_map, tSZ_map]
     cross_spectra = np.full((N_comps, N_preserved_comps, inp.Nscales, Nfreqs, inp.ell_sum_max+1), None)
     for z in range(N_comps):
         for p in range(N_preserved_comps):
@@ -131,28 +129,26 @@ def get_w(inp, CMB_wt_maps, tSZ_wt_maps):
                 w[p,n,i] = np.mean(wt_maps[n][i])
     return w
 
-def get_a(CMB_map, tSZ_map, noise_map):
+def get_a(CMB_map, tSZ_map):
     '''
     ARGUMENTS
     ---------
     CMB_map: 1D numpy array, map for CMB in healpix format
     tSZ_map: 1D numpy array, map for tSZ in healpix format
-    noise_map: 1D numpy array, map for noise in healpix format
 
     RETURNS
     -------
-    a: 1D numpy array of length 3, contains means of CMB, tSZ, and noise maps
+    a: 1D numpy array of length 2, contains means of CMB and tSZ maps
     '''
-    return np.array([np.mean(CMB_map), np.mean(tSZ_map), np.mean(noise_map)])
+    return np.array([np.mean(CMB_map), np.mean(tSZ_map)])
 
-def get_bispectrum_zzw(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps):
+def get_bispectrum_zzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
     '''
     ARGUMENTS
     ---------
     inp: Info object, contains input specifications
     CMB_map: 1D numpy array, map for CMB in healpix format
     tSZ_map: 1D numpy array, map for tSZ in healpix format
-    noise_map: 1D numpy array, map for noise in healpix format
     CMB_wt_maps: (Nscales, Nfreqs) list, NILC weight maps for preserved component CMB, index as CMB_wt_maps[n][i]
     tSZ_wt_maps: (Nscales, Nfreqs) list, NILC weight maps for preserved component tSZ, index as tSZ_wt_maps[n][i]
 
@@ -163,10 +159,10 @@ def get_bispectrum_zzw(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_map
     TODO
     optimize by setting ell ranges outside 3*nside-1 to 0 in bispectrum itself
     '''
-    N_comps = 3
+    N_comps = 2
     N_preserved_comps = 2
     Nfreqs = 2
-    comp_maps = [CMB_map, tSZ_map, noise_map]
+    comp_maps = [CMB_map, tSZ_map]
     wt_maps = [CMB_wt_maps, tSZ_wt_maps]
     Nbins = inp.ellmax//inp.dl_bispectrum
     Nbins_sum = inp.ell_sum_max//inp.dl_bispectrum
@@ -184,14 +180,13 @@ def get_bispectrum_zzw(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_map
                         bispectra[z,z,q,m,j,max_bin+1:,max_bin+1:,max_bin+1:].fill(0.)
     return bispectra
 
-def get_bispectrum_wzw(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps):
+def get_bispectrum_wzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
     '''
     ARGUMENTS
     ---------
     inp: Info object, contains input specifications
     CMB_map: 1D numpy array, map for CMB in healpix format
     tSZ_map: 1D numpy array, map for tSZ in healpix format
-    noise_map: 1D numpy array, map for noise in healpix format
     CMB_wt_maps: (Nscales, Nfreqs) list, NILC weight maps for preserved component CMB, index as CMB_wt_maps[n][i]
     tSZ_wt_maps: (Nscales, Nfreqs) list, NILC weight maps for preserved component tSZ, index as tSZ_wt_maps[n][i]
 
@@ -202,10 +197,10 @@ def get_bispectrum_wzw(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_map
     TODO
     optimize by setting ell ranges outside 3*nside-1 to 0 in bispectrum itself
     '''
-    N_comps = 3
+    N_comps = 2
     N_preserved_comps = 2
     Nfreqs = 2
-    comp_maps = [CMB_map, tSZ_map, noise_map]
+    comp_maps = [CMB_map, tSZ_map]
     wt_maps = [CMB_wt_maps, tSZ_wt_maps]
     Nbins = inp.ellmax//inp.dl_bispectrum
     Nbins_sum = inp.ell_sum_max//inp.dl_bispectrum
@@ -226,14 +221,13 @@ def get_bispectrum_wzw(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_map
                                     bispectra[z,z,q,m,j,max_bin+1:,max_bin+1:,max_bin+1:].fill(0.)
     return bispectra
 
-def get_rho(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps):
+def get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
     '''
     ARGUMENTS
     ---------
     inp: Info object, contains input specifications
     CMB_map: 1D numpy array, map for CMB in healpix format
     tSZ_map: 1D numpy array, map for tSZ in healpix format
-    noise_map: 1D numpy array, map for noise in healpix format
     CMB_wt_maps: (Nscales, Nfreqs) list, NILC weight maps for preserved component CMB, index as CMB_wt_maps[n][i]
     tSZ_wt_maps: (Nscales, Nfreqs) list, NILC weight maps for preserved component tSZ, index as tSZ_wt_maps[n][i]
 
@@ -244,13 +238,13 @@ def get_rho(inp, CMB_map, tSZ_map, noise_map, CMB_wt_maps, tSZ_wt_maps):
     TODO
     optimize by setting ell ranges outside 3*nside-1 to 0 in rho itself
     '''
-    N_comps = 3
+    N_comps = 2
     N_preserved_comps = 2
     Nfreqs = 2
-    comp_maps = [CMB_map, tSZ_map, noise_map]
+    comp_maps = [CMB_map, tSZ_map]
     wt_maps = [CMB_wt_maps, tSZ_wt_maps]
-    Nbins = inp.ellmax//inp.dl_bispectrum
-    Nbins_sum = inp.ell_sum_max//inp.dl_bispectrum
+    Nbins = inp.ellmax//inp.dl_trispectrum
+    Nbins_sum = inp.ell_sum_max//inp.dl_trispectrum
     Rho = np.zeros((N_comps, N_preserved_comps, inp.Nscales, Nfreqs, N_preserved_comps, inp.Nscales, Nfreqs, Nbins_sum, Nbins_sum, Nbins_sum, Nbins_sum, Nbins), dtype=np.float32)
     for z in range(N_comps):
         for p in range(N_preserved_comps):
