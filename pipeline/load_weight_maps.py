@@ -1,6 +1,20 @@
 import healpy as hp
 
 def load_wt_maps(inp, sim):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+    sim: int, simulation number
+
+    RETURNS
+    --------
+    CMB_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
+                contains NILC weight maps for preserved CMB
+    tSZ_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
+                contains NILC weight maps for preserved tSZ
+
+    '''
     CMB_wt_maps = [[[],[]] for i in range(inp.Nscales)]
     tSZ_wt_maps = [[[],[]] for i in range(inp.Nscales)]
     for comp in ['CMB', 'tSZ']:

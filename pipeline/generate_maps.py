@@ -19,6 +19,7 @@ def generate_freq_maps(sim, inp):
 
     #realization of CMB from lensed alm
     cmb_map = hp.read_map(inp.cmb_map_file)
+    cmb_map = hp.ud_grade(cmb_map, inp.nside)
     cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
     cmb_map = hp.synfast(cmb_cl, inp.nside)
 
@@ -36,7 +37,7 @@ def generate_freq_maps(sim, inp):
 
     #create maps at freq1 and freq2 (in GHz)
     sim_map_1 = cmb_map + g1*tsz_map + noise_map
-    sim_map_2 = cmb_map + g2*tsz_map + noise_map
+    sim_map_2 = cmb_map + g2*tsz_map + 1.5*noise_map #make noise different in both maps
     hp.write_map(f'{inp.output_dir}/maps/sim{sim}_freq1.fits', sim_map_1, overwrite=True)
     hp.write_map(f'{inp.output_dir}/maps/sim{sim}_freq2.fits', sim_map_2, overwrite=True)
     if inp.verbose:

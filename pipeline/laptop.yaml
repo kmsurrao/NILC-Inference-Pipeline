@@ -1,18 +1,16 @@
 Nsims: 1 #number of simulations to run
 num_parallel: 1 #number of sims to run in parallel
 
-nside: 32 #nside of NILC maps
-ellmax: 50 #ellmax for power spectra
-ell_sum_max: 50 #maximum ell to loop over
+nside: 512 #nside of NILC maps
+ellmax: 400 #ellmax for power spectra
+ell_sum_max: 500 #maximum ell to loop over
 tSZ_amp: 1000. #amplification factor for tSZ map
 dl_bispectrum: 1 #ell-space bin width for bispectrum calculation
-dl_trispectrum: 10 #ell-space bin width for trispectrum calculation
-noise: 1. #noise level in uK arcmin
+dl_trispectrum: 100 #ell-space bin width for trispectrum calculation (recommended to be large for speed)
+noise: 10000 #noise level in uK arcmin
 freqs: [90., 150.] #frequencies for maps, in GHz
-# Nscales: 3 #number of needlet filter scales
-# GN_FWHM_arcmin: [30., 15.]
-Nscales: 2 #number of needlet filter scales
-GN_FWHM_arcmin: [30.]
+Nscales: 6 #number of needlet filter scales
+GN_FWHM_arcmin: [120., 60., 30., 15., 7.5]
 
 verbose: 1 #set to 0 if do not want intermediate printing
 remove_files: 0 #set to 0 if do not want to remove intermediate files between each sim
@@ -24,4 +22,4 @@ halosky_maps_path: '/Users/kristen/Documents/NILC_plots/inputs/halosky_maps' #Pa
 cmb_map_file: '/Users/kristen/Documents/NILC_plots/inputs/cmb_lensed_nside1024_K.fits' #File for CMB map in Kelvin, lensed_alm is in uK
 pyilc_path: '/Users/kristen/Documents/GitHub/pyilc' #Path to pyilc code
 wigner_file: '/Users/kristen/Documents/NILC_plots/inputs/wigner3j_ellmax1000.p' #File containing wigner-3j symbols with zero m values, indexed as wigner3j[l1,l2,l3]. Leave empty if no such file.
-output_dir: '/Users/kristen/Documents/NILC_plots/outputs' #Path to folder to store temporary outputs
+output_dir: '/Users/kristen/Documents/NILC_plots/outputs_high_noise' #Path to folder to store temporary outputs

@@ -2,8 +2,8 @@ import numpy as np
 import healpy as hp
 
 
-def calculate_all_cl(inp, h, g, Clzz, Clw1w2, Clzw, w, a,
-    bispectrum_zzw, bispectrum_wzw, Rho, delta_ij=False):
+def calculate_all_cl(inp, h, g, Clzz, Clw1w2, Clzw=None, w=None, a=None,
+    bispectrum_zzw=None, bispectrum_wzw=None, Rho=None, delta_ij=False):
     '''
     Does vectorized power spectrum calculation for one ell
 
@@ -38,6 +38,16 @@ def calculate_all_cl(inp, h, g, Clzz, Clw1w2, Clzw, w, a,
     l1 = np.arange(inp.ellmax+1)
     l2 = np.arange(inp.ell_sum_max+1)
     l3 = np.arange(inp.ell_sum_max+1)
+
+    if Rho is None:
+        if not delta_ij:
+            aa_ww_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,na,ma,a,pqnmijb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzz,Clw1w2,optimize=True)
+            aw_aw_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,na,mb,qmja,pnib->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzw,Clzw,optimize=True)
+        else:
+            aa_ww_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,na,ma,a,pqnmiib->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzz,Clw1w2,optimize=True)
+        zeros_arr = np.zeros_like(aa_ww_term)
+        return aa_ww_term+aw_aw_term, np.array([aa_ww_term, aw_aw_term, zeros_arr, zeros_arr, zeros_arr])
+
 
     #Define theta functions where ell_bins[b,l]=1 if l in bin b, 0 otherwise
     ells_sum = np.arange(inp.ell_sum_max+1)

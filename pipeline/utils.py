@@ -84,9 +84,66 @@ def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
     filters[N_scales-1] = np.sqrt(1. - Gaussians[N_scales-2]**2.)
     # simple check to ensure that sum of squared transmission is unity as needed for NILC algorithm
     assert (np.absolute( np.sum( filters**2., axis=0 ) - np.ones(ELLMAX+1,dtype=float)) < 1.e-3).all(), "wavelet filter transmission check failed"
-    # taper_width = 20.
-    # taper_func = (1.0 - 0.5*(np.tanh(0.025*(ell - (ELLMAX - taper_width))) + 1.0)) #smooth taper to zero from ELLMAX-taper_width to ELLMAX
+    taper_width = 200.
+    taper_func = (1.0 - 0.5*(np.tanh(0.025*(ell - (ELLMAX - taper_width))) + 1.0)) #smooth taper to zero from ELLMAX-taper_width to ELLMAX
     # taper_func *= 0.5*(np.tanh(0.5*(ell-10)))+0.5 #smooth taper to zero for low ell
-    # for i, filt in enumerate(filters):
-    #     filters[i] = filters[i]*taper_func
+    for i, filt in enumerate(filters):
+        filters[i] = filters[i]*taper_func
     return ell, filters
+
+def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None):
+    '''
+    Note that pyilc checks which frequencies to use for every filter scale
+    We include all freqs for all filter scales here
+
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+    sim: int, simulation number
+    h: (N_scales, ellmax+1) ndarray containing needlet filters at each scale
+    CMB_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
+                contains NILC weight maps for preserved CMB
+    tSZ_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
+                contains NILC weight maps for preserved tSZ
+    freq_maps: (Nfreqs=2, 12*nside**2) ndarray containing simulated map at 
+                each frequency to use in NILC map construction
+
+    RETURNS
+    -------
+    NILC_maps: (2 for CMB or tSZ preserved NILC map, 12*nside**2) ndarray
+    '''
+
+    if freq_maps is None:
+        freq_map1 = hp.read_map(f'{inp.output_dir}/maps/sim{sim}_freq1.fits')
+        freq_map2 = hp.read_map(f'{inp.output_dir}/maps/sim{sim}_freq2.fits')
+        freq_maps = [freq_map1, freq_map2]
+    
+    NILC_maps = []
+    for p in range(2):
+        if p==0:
+            wt_maps = CMB_wt_maps
+        else:
+            wt_maps = tSZ_wt_maps
+        all_maps = np.zeros((inp.Nscales, 12*inp.nside**2)) #index as all_maps[scale][pixel]
+        for i in range(len(inp.freqs)):
+            map_ = freq_maps[i]
+            map_ = hp.ud_grade(map_, inp.nside) #changed
+            alm_orig = hp.map2alm(map_, lmax=inp.ell_sum_max) #changed
+            for n in range(inp.Nscales):
+                alm = hp.almxfl(alm_orig, h[n]) #initial needlet filtering
+                map_ = hp.alm2map(alm, inp.nside)
+                NILC_weights = hp.ud_grade(wt_maps[n][i],inp.nside)
+                map_ = map_*NILC_weights #application of weight map
+                all_maps[n] = np.add(all_maps[n], map_) #add maps at all frequencies for each scale
+        T_ILC_n = None
+        for n in range(inp.Nscales):
+            T_ILC_alm = hp.map2alm(all_maps[n], lmax=inp.ell_sum_max) #changed
+            tmp = hp.almxfl(T_ILC_alm, h[n]) #final needlet filtering
+            if T_ILC_n is None:
+                T_ILC_n = np.zeros((inp.Nscales,len(tmp)),dtype=np.complex128)
+            T_ILC_n[n]=tmp
+        T_ILC = np.sum(np.array([hp.alm2map(T_ILC_n[n], inp.nside) for n in range(len(T_ILC_n))]), axis=0) #adding maps from all scales
+        NILC_maps.append(T_ILC)
+    return NILC_maps
+
+
