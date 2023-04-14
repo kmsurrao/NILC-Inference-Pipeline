@@ -11,6 +11,7 @@ def setup_pyilc(sim, inp, env):
     pyilc_input_params['ELLMAX'] = inp.ell_sum_max
     pyilc_input_params['N_scales'] = inp.Nscales
     pyilc_input_params['GN_FWHM_arcmin'] = [inp.GN_FWHM_arcmin[i] for i in range(len(inp.GN_FWHM_arcmin))]
+    pyilc_input_params['taper_width'] = 2*(inp.ell_sum_max-inp.ellmax)
     pyilc_input_params['N_freqs'] = len(inp.freqs)
     pyilc_input_params['freqs_delta_ghz'] = inp.freqs
     pyilc_input_params['N_side'] = inp.nside
@@ -18,6 +19,7 @@ def setup_pyilc(sim, inp, env):
     pyilc_input_params['bandpass_type'] = "DeltaBandpasses"
     pyilc_input_params['beam_type'] = "Gaussians"
     pyilc_input_params['beam_FWHM_arcmin'] = [1.4, 1.4] #update with whatever beam FWHM was used in the sim map construction; note that ordering should always be from lowest-res to highest-res maps (here and in the lists of maps, freqs, etc above)    pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
+    pyilc_input_params['ILC_bias_tol'] = 0.01
     pyilc_input_params['N_deproj'] = 0
     pyilc_input_params['N_SED_params'] = 0
     pyilc_input_params['N_maps_xcorr'] = 0

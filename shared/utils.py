@@ -49,17 +49,14 @@ def tsz_spectral_response(freqs): #input frequency in GHz
         response.append(T_cmb*(x*1/np.tanh(x/2)-4)) #was factor of tcmb microkelvin before
     return np.array(response)
 
-def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
+def GaussianNeedlets(inp, taper_width=None):
     '''
     Function from pyilc (https://github.com/jcolinhill/pyilc)
 
     ARGUMENTS
     ---------
-    ELLMAX: int, maximum ell for needlet filters
-    FWHM_arcmin: array of FWHM used for constrution of Gaussians (needlet filters
-        are differences of two Gaussians). FWHM need to be in strictly decreasing 
-        order, otherwise you'll get nonsense
-
+    inp: Info object containing input parameter specifications
+    taper_width: int or None, ell-space width of high ell taper. If None, default will be used
 
     RETURNS
     --------
@@ -67,25 +64,27 @@ def GaussianNeedlets(ELLMAX, FWHM_arcmin=np.array([600., 60., 30., 15.])):
     filters: (N_scales, ellmax+1) numpy array containing filters at each scale
 
     '''
+    FWHM_arcmin = np.array(inp.GN_FWHM_arcmin)
     if ( any( i <= j for i, j in zip(FWHM_arcmin, FWHM_arcmin[1:]))):
         raise AssertionError
-    ell = np.arange(ELLMAX+1)
+    ell = np.arange(inp.ell_sum_max+1)
     N_scales = len(FWHM_arcmin) + 1
-    filters = np.zeros((N_scales, ELLMAX+1))
+    filters = np.zeros((N_scales, inp.ell_sum_max+1))
     FWHM = FWHM_arcmin * np.pi/(180.*60.)
     # define gaussians
-    Gaussians = np.zeros((N_scales-1, ELLMAX+1))
+    Gaussians = np.zeros((N_scales-1, inp.ell_sum_max+1))
     for i in range(N_scales-1):
-        Gaussians[i] = hp.gauss_beam(FWHM[i], lmax=ELLMAX)
+        Gaussians[i] = hp.gauss_beam(FWHM[i], lmax=inp.ell_sum_max)
     # define needlet filters in harmonic space
     filters[0] = Gaussians[0]
     for i in range(1,N_scales-1):
         filters[i] = np.sqrt(Gaussians[i]**2. - Gaussians[i-1]**2.)
     filters[N_scales-1] = np.sqrt(1. - Gaussians[N_scales-2]**2.)
     # simple check to ensure that sum of squared transmission is unity as needed for NILC algorithm
-    assert (np.absolute( np.sum( filters**2., axis=0 ) - np.ones(ELLMAX+1,dtype=float)) < 1.e-3).all(), "wavelet filter transmission check failed"
-    taper_width = 200.
-    taper_func = (1.0 - 0.5*(np.tanh(0.025*(ell - (ELLMAX - taper_width))) + 1.0)) #smooth taper to zero from ELLMAX-taper_width to ELLMAX
+    assert (np.absolute( np.sum( filters**2., axis=0 ) - np.ones(inp.ell_sum_max+1,dtype=float)) < 1.e-3).all(), "wavelet filter transmission check failed"
+    if taper_width is None:
+        taper_width = 2*(inp.ell_sum_max-inp.ellmax)
+    taper_func = (1.0 - 0.5*(np.tanh(0.025*(ell - (inp.ell_sum_max - taper_width))) + 1.0)) #smooth taper to zero from ELLMAX-taper_width to ELLMAX
     # taper_func *= 0.5*(np.tanh(0.5*(ell-10)))+0.5 #smooth taper to zero for low ell
     for i, filt in enumerate(filters):
         filters[i] = filters[i]*taper_func

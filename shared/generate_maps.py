@@ -3,7 +3,7 @@ import numpy as np
 from utils import tsz_spectral_response
 
 
-def generate_freq_maps(sim, inp):
+def generate_freq_maps(sim, inp, save=True):
 
     '''
     saves freq map files 
@@ -38,9 +38,10 @@ def generate_freq_maps(sim, inp):
     #create maps at freq1 and freq2 (in GHz)
     sim_map_1 = cmb_map + g1*tsz_map + noise_map
     sim_map_2 = cmb_map + g2*tsz_map + 1.5*noise_map #make noise different in both maps
-    hp.write_map(f'{inp.output_dir}/maps/sim{sim}_freq1.fits', sim_map_1, overwrite=True)
-    hp.write_map(f'{inp.output_dir}/maps/sim{sim}_freq2.fits', sim_map_2, overwrite=True)
-    if inp.verbose:
-        print(f'created {inp.output_dir}/maps/sim{sim}_freq1.fits and {inp.output_dir}/maps/sim{sim}_freq2.fits', flush=True)
+    if save:
+        hp.write_map(f'{inp.output_dir}/maps/sim{sim}_freq1.fits', sim_map_1, overwrite=True)
+        hp.write_map(f'{inp.output_dir}/maps/sim{sim}_freq2.fits', sim_map_2, overwrite=True)
+        if inp.verbose:
+            print(f'created {inp.output_dir}/maps/sim{sim}_freq1.fits and {inp.output_dir}/maps/sim{sim}_freq2.fits', flush=True)
 
     return cmb_cl, tsz_cl, noise_cl, cmb_map, tsz_map, noise_map

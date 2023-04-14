@@ -203,4 +203,4 @@ def rho(inp, a_map, w1_map, w2_map, remove_two_point=True):
                           Cl_aa, Cl_w1w2, Cl_aw2, Cl_aw1, 
                           equal13=True, equal24=equal24,
                           remove_two_point=remove_two_point)
-    return tl_out
+    return np.nan_to_num(tl_out)

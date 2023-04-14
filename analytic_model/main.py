@@ -1,4 +1,5 @@
 import sys
+sys.path.append('../shared')
 import os
 import subprocess
 import pickle
@@ -11,8 +12,6 @@ from utils import setup_output_dir, tsz_spectral_response, GaussianNeedlets, bui
 from nilc_power_spectrum_calc import calculate_all_cl
 from calculate_n_point_functions import *
 from wigner3j import *
-# import warnings
-# hp.disable_warnings()
 
 
 def get_data_vectors(sim, inp, env):
@@ -86,23 +85,21 @@ def get_data_vectors(sim, inp, env):
         pickle.dump(bispectrum_zzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_bispectrum_zzw.p', 'wb'))
     # bispectrum_zzw = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_bispectrum_zzw.p', 'rb')) #remove and uncomment section above
     
-    # # get bispectrum for two weight maps and one factor of map, index as bispectrum_wzw[p,n,i,z,q,m,j,b1,b2,b3]
-    # bispectrum_wzw = get_bispectrum_wzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps)
-    # if inp.verbose:
-    #     print(f'calculated bispectra for weight map, map, weight map for sim {sim}', flush=True)
-    # if inp.save_files:
-    #     pickle.dump(bispectrum_wzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_bispectrum_wzw.p', 'wb'))
+    # get bispectrum for two weight maps and one factor of map, index as bispectrum_wzw[p,n,i,z,q,m,j,b1,b2,b3]
+    bispectrum_wzw = get_bispectrum_wzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps)
+    if inp.verbose:
+        print(f'calculated bispectra for weight map, map, weight map for sim {sim}', flush=True)
+    if inp.save_files:
+        pickle.dump(bispectrum_wzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_bispectrum_wzw.p', 'wb'))
     # bispectrum_wzw = pickle.load(open(f'/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_bispectrum_wzw.p', 'rb')) #remove and uncomment section above
-    bispectrum_wzw = np.zeros((2,inp.Nscales,len(inp.freqs),2,2,inp.Nscales,len(inp.freqs),inp.ellmax//inp.dl_bispectrum,inp.ell_sum_max//inp.dl_bispectrum,inp.ell_sum_max//inp.dl_bispectrum)) #remove and uncomment above
     
-    # # get unnormalized trispectrum estimator rho, index as rho[z,p,n,i,q,m,j,b2,b4,b3,b5,b1]
-    # Rho = get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps)
-    # if inp.verbose:
-    #     print(f'calculated unnormalized trispectrum estimator rho for sim {sim}', flush=True)
-    # if inp.save_files:
-    #     pickle.dump(Rho, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Rho.p', 'wb'))
+    # get unnormalized trispectrum estimator rho, index as rho[z,p,n,i,q,m,j,b2,b4,b3,b5,b1]
+    Rho = get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps)
+    if inp.verbose:
+        print(f'calculated unnormalized trispectrum estimator rho for sim {sim}', flush=True)
+    if inp.save_files:
+        pickle.dump(Rho, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Rho.p', 'wb'))
     # Rho = pickle.load(open(f'/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_Rho.p', 'rb')) #remove and uncomment section above
-    Rho = np.zeros((2,2,inp.Nscales,len(inp.freqs),2,inp.Nscales,len(inp.freqs),inp.ell_sum_max//inp.dl_trispectrum, inp.ell_sum_max//inp.dl_trispectrum, inp.ell_sum_max//inp.dl_trispectrum, inp.ell_sum_max//inp.dl_trispectrum, inp.ellmax//inp.dl_trispectrum)) #remove and uncomment above
         
     #get needlet filters and spectral responses
     h = GaussianNeedlets(inp.ell_sum_max, np.array(inp.GN_FWHM_arcmin))[1]

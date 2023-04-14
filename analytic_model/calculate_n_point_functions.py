@@ -253,7 +253,7 @@ def get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
                     for q in range(N_preserved_comps):
                         for m in range(inp.Nscales):
                             for j in range(Nfreqs):
-                                print('zpniqmj: ', z,p,n,i,q,m,j) #remove
+                                print('zpniqmj: ', z,p,n,i,q,m,j, flush=True) #remove
                                 Rho[z,p,n,i,q,m,j] = rho(inp, comp_maps[z]-np.mean(comp_maps[z]), 
                                     wt_maps[p][n][i]-np.mean(wt_maps[p][n][i]), wt_maps[q][m][j]-np.mean(wt_maps[q][m][j]))
                                 nside = min(hp.get_nside(comp_maps[z]), hp.get_nside(wt_maps[p][n][i]), hp.get_nside(wt_maps[q][m][j]))

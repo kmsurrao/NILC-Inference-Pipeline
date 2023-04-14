@@ -1,4 +1,5 @@
 import sys
+sys.path.append('../shared')
 import os
 import multiprocessing as mp
 from input import Info
@@ -17,7 +18,6 @@ def main(inp, env):
     pool = mp.Pool(inp.num_parallel)
     results = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
     pool.close()
-    Clpq = np.asarray([elt[0] for elt in results], dtype=np.float32) #shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=2, reMASTERed_terms=4, ellmax+1)
     Clpq_direct = np.asarray([elt[1] for elt in results], dtype=np.float32) #shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, ellmax+1)
 
     acmb_array, atsz_array = get_all_acmb_atsz(inp, Clpq, Clpq_direct)
