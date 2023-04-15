@@ -1,3 +1,4 @@
+num_parallel: 16 #number of n-point function calculations to run in parallel 
 nside: 32 #nside of NILC maps
 ellmax: 30 #ellmax for power spectra
 ell_sum_max: 40 #maximum ell to loop over

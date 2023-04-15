@@ -4,6 +4,7 @@ import pickle
 import warnings
 from bispectrum import Bispectrum
 from trispectrum import rho
+import multiprocessing as mp
 from astropy.utils.exceptions import AstropyDeprecationWarning
 warnings.simplefilter('ignore', category=AstropyDeprecationWarning)
 
@@ -154,30 +155,35 @@ def get_bispectrum_zzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
 
     RETURNS
     -------
-    bispectra: indexed as bispectra[z,q,m,j,b1,b2,b3]
-
-    TODO
-    optimize by setting ell ranges outside 3*nside-1 to 0 in bispectrum itself
+    bispectra: indexed as bispectra[z,q,m,j,l1,l2,l3]
     '''
+
     N_comps = 2
     N_preserved_comps = 2
     Nfreqs = 2
     comp_maps = [CMB_map, tSZ_map]
     wt_maps = [CMB_wt_maps, tSZ_wt_maps]
-    Nbins = inp.ellmax//inp.dl_bispectrum
-    Nbins_sum = inp.ell_sum_max//inp.dl_bispectrum
-    bispectra = np.zeros((N_comps, N_preserved_comps, inp.Nscales, Nfreqs, Nbins, Nbins_sum, Nbins_sum), dtype=np.float32)
+    args = []
+    bispectra = np.zeros((N_comps, N_preserved_comps, inp.Nscales, Nfreqs, inp.ellmax+1, inp.ell_sum_max+1, inp.ell_sum_max+1), dtype=np.float32)
+    
     for z in range(N_comps):
         for q in range(N_preserved_comps):
             for m in range(inp.Nscales):
                 for j in range(Nfreqs):
-                    bispectra[z,q,m,j] = Bispectrum(inp, 
-                        comp_maps[z]-np.mean(comp_maps[z]), comp_maps[z]-np.mean(comp_maps[z]), 
-                        wt_maps[q][m][j]-np.mean(wt_maps[q][m][j]), equal12=True)
-                    nside = min(hp.get_nside(comp_maps[z]), hp.get_nside(wt_maps[q][m][j]))
-                    if 3*nside-1 < inp.ell_sum_max:
-                        max_bin = (3*nside-1-inp.ellmin)//inp.dl
-                        bispectra[z,z,q,m,j,max_bin+1:,max_bin+1:,max_bin+1:].fill(0.)
+                    args.append([inp,comp_maps[z]-np.mean(comp_maps[z]), 
+                        comp_maps[z]-np.mean(comp_maps[z]), wt_maps[q][m][j]-np.mean(wt_maps[q][m][j]), True])
+
+    pool = mp.Pool(inp.num_parallel)
+    results = pool.starmap(Bispectrum, args)
+    pool.close()
+
+    ct = 0
+    for z in range(N_comps):
+        for q in range(N_preserved_comps):
+            for m in range(inp.Nscales):
+                for j in range(Nfreqs):
+                    bispectra[z,q,m,j] = results[ct]
+                    ct += 1
     return bispectra
 
 def get_bispectrum_wzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
@@ -192,19 +198,16 @@ def get_bispectrum_wzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
 
     RETURNS
     -------
-    bispectra: indexed as bispectra[p,n,i,z,q,m,j,b1,b2,b3]
-
-    TODO
-    optimize by setting ell ranges outside 3*nside-1 to 0 in bispectrum itself
+    bispectra: indexed as bispectra[p,n,i,z,q,m,j,l1,l2,l3]
     '''
     N_comps = 2
     N_preserved_comps = 2
     Nfreqs = 2
     comp_maps = [CMB_map, tSZ_map]
     wt_maps = [CMB_wt_maps, tSZ_wt_maps]
-    Nbins = inp.ellmax//inp.dl_bispectrum
-    Nbins_sum = inp.ell_sum_max//inp.dl_bispectrum
-    bispectra = np.zeros((N_preserved_comps, inp.Nscales, Nfreqs, N_comps, N_preserved_comps, inp.Nscales, Nfreqs, Nbins, Nbins_sum, Nbins_sum), dtype=np.float32)
+    args = []
+    bispectra = np.zeros((N_preserved_comps, inp.Nscales, Nfreqs, N_comps, N_preserved_comps, inp.Nscales, Nfreqs, inp.ellmax+1, inp.ell_sum_max+1, inp.ell_sum_max+1), dtype=np.float32)
+
     for p in range(N_preserved_comps):
         for n in range(inp.Nscales):
             for i in range(Nfreqs):
@@ -212,13 +215,23 @@ def get_bispectrum_wzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
                     for q in range(N_preserved_comps):
                         for m in range(inp.Nscales):
                             for j in range(Nfreqs):
-                                bispectra[p,n,i,z,q,m,j] = Bispectrum(inp, 
-                                    wt_maps[p][n][i]-np.mean(wt_maps[p][n][i]), 
-                                    comp_maps[z]-np.mean(comp_maps[z]), wt_maps[q][m][j]-np.mean(wt_maps[q][m][j]))
-                                nside = min(hp.get_nside(comp_maps[z]), hp.get_nside(wt_maps[q][m][j]))
-                                if 3*nside-1 < inp.ell_sum_max:
-                                    max_bin = (3*nside-1-inp.ellmin)//inp.dl
-                                    bispectra[z,z,q,m,j,max_bin+1:,max_bin+1:,max_bin+1:].fill(0.)
+                                args.append([inp,wt_maps[p][n][i]-np.mean(wt_maps[p][n][i]), 
+                                    comp_maps[z]-np.mean(comp_maps[z]), wt_maps[q][m][j]-np.mean(wt_maps[q][m][j])])
+    
+    pool = mp.Pool(inp.num_parallel)
+    results = pool.starmap(Bispectrum, args)
+    pool.close()
+
+    ct = 0
+    for p in range(N_preserved_comps):
+        for n in range(inp.Nscales):
+            for i in range(Nfreqs):
+                for z in range(N_comps):
+                    for q in range(N_preserved_comps):
+                        for m in range(inp.Nscales):
+                            for j in range(Nfreqs):
+                                bispectra[p,n,i,z,q,m,j] = results[ct]
+                                ct += 1
     return bispectra
 
 def get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
@@ -233,19 +246,16 @@ def get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
 
     RETURNS
     -------
-    rho: indexed as rho[z,p,n,i,q,m,j,b2,b4,b3,b5,b1]
-
-    TODO
-    optimize by setting ell ranges outside 3*nside-1 to 0 in rho itself
+    rho: indexed as rho[z,p,n,i,q,m,j,l2,l4,l3,l5,l1]
     '''
+
     N_comps = 2
     N_preserved_comps = 2
     Nfreqs = 2
     comp_maps = [CMB_map, tSZ_map]
     wt_maps = [CMB_wt_maps, tSZ_wt_maps]
-    Nbins = inp.ellmax//inp.dl_trispectrum
-    Nbins_sum = inp.ell_sum_max//inp.dl_trispectrum
-    Rho = np.zeros((N_comps, N_preserved_comps, inp.Nscales, Nfreqs, N_preserved_comps, inp.Nscales, Nfreqs, Nbins_sum, Nbins_sum, Nbins_sum, Nbins_sum, Nbins), dtype=np.float32)
+    args = []
+    Rho = np.zeros((N_comps, N_preserved_comps, inp.Nscales, Nfreqs, N_preserved_comps, inp.Nscales, Nfreqs, inp.ell_sum_max+1, inp.ell_sum_max+1, inp.ell_sum_max+1, inp.ell_sum_max+1, inp.ellmax+1), dtype=np.float32)
     for z in range(N_comps):
         for p in range(N_preserved_comps):
             for n in range(inp.Nscales):
@@ -253,11 +263,21 @@ def get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
                     for q in range(N_preserved_comps):
                         for m in range(inp.Nscales):
                             for j in range(Nfreqs):
-                                print('zpniqmj: ', z,p,n,i,q,m,j, flush=True) #remove
-                                Rho[z,p,n,i,q,m,j] = rho(inp, comp_maps[z]-np.mean(comp_maps[z]), 
-                                    wt_maps[p][n][i]-np.mean(wt_maps[p][n][i]), wt_maps[q][m][j]-np.mean(wt_maps[q][m][j]))
-                                nside = min(hp.get_nside(comp_maps[z]), hp.get_nside(wt_maps[p][n][i]), hp.get_nside(wt_maps[q][m][j]))
-                                if 3*nside-1 < inp.ell_sum_max:
-                                    max_bin = (3*nside-1-inp.ellmin)//inp.dl
-                                    Rho[z,p,n,i,q,m,j,max_bin+1:,max_bin+1:,max_bin+1:,max_bin+1:,max_bin+1:].fill(0.)
+                                args.append([inp, comp_maps[z]-np.mean(comp_maps[z]), 
+                                    wt_maps[p][n][i]-np.mean(wt_maps[p][n][i]), wt_maps[q][m][j]-np.mean(wt_maps[q][m][j])])
+    
+    pool = mp.Pool(inp.num_parallel)
+    results = pool.starmap(rho, args)
+    pool.close()
+
+    ct = 0
+    for z in range(N_comps):
+        for p in range(N_preserved_comps):
+            for n in range(inp.Nscales):
+                for i in range(Nfreqs):
+                    for q in range(N_preserved_comps):
+                        for m in range(inp.Nscales):
+                            for j in range(Nfreqs):
+                                    Rho[z,p,n,i,q,m,j] = results[ct]
+                                    ct += 1
     return Rho

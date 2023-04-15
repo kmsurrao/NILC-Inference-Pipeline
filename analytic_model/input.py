@@ -19,6 +19,8 @@ class Info(object):
         self.input_file = input_file
         p = read_dict_from_yaml(self.input_file)
 
+        self.num_parallel = p['num_parallel']
+        assert self.num_parallel >= 1, "num_parallel"
         self.nside = p['nside']
         assert type(self.nside) is int and self.nside>0, "nside"
         self.ellmax = p['ellmax']

@@ -99,23 +99,18 @@ def get_data_vectors(sim, inp, env):
         print(f'calculated unnormalized trispectrum estimator rho for sim {sim}', flush=True)
     if inp.save_files:
         pickle.dump(Rho, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Rho.p', 'wb'))
-    # Rho = pickle.load(open(f'/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_Rho.p', 'rb')) #remove and uncomment section above
+    # Rho = pickle.load(open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Rho.p', 'rb')) #remove and uncomment section above
         
     #get needlet filters and spectral responses
-    h = GaussianNeedlets(inp.ell_sum_max, np.array(inp.GN_FWHM_arcmin))[1]
+    h = GaussianNeedlets(inp, taper_width=2*(inp.ell_sum_max-inp.ellmax))[1]
     g_cmb = np.array([1., 1.])
     g_tsz = tsz_spectral_response(inp.freqs)
 
     #get contributions to Clpq from each comp, index as Cl_{comp}[p,q,l] and contrib_{comp}[reMASTERed term, p,q,l]
-    if inp.include_higher_point:
-        Cl_CMB, contrib_CMB = calculate_all_cl(inp, h, g_cmb, Clzz[0], Clw1w2, Clzw[0], w, a[0],
-                bispectrum_zzw[0], bispectrum_wzw[:,:,:,0,:,:,:,:,:,:], Rho[0], delta_ij=False)
-        Cl_tSZ, contrib_tSZ = calculate_all_cl(inp, h, g_tsz, Clzz[1], Clw1w2, Clzw[1], w, a[1],
-                bispectrum_zzw[1], bispectrum_wzw[:,:,:,1,:,:,:,:,:,:], Rho[1], delta_ij=False)
-    else:
-        Cl_CMB, contrib_CMB = calculate_all_cl(inp, h, g_cmb, Clzz[0], Clw1w2, Clzw[0], delta_ij=False)
-        Cl_tSZ, contrib_tSZ = calculate_all_cl(inp, h, g_tsz, Clzz[1], Clw1w2, Clzw[1], delta_ij=False)
-
+    Cl_CMB, contrib_CMB = calculate_all_cl(inp, h, g_cmb, Clzz[0], Clw1w2, Clzw[0], w, a[0],
+            bispectrum_zzw[0], bispectrum_wzw[:,:,:,0,:,:,:,:,:,:], Rho[0], delta_ij=False)
+    Cl_tSZ, contrib_tSZ = calculate_all_cl(inp, h, g_tsz, Clzz[1], Clw1w2, Clzw[1], w, a[1],
+            bispectrum_zzw[1], bispectrum_wzw[:,:,:,1,:,:,:,:,:,:], Rho[1], delta_ij=False)
     Clpq = np.array([contrib_CMB, contrib_tSZ], dtype=np.float32) #indices (z, reMASTERed term, p,q,l)
     Clpq = np.transpose(Clpq, axes=(2,3,0,1,4)) #indices (p,q,z, reMASTERed term,l)
 

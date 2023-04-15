@@ -17,9 +17,9 @@ def calculate_all_cl(inp, h, g, Clzz, Clw1w2, Clzw=None, w=None, a=None,
     Clzw: 4D numpy array,index as Clzw[p,n,i,l]
     w: 3D numpy array, indexed as w[p,n,i], gives means of weight maps
     a: mean of map
-    bispectrum_zzw: indexed as bispectra[q,m,j,b1,b2,b3]
-    bispectrum_wzw: indexed as bispectra[p,n,i,q,m,j,b1,b2,b3]
-    Rho: indexed as rho[p,n,i,q,m,j,b2,b4,b3,b5,b1]
+    bispectrum_zzw: indexed as bispectra[q,m,j,l1,l2,l3]
+    bispectrum_wzw: indexed as bispectra[p,n,i,q,m,j,l1,l2,l3]
+    Rho: indexed as rho[p,n,i,q,m,j,l2,l4,l3,l5,l1]
     delta_ij: True if delta_{ij} is attached to term. False by default
 
     RETURNS
@@ -31,7 +31,6 @@ def calculate_all_cl(inp, h, g, Clzz, Clw1w2, Clzw=None, w=None, a=None,
     INDICES MAPPING IN EINSUM
     -------------------------
     l1, l2, l3, l4, l5 -> l, a, b, c, d
-    b1, b2, b3, b4, b5 -> e, f, g, h, k
 
     '''
     wigner = inp.wigner3j[:inp.ellmax+1, :inp.ell_sum_max+1, :inp.ell_sum_max+1]
@@ -39,49 +38,22 @@ def calculate_all_cl(inp, h, g, Clzz, Clw1w2, Clzw=None, w=None, a=None,
     l2 = np.arange(inp.ell_sum_max+1)
     l3 = np.arange(inp.ell_sum_max+1)
 
-    if Rho is None:
-        if not delta_ij:
-            aa_ww_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,na,ma,a,pqnmijb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzz,Clw1w2,optimize=True)
-            aw_aw_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,na,mb,qmja,pnib->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzw,Clzw,optimize=True)
-        else:
-            aa_ww_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,na,ma,a,pqnmiib->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzz,Clw1w2,optimize=True)
-        zeros_arr = np.zeros_like(aa_ww_term)
-        return aa_ww_term+aw_aw_term, np.array([aa_ww_term, aw_aw_term, zeros_arr, zeros_arr, zeros_arr])
-
-
-    #Define theta functions where ell_bins[b,l]=1 if l in bin b, 0 otherwise
-    ells_sum = np.arange(inp.ell_sum_max+1)
-    Nl_sum_bispec = inp.ell_sum_max//inp.dl_bispectrum
-    ell_sum_bins_bispec = [(ells_sum>=inp.dl_bispectrum*bin1)&(ells_sum<inp.dl_bispectrum*(bin1+1)) for bin1 in range(Nl_sum_bispec)]
-    ell_sum_bins_bispec[-1][-1] = 1 #put highest ell value in last bin
-    Nl_sum_trispec = inp.ell_sum_max//inp.dl_trispectrum
-    ell_sum_bins_trispec = [(ells_sum>=inp.dl_trispectrum*bin1)&(ells_sum<inp.dl_trispectrum*(bin1+1)) for bin1 in range(Nl_sum_trispec)]
-    ell_sum_bins_trispec[-1][-1] = 1 #put highest ell value in last bin
-
-    ells = np.arange(inp.ellmax+1)
-    Nl_bispec = inp.ellmax//inp.dl_bispectrum
-    ell_bins_bispec = [(ells>=inp.dl_bispectrum*bin1)&(ells<inp.dl_bispectrum*(bin1+1)) for bin1 in range(Nl_bispec)]
-    ell_bins_bispec[-1][-1] = 1 #put highest ell value in last bin
-    Nl_trispec = inp.ellmax//inp.dl_trispectrum
-    ell_bins_trispec = [(ells>=inp.dl_trispectrum*bin1)&(ells<inp.dl_trispectrum*(bin1+1)) for bin1 in range(Nl_trispec)]
-    ell_bins_trispec[-1][-1] = 1 #put highest ell value in last bin
-
     if not delta_ij:
         aa_ww_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,na,ma,a,pqnmijb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzz,Clw1w2,optimize=True)
         aw_aw_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,na,mb,qmja,pnib->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzw,Clzw,optimize=True)
-        w_aaw_term = float(2/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,nl,ma,pni,qmjefg,el,fa,gb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,:inp.ellmax+1],h,w,bispectrum_zzw,ell_bins_bispec,ell_sum_bins_bispec,ell_sum_bins_bispec,optimize=True) \
-                    +float(2/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,nl,ma,qmj,pniefg,el,fa,gb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,:inp.ellmax+1],h,w,bispectrum_zzw,ell_bins_bispec,ell_sum_bins_bispec,ell_sum_bins_bispec,optimize=True)
-        a_waw_term = float(2/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,n,ma,,pniqmjefg,el,fa,gb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,0],h,a,bispectrum_wzw,ell_bins_bispec,ell_sum_bins_bispec,ell_sum_bins_bispec,optimize=True) \
-                    +float(2/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,m,na,,pniqmjefg,el,fa,gb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,0],h,a,bispectrum_wzw,ell_bins_bispec,ell_sum_bins_bispec,ell_sum_bins_bispec,optimize=True)
-        aaww_term = np.einsum('l,nl,ml,i,j,na,mb,pniqmjfhgke,el,fa,gb,hc,kd->pql', 1/(2*l1+1),h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,h,h,Rho,ell_bins_trispec,ell_sum_bins_trispec,ell_sum_bins_trispec,ell_sum_bins_trispec,ell_sum_bins_trispec,optimize=True)
+        w_aaw_term = float(2/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,nl,ma,pni,qmjlab->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,:inp.ellmax+1],h,w,bispectrum_zzw,optimize=True) \
+                    +float(2/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,nl,ma,qmj,pnilab->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,:inp.ellmax+1],h,w,bispectrum_zzw,optimize=True)
+        a_waw_term = float(2/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,n,ma,,pniqmjlab->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,0],h,a,bispectrum_wzw,optimize=True) \
+                    +float(2/(4*np.pi))*np.einsum('nl,ml,i,j,a,b,lab,lab,m,na,,pniqmjlab->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,0],h,a,bispectrum_wzw,optimize=True)
+        aaww_term = np.einsum('l,nl,ml,i,j,na,mb,pniqmjacbdl->pql', 1/(2*l1+1),h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,h,h,Rho,optimize=True)
     else:
         aa_ww_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,na,ma,a,pqnmiib->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzz,Clw1w2,optimize=True)
         aw_aw_term = float(1/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,na,mb,qmia,pnib->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h,h,Clzw,Clzw,optimize=True)
-        w_aaw_term = float(2/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,nl,ma,pni,qmiefg,el,fa,gb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,:inp.ellmax+1],h,w,bispectrum_zzw,ell_bins_bispec,ell_sum_bins_bispec,ell_sum_bins_bispec,optimize=True) \
-                    +float(2/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,nl,ma,qmi,pniefg,el,fa,gb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,:inp.ellmax+1],h,w,bispectrum_zzw,ell_bins_bispec,ell_sum_bins_bispec,ell_sum_bins_bispec,optimize=True)
-        a_waw_term = float(2/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,n,ma,,pniqmiefg,el,fa,gb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,0],h,a,bispectrum_wzw,ell_bins_bispec,ell_sum_bins_bispec,ell_sum_bins_bispec,optimize=True) \
-                    +float(2/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,m,na,,pniqmiefg,el,fa,gb->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,0],h,a,bispectrum_wzw,ell_bins_bispec,ell_sum_bins_bispec,ell_sum_bins_bispec,optimize=True)
-        aaww_term = np.einsum('l,nl,ml,i,i,na,mb,pniqmifhgke,el,fa,gb,hc,kd->pql', 1/(2*l1+1),h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,h,h,Rho,ell_bins_trispec,ell_sum_bins_trispec,ell_sum_bins_trispec,ell_sum_bins_trispec,ell_sum_bins_trispec,optimize=True)
+        w_aaw_term = float(2/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,nl,ma,pni,qmilab->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,:inp.ellmax+1],h,w,bispectrum_zzw,optimize=True) \
+                    +float(2/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,nl,ma,qmi,pnilab->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,:inp.ellmax+1],h,w,bispectrum_zzw,optimize=True)
+        a_waw_term = float(2/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,n,ma,,pniqmilab->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,0],h,a,bispectrum_wzw,optimize=True) \
+                    +float(2/(4*np.pi))*np.einsum('nl,ml,i,i,a,b,lab,lab,m,na,,pniqmilab->pql', h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,2*l2+1,2*l3+1,wigner,wigner,h[:,0],h,a,bispectrum_wzw,optimize=True)
+        aaww_term = np.einsum('l,nl,ml,i,i,na,mb,pniqmiacbdl->pql', 1/(2*l1+1),h[:,:inp.ellmax+1],h[:,:inp.ellmax+1],g,g,h,h,Rho,optimize=True)
     
     Cl = aa_ww_term + aw_aw_term + w_aaw_term + a_waw_term + aaww_term
     return Cl, np.array([aa_ww_term, aw_aw_term, w_aaw_term, a_waw_term, aaww_term])

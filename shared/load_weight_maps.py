@@ -22,6 +22,7 @@ def load_wt_maps(inp, sim):
             for freq in range(2):
                 wt_map_path = f'{inp.output_dir}/pyilc_outputs/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
                 wt_map = hp.read_map(wt_map_path)
+                wt_map = hp.ud_grade(wt_map, inp.nside)
                 if comp=='CMB':
                     CMB_wt_maps[scale][freq] = wt_map*10**(-6) #since pyilc outputs CMB map in uK
                 else:
