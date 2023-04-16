@@ -102,7 +102,7 @@ def get_data_vectors(sim, inp, env):
     # Rho = pickle.load(open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Rho.p', 'rb')) #remove and uncomment section above
         
     #get needlet filters and spectral responses
-    h = GaussianNeedlets(inp, taper_width=inp.taper)[1]
+    h = GaussianNeedlets(inp)[1]
     g_cmb = np.array([1., 1.])
     g_tsz = tsz_spectral_response(inp.freqs)
 

@@ -46,7 +46,7 @@ def get_data_vectors(sim, inp, env):
     CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim)
 
     #get needlet filters and spectral responses
-    h = GaussianNeedlets(inp, taper_width=None)[1]
+    h = GaussianNeedlets(inp)[1]
     g_tsz = tsz_spectral_response([90., 150.])
     g_cmb = [1.,1.]
     g_noise = [1.,1.5] #based on how we defined noise spectra

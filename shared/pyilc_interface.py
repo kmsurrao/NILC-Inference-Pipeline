@@ -11,7 +11,7 @@ def setup_pyilc(sim, inp, env):
     pyilc_input_params['ELLMAX'] = inp.ell_sum_max
     pyilc_input_params['N_scales'] = inp.Nscales
     pyilc_input_params['GN_FWHM_arcmin'] = [inp.GN_FWHM_arcmin[i] for i in range(len(inp.GN_FWHM_arcmin))]
-    pyilc_input_params['taper_width'] = 2*(inp.ell_sum_max-inp.ellmax)
+    pyilc_input_params['taper_width'] = 0
     pyilc_input_params['N_freqs'] = len(inp.freqs)
     pyilc_input_params['freqs_delta_ghz'] = inp.freqs
     pyilc_input_params['N_side'] = inp.nside

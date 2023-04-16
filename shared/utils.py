@@ -49,14 +49,14 @@ def tsz_spectral_response(freqs): #input frequency in GHz
         response.append(T_cmb*(x*1/np.tanh(x/2)-4)) #was factor of tcmb microkelvin before
     return np.array(response)
 
-def GaussianNeedlets(inp, taper_width=None):
+def GaussianNeedlets(inp, taper_width=0):
     '''
     Function from pyilc (https://github.com/jcolinhill/pyilc)
 
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications
-    taper_width: int or None, ell-space width of high ell taper. If None, default will be used
+    taper_width: int, ell-space width of high ell taper. If 0, no taper is applied
 
     RETURNS
     --------
@@ -82,10 +82,11 @@ def GaussianNeedlets(inp, taper_width=None):
     filters[N_scales-1] = np.sqrt(1. - Gaussians[N_scales-2]**2.)
     # simple check to ensure that sum of squared transmission is unity as needed for NILC algorithm
     assert (np.absolute( np.sum( filters**2., axis=0 ) - np.ones(inp.ell_sum_max+1,dtype=float)) < 1.e-3).all(), "wavelet filter transmission check failed"
-    if taper_width is None:
-        taper_width = 2*(inp.ell_sum_max-inp.ellmax)
-    taper_func = (1.0 - 0.5*(np.tanh(0.025*(ell - (inp.ell_sum_max - taper_width))) + 1.0)) #smooth taper to zero from ELLMAX-taper_width to ELLMAX
-    # taper_func *= 0.5*(np.tanh(0.5*(ell-10)))+0.5 #smooth taper to zero for low ell
+    if taper_width:
+        taper_func = (1.0 - 0.5*(np.tanh(0.025*(ell - (inp.ell_sum_max - taper_width))) + 1.0)) #smooth taper to zero from ELLMAX-taper_width to ELLMAX
+        # taper_func *= 0.5*(np.tanh(0.5*(ell-10)))+0.5 #smooth taper to zero for low ell
+    else:
+        taper_func = np.ones_like(ell)
     for i, filt in enumerate(filters):
         filters[i] = filters[i]*taper_func
     return ell, filters
