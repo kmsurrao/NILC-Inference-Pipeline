@@ -33,12 +33,10 @@ class Info(object):
         self.GN_FWHM_arcmin = p['GN_FWHM_arcmin']
         assert len(self.GN_FWHM_arcmin) == self.Nscales - 1, "GN_FWHM_arcmin"
         assert all(FWHM_val > 0. for FWHM_val in self.GN_FWHM_arcmin), "GN_FWHM_arcmin"
+        self.taper = p['taper']
+        assert type(self.taper) is int and self.taper >= 0, "taper"
         self.tsz_amp = p['tSZ_amp']
         assert self.tsz_amp >= 0, 'tSZ_amp'
-        self.dl_bispectrum = p['dl_bispectrum']
-        assert type(self.dl_bispectrum) is int and self.dl_bispectrum>0 and self.ellmax%self.dl_bispectrum==0, "dl_bispectrum"
-        self.dl_trispectrum = p['dl_trispectrum']
-        assert type(self.dl_trispectrum) is int and self.dl_trispectrum>0 and self.ellmax%self.dl_trispectrum==0, "dl_trispectrum"
         self.noise = p['noise']
         assert self.noise >= 0, 'noise'
 

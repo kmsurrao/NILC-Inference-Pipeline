@@ -34,13 +34,13 @@ def get_data_vectors(sim, inp, env):
     '''
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, N, CMB_map, tSZ_map, noise_map = generate_freq_maps(sim, inp)
+    CC, T, N, CMB_map, tSZ_map, noise_map = generate_freq_maps(sim, inp, band_limit=True)
     
     #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
     setup_pyilc(sim, inp, env)
 
     #load weight maps
-    CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim)
+    CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, band_limit=True)
 
     #get power spectra of components, index as Clzz[z,l]
     Clzz = get_Clzz(CC, T)
@@ -77,7 +77,7 @@ def get_data_vectors(sim, inp, env):
     if inp.save_files:
         pickle.dump(a, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_a.p', 'wb'))
         
-    #get bispectrum for two factors of map and one factor of weight map, index as bispectrum_zzw[z,q,m,j,b1,b2,b3]
+    #get bispectrum for two factors of map and one factor of weight map, index as bispectrum_zzw[z,q,m,j,l1,l2,l3]
     bispectrum_zzw = get_bispectrum_zzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps)
     if inp.verbose:
         print(f'calculated bispectra for map, map, weight map for sim {sim}', flush=True)
@@ -85,7 +85,7 @@ def get_data_vectors(sim, inp, env):
         pickle.dump(bispectrum_zzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_bispectrum_zzw.p', 'wb'))
     # bispectrum_zzw = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_bispectrum_zzw.p', 'rb')) #remove and uncomment section above
     
-    # get bispectrum for two weight maps and one factor of map, index as bispectrum_wzw[p,n,i,z,q,m,j,b1,b2,b3]
+    # get bispectrum for two weight maps and one factor of map, index as bispectrum_wzw[p,n,i,z,q,m,j,l1,l2,l3]
     bispectrum_wzw = get_bispectrum_wzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps)
     if inp.verbose:
         print(f'calculated bispectra for weight map, map, weight map for sim {sim}', flush=True)
@@ -93,7 +93,7 @@ def get_data_vectors(sim, inp, env):
         pickle.dump(bispectrum_wzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_bispectrum_wzw.p', 'wb'))
     # bispectrum_wzw = pickle.load(open(f'/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_bispectrum_wzw.p', 'rb')) #remove and uncomment section above
     
-    # get unnormalized trispectrum estimator rho, index as rho[z,p,n,i,q,m,j,b2,b4,b3,b5,b1]
+    # get unnormalized trispectrum estimator rho, index as rho[z,p,n,i,q,m,j,l2,l4,l3,l5,l1]
     Rho = get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps)
     if inp.verbose:
         print(f'calculated unnormalized trispectrum estimator rho for sim {sim}', flush=True)
@@ -102,7 +102,7 @@ def get_data_vectors(sim, inp, env):
     # Rho = pickle.load(open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Rho.p', 'rb')) #remove and uncomment section above
         
     #get needlet filters and spectral responses
-    h = GaussianNeedlets(inp, taper_width=2*(inp.ell_sum_max-inp.ellmax))[1]
+    h = GaussianNeedlets(inp, taper_width=inp.taper)[1]
     g_cmb = np.array([1., 1.])
     g_tsz = tsz_spectral_response(inp.freqs)
 

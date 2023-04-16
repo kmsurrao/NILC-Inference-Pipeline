@@ -1,14 +1,13 @@
-num_parallel: 16 #number of n-point function calculations to run in parallel 
+num_parallel: 8 #number of n-point function calculations to run in parallel 
 nside: 32 #nside of NILC maps
-ellmax: 3 #ellmax for power spectra
-ell_sum_max: 5 #maximum ell to loop over
+ellmax: 20 #ellmax for power spectra
+ell_sum_max: 20 #maximum ell to loop over
 tSZ_amp: 1000. #amplification factor for tSZ map
-dl_bispectrum: 1 #ell-space bin width for bispectrum calculation
-dl_trispectrum: 1 #ell-space bin width for trispectrum calculation (recommended to be large for speed)
 noise: 30000 #noise level in uK arcmin
 freqs: [90., 150.] #frequencies for maps, in GHz
 Nscales: 3 #number of needlet filter scales
 GN_FWHM_arcmin: [300., 120.] #array of FWHM used for constrution of Gaussians (needlet filters are differences of two Gaussians). FWHM need to be in strictly decreasing order.
+taper: 5 #ell-space width of high-ell taper for needlet filters, set to 0 for no taper
 
 verbose: 1 #set to 0 if do not want intermediate printing
 remove_files: 0 #set to 0 if do not want to remove intermediate files between each sim
