@@ -128,7 +128,7 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None):
         for i in range(len(inp.freqs)):
             map_ = freq_maps[i]
             map_ = hp.ud_grade(map_, inp.nside) #changed
-            alm_orig = hp.map2alm(map_, lmax=inp.ell_sum_max) #changed
+            alm_orig = hp.map2alm(map_) #changed
             for n in range(inp.Nscales):
                 alm = hp.almxfl(alm_orig, h[n]) #initial needlet filtering
                 map_ = hp.alm2map(alm, inp.nside)
@@ -137,7 +137,7 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None):
                 all_maps[n] = np.add(all_maps[n], map_) #add maps at all frequencies for each scale
         T_ILC_n = None
         for n in range(inp.Nscales):
-            T_ILC_alm = hp.map2alm(all_maps[n], lmax=inp.ell_sum_max) #changed
+            T_ILC_alm = hp.map2alm(all_maps[n]) #changed
             tmp = hp.almxfl(T_ILC_alm, h[n]) #final needlet filtering
             if T_ILC_n is None:
                 T_ILC_n = np.zeros((inp.Nscales,len(tmp)),dtype=np.complex128)

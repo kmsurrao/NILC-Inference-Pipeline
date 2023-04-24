@@ -39,6 +39,7 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False):
         cmb_map = hp.alm2map(cmb_alm, nside=inp.nside)
     cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
     cmb_map = hp.synfast(cmb_cl, inp.nside)
+    cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
 
     #noise map realization
     theta_fwhm = (1.4/60.)*(np.pi/180.)
