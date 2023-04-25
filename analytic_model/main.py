@@ -142,9 +142,9 @@ def get_data_vectors(sim, inp, env):
         pickle.dump(Clpq_direct, open(f'{inp.output_dir}/data_vecs/sim{sim}_Clpq_direct.p', 'wb'), protocol=4)
         pickle.dump(directly_computed_prop_to_NILC_PS, open(f'{inp.output_dir}/data_vecs/sim{sim}_directly_computed_prop_to_NILC_PS.p', 'wb'), protocol=4)
 
-    # if inp.remove_files: #don't need pyilc output files anymore
-    #     subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
-    #     subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
+    if inp.remove_files: #don't need pyilc output files anymore
+        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
+        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
     
     return Clpq, Clpq_direct
 

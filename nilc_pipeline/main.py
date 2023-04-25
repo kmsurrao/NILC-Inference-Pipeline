@@ -40,7 +40,7 @@ def get_data_vectors(sim, inp, env):
     CC, T, N, CMB_map, tSZ_map, noise_map = generate_freq_maps(sim, inp)
     
     #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
-    setup_pyilc(sim, inp, env)
+    setup_pyilc(sim, inp, env, suppress_printing=True)
 
     #load weight maps
     CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim)
@@ -101,6 +101,21 @@ def get_data_vectors(sim, inp, env):
 
 
 def main(inp, env):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+    env: environment object
+
+    RETURNS
+    -------
+    lower_acmb: float, 1sigma below mean for acmb
+    upper_acmb: float, 1sigma above mean for acmb
+    mean_acmb: float, mean value of acmb
+    lower_atsz: float, 1sigma below mean for atsz
+    upper_atsz: float, 1sigma above mean for atsz
+    mean_atsz: float, mean value of atsz
+    '''
 
     pool = mp.Pool(inp.num_parallel)
     Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
@@ -108,6 +123,8 @@ def main(inp, env):
     Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=3, N_comps=3, ellmax+1)
     if inp.save_files:
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
+        if inp.verbose:
+            print(f'saved {inp.output_dir}/data_vecs/Clpq.p')
     
     acmb_array, atsz_array = get_all_acmb_atsz(inp, Clpq)
     lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(acmb_array, atsz_array, nbins=100, smoothing_factor=0.065) 
@@ -128,6 +145,7 @@ if __name__ == '__main__':
 
     # read in the input file and set up relevant info object
     inp = Info(input_file)
+    inp.ell_sum_max = inp.ellmax
 
     # current environment, also environment in which to run subprocesses
     my_env = os.environ.copy()
@@ -137,9 +155,9 @@ if __name__ == '__main__':
 
     #get wigner 3j symbols
     if inp.wigner_file != '':
-        inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ell_sum_max+1, :inp.ell_sum_max+1, :inp.ell_sum_max+1]
+        inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
     else:
-        inp.wigner3j = compute_3j(inp.ell_sum_max)
+        inp.wigner3j = compute_3j(inp.ellmax)
     
     #set up output directory
     setup_output_dir(inp, my_env)

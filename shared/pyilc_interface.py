@@ -1,7 +1,7 @@
 import subprocess
 import yaml
 
-def setup_pyilc(sim, inp, env):
+def setup_pyilc(sim, inp, env, suppress_printing=False):
 
     #set up yaml files for pyilc
     pyilc_input_params = {}
@@ -28,17 +28,22 @@ def setup_pyilc(sim, inp, env):
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)
     pyilc_input_params_preserved_tsz.update(pyilc_input_params)
-    with open(f'{inp.output_dir}/pyilc_yaml_files/CMB_preserved.yml', 'w') as outfile:
+    with open(f'{inp.output_dir}/pyilc_yaml_files/sim{sim}_CMB_preserved.yml', 'w') as outfile:
         yaml.dump(pyilc_input_params_preserved_cmb, outfile, default_flow_style=None)
-    with open(f'{inp.output_dir}/pyilc_yaml_files/tSZ_preserved.yml', 'w') as outfile:
+    with open(f'{inp.output_dir}/pyilc_yaml_files/sim{sim}_tSZ_preserved.yml', 'w') as outfile:
         yaml.dump(pyilc_input_params_preserved_tsz, outfile, default_flow_style=None)
 
     #run pyilc for preserved CMB and preserved tSZ
-    # subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/CMB_preserved.yml"], shell=True, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/CMB_preserved.yml"], shell=True, env=env)
+    if suppress_printing:
+        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_CMB_preserved.yml"], shell=True, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    else:
+        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_CMB_preserved.yml"], shell=True, env=env)
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component CMB, sim {sim}', flush=True)
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/tSZ_preserved.yml"], shell=True, env=env)
+    if suppress_printing:
+        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_tSZ_preserved.yml"], shell=True, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    else:
+        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_tSZ_preserved.yml"], shell=True, env=env)
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}', flush=True)
     if inp.remove_files: #don't need frequency maps anymore
