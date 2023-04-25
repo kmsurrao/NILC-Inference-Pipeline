@@ -91,8 +91,8 @@ def get_data_vectors(sim, inp, env):
     if inp.remove_files:
 
         #remove pyilc outputs
-        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
-        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
+        subprocess.call(f'rm {inp.output_dir}/pyilc_outputs/sim{sim}*', shell=True, env=env)
+        subprocess.call(f'rm {inp.output_dir}/pyilc_outputs/sim{sim}*', shell=True, env=env)
 
         #remove frequency map files
         subprocess.call(f'rm {inp.output_dir}/maps/sim{sim}_freq1.fits and {inp.output_dir}/maps/sim{sim}_freq2.fits', shell=True, env=env)
