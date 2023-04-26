@@ -54,7 +54,7 @@ def get_Clw1w2(inp, CMB_wt_maps, tSZ_wt_maps):
     -------
     wt_map_power_spectrum: 7D array, index as wt_map_power_spectrum[p,q,n,m,i,j,l] to get cross spectra of weight map pi(n) and qj(m)
     '''
-    Nfreqs = 2
+    Nfreqs = len(inp.freqs)
     wt_map_power_spectrum = np.full((2, 2, inp.Nscales, inp.Nscales, Nfreqs, Nfreqs, inp.ell_sum_max+1), None)
     for p in range(2): #p=0 corresponds to preserved CMB, p=1 for preserved tSZ
         for q in range(2): #q=0 corresponds to preserved CMB, q=1 for preserved tSZ
@@ -94,7 +94,7 @@ def get_Clzw(inp, CMB_wt_maps, tSZ_wt_maps, CMB_map, tSZ_map):
     '''
     N_comps = 2
     N_preserved_comps = 2
-    Nfreqs = 2
+    Nfreqs = len(inp.freqs)
     comp_maps = [CMB_map, tSZ_map]
     cross_spectra = np.full((N_comps, N_preserved_comps, inp.Nscales, Nfreqs, inp.ell_sum_max+1), None)
     for z in range(N_comps):
@@ -122,7 +122,7 @@ def get_w(inp, CMB_wt_maps, tSZ_wt_maps):
 
     '''
     N_preserved_comps = 2
-    Nfreqs = 2
+    Nfreqs = len(inp.freqs)
     w = np.zeros((N_preserved_comps, inp.Nscales, Nfreqs))
     for p, wt_maps in enumerate([CMB_wt_maps, tSZ_wt_maps]):
         for n in range(inp.Nscales):
@@ -160,7 +160,7 @@ def get_bispectrum_zzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
 
     N_comps = 2
     N_preserved_comps = 2
-    Nfreqs = 2
+    Nfreqs = len(inp.freqs)
     comp_maps = [CMB_map, tSZ_map]
     wt_maps = [CMB_wt_maps, tSZ_wt_maps]
     args = []
@@ -202,7 +202,7 @@ def get_bispectrum_wzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
     '''
     N_comps = 2
     N_preserved_comps = 2
-    Nfreqs = 2
+    Nfreqs = len(inp.freqs)
     comp_maps = [CMB_map, tSZ_map]
     wt_maps = [CMB_wt_maps, tSZ_wt_maps]
     args = []
@@ -251,7 +251,7 @@ def get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps):
 
     N_comps = 2
     N_preserved_comps = 2
-    Nfreqs = 2
+    Nfreqs = len(inp.freqs)
     comp_maps = [CMB_map, tSZ_map]
     wt_maps = [CMB_wt_maps, tSZ_wt_maps]
     args = []

@@ -75,7 +75,7 @@ def get_all_acmb_atsz(inp, Clpq):
                     + np.sqrt(Acmb*Atsz)*Clyy[1,0] + Atsz*Clyy[1,1]               + np.sqrt(Atsz)*Clyy[1,2] \
                     + np.sqrt(Acmb)*Clyy[2,0]      + np.sqrt(Atsz)*Clyy[2,1]      + Clyy[2,2]
         
-        return np.array([[[ClTT_with_A, ClTy_with_A], [ClyT_with_A, Clyy_with_A]] for l in range(inp.ellmax+1)])
+        return np.array([[[ClTT_with_A[l], ClTy_with_A[l]], [ClyT_with_A[l], Clyy_with_A[l]]] for l in range(inp.ellmax+1)])
 
 
     def lnL(pars, f, inp): 

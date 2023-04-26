@@ -1,5 +1,6 @@
 import sys
 sys.path.append('../shared')
+import numpy as np
 import os
 import multiprocessing as mp
 from input import Info
@@ -47,8 +48,8 @@ def get_data_vectors(sim, inp, env):
 
     #get needlet filters and spectral responses
     h = GaussianNeedlets(inp)[1]
-    g_tsz = tsz_spectral_response([90., 150.])
-    g_cmb = [1.,1.]
+    g_tsz = tsz_spectral_response(inp.freqs)
+    g_cmb = np.ones(len(inp.freqs))
     g_noise = [1.,1.5] #based on how we defined noise spectra
 
     #define and fill in array of data vectors

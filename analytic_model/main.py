@@ -103,7 +103,7 @@ def get_data_vectors(sim, inp, env):
         
     #get needlet filters and spectral responses
     h = GaussianNeedlets(inp)[1]
-    g_cmb = np.array([1., 1.])
+    g_cmb = np.ones(len(inp.freqs))
     g_tsz = tsz_spectral_response(inp.freqs)
 
     #get contributions to Clpq from each comp, index as Cl_{comp}[p,q,l] and contrib_{comp}[reMASTERed term, p,q,l]
