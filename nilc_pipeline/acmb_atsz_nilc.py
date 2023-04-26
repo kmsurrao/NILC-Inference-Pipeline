@@ -59,21 +59,29 @@ def get_all_acmb_atsz(inp, Clpq):
         index as array[l, 0-1 for T or y, 0-1 for T or y]
 
         '''
-        ClTT_with_A = Acmb*ClTT[0,0]               + np.sqrt(Acmb*Atsz)*ClTT[0,1] + np.sqrt(Acmb)*ClTT[0,2] \
-                    + np.sqrt(Acmb*Atsz)*ClTT[1,0] + Atsz*ClTT[1,1]               + np.sqrt(Atsz)*ClTT[1,2] \
-                    + np.sqrt(Acmb)*ClTT[2,0]      + np.sqrt(Atsz)*ClTT[2,1]      + ClTT[2,2]
+        # ClTT_with_A = Acmb*ClTT[0,0]               + np.sqrt(Acmb*Atsz)*ClTT[0,1] + np.sqrt(Acmb)*ClTT[0,2] \
+        #             + np.sqrt(Acmb*Atsz)*ClTT[1,0] + Atsz*ClTT[1,1]               + np.sqrt(Atsz)*ClTT[1,2] \
+        #             + np.sqrt(Acmb)*ClTT[2,0]      + np.sqrt(Atsz)*ClTT[2,1]      + ClTT[2,2]
         
-        ClTy_with_A = Acmb*ClTy[0,0]               + np.sqrt(Acmb*Atsz)*ClTy[0,1] + np.sqrt(Acmb)*ClTy[0,2] \
-                    + np.sqrt(Acmb*Atsz)*ClTy[1,0] + Atsz*ClTy[1,1]               + np.sqrt(Atsz)*ClTy[1,2] \
-                    + np.sqrt(Acmb)*ClTy[2,0]      + np.sqrt(Atsz)*ClTy[2,1]      + ClTy[2,2]
+        # ClTy_with_A = Acmb*ClTy[0,0]               + np.sqrt(Acmb*Atsz)*ClTy[0,1] + np.sqrt(Acmb)*ClTy[0,2] \
+        #             + np.sqrt(Acmb*Atsz)*ClTy[1,0] + Atsz*ClTy[1,1]               + np.sqrt(Atsz)*ClTy[1,2] \
+        #             + np.sqrt(Acmb)*ClTy[2,0]      + np.sqrt(Atsz)*ClTy[2,1]      + ClTy[2,2]
         
-        ClyT_with_A = Acmb*ClyT[0,0]               + np.sqrt(Acmb*Atsz)*ClyT[0,1] + np.sqrt(Acmb)*ClyT[0,2] \
-                    + np.sqrt(Acmb*Atsz)*ClyT[1,0] + Atsz*ClyT[1,1]               + np.sqrt(Atsz)*ClyT[1,2] \
-                    + np.sqrt(Acmb)*ClyT[2,0]      + np.sqrt(Atsz)*ClyT[2,1]      + ClyT[2,2]
+        # ClyT_with_A = Acmb*ClyT[0,0]               + np.sqrt(Acmb*Atsz)*ClyT[0,1] + np.sqrt(Acmb)*ClyT[0,2] \
+        #             + np.sqrt(Acmb*Atsz)*ClyT[1,0] + Atsz*ClyT[1,1]               + np.sqrt(Atsz)*ClyT[1,2] \
+        #             + np.sqrt(Acmb)*ClyT[2,0]      + np.sqrt(Atsz)*ClyT[2,1]      + ClyT[2,2]
         
-        Clyy_with_A = Acmb*Clyy[0,0]               + np.sqrt(Acmb*Atsz)*Clyy[0,1] + np.sqrt(Acmb)*Clyy[0,2] \
-                    + np.sqrt(Acmb*Atsz)*Clyy[1,0] + Atsz*Clyy[1,1]               + np.sqrt(Atsz)*Clyy[1,2] \
-                    + np.sqrt(Acmb)*Clyy[2,0]      + np.sqrt(Atsz)*Clyy[2,1]      + Clyy[2,2]
+        # Clyy_with_A = Acmb*Clyy[0,0]               + np.sqrt(Acmb*Atsz)*Clyy[0,1] + np.sqrt(Acmb)*Clyy[0,2] \
+        #             + np.sqrt(Acmb*Atsz)*Clyy[1,0] + Atsz*Clyy[1,1]               + np.sqrt(Atsz)*Clyy[1,2] \
+        #             + np.sqrt(Acmb)*Clyy[2,0]      + np.sqrt(Atsz)*Clyy[2,1]      + Clyy[2,2]
+
+        ClTT_with_A = Acmb*ClTT[0,0] + Atsz*ClTT[1,1] + ClTT[2,2]
+        
+        ClTy_with_A = Acmb*ClTy[0,0] + Atsz*ClTy[1,1] + ClTy[2,2]
+        
+        ClyT_with_A = Acmb*ClyT[0,0] + Atsz*ClyT[1,1] + ClyT[2,2]
+        
+        Clyy_with_A = Acmb*Clyy[0,0] + Atsz*Clyy[1,1] + Clyy[2,2]
         
         return np.array([[[ClTT_with_A[l], ClTy_with_A[l]], [ClyT_with_A[l], Clyy_with_A[l]]] for l in range(inp.ellmax+1)])
 
