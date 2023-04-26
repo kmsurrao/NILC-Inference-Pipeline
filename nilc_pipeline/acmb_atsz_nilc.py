@@ -118,7 +118,8 @@ def get_all_acmb_atsz(inp, Clpq):
         '''
         acmb_start = 1.0
         atsz_start = 1.0
-        res = minimize(lnL, x0 = [acmb_start, atsz_start], args = (ClpqA, inp), method='Nelder-Mead') #default method is BFGS
+        bounds = ((0.0, None), (0.0, None))
+        res = minimize(lnL, x0 = [acmb_start, atsz_start], args = (ClpqA, inp), method='Nelder-Mead', bounds=bounds) #default method is BFGS
         return res.x #acmb, atsz
     
     PScov_sim = get_PScov_sim(inp, Clpq)
