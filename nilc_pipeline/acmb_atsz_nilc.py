@@ -95,9 +95,9 @@ def get_all_acmb_atsz(inp, Clpq):
         negative log likelihood for one simulation, combined over multipoles 
         '''
         model = f(*pars)
-        ClTTd = np.mean(np.sum(ClTT_all_sims, axis=(3,4)), axis=0)
-        ClTyd = np.mean(np.sum(ClTy_all_sims, axis=(3,4)), axis=0)
-        Clyyd = np.mean(np.sum(Clyy_all_sims, axis=(3,4)), axis=0)
+        ClTTd = np.mean(np.sum(ClTT_all_sims, axis=(1,2)), axis=0)
+        ClTyd = np.mean(np.sum(ClTy_all_sims, axis=(1,2)), axis=0)
+        Clyyd = np.mean(np.sum(Clyy_all_sims, axis=(1,2)), axis=0)
         return np.sum([1/2* \
          ((model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clyyd[l]) \
         + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clyyd[l]) \
