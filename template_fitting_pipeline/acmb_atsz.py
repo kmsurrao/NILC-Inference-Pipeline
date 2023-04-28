@@ -62,8 +62,9 @@ def get_all_acmb_atsz(inp, Clij):
 
         Clij_with_A_00 = Acmb*Clij00[0] + Atsz*Clij00[1] + Anoise*Clij00[2]
         Clij_with_A_01 = Acmb*Clij01[0] + Atsz*Clij01[1] + Anoise*Clij01[2]
+        Clij_with_A_10 = Acmb*Clij10[0] + Atsz*Clij10[1] + Anoise*Clij10[2]
         Clij_with_A_11 = Acmb*Clij11[0] + Atsz*Clij11[1] + Anoise*Clij11[2]
-        return np.array([[Clij_with_A_00[l], Clij_with_A_01[l], Clij_with_A_11[l]] for l in range(inp.ellmax+1)])
+        return np.array([[[Clij_with_A_00[l], Clij_with_A_01[l]],[Clij_with_A_10[l], Clij_with_A_11[l]]] for l in range(inp.ellmax+1)])
 
 
     def lnL(pars, f, inp): 
