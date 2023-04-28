@@ -111,7 +111,7 @@ if __name__ == '__main__':
     #set up output directory
     setup_output_dir(inp, my_env)
 
-    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = main(inp, my_env)
+    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = main(inp)
     print(f'Acmb = {mean_acmb} + {upper_acmb-mean_acmb} - {mean_acmb-lower_acmb}', flush=True)
     print(f'Atsz = {mean_atsz} + {upper_atsz-mean_atsz} - {mean_atsz-lower_atsz}', flush=True)
     print('PROGRAM FINISHED RUNNING')
