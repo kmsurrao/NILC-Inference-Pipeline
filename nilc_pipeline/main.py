@@ -85,7 +85,7 @@ def get_data_vectors(sim, inp, env):
             y_to_CMB_preserved, y_to_tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[compy_freq1, compy_freq2])
             z_to_CMB_preserved, z_to_tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[compz_freq1, compz_freq2])
             Clpq[0,0,y,z] = hp.anafast(y_to_CMB_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
-            Clpq[1,1,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_tSZ_preserved,  lmax=inp.ellmax)
+            Clpq[1,1,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
             Clpq[0,1,y,z] = hp.anafast(y_to_CMB_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
             Clpq[1,0,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
     

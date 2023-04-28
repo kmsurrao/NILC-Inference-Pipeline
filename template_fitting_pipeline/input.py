@@ -44,7 +44,6 @@ class Info(object):
         assert type(self.output_dir) is str, "TypeError: output_dir"
 
         self.verbose = p['verbose']
-        self.remove_files = p['remove_files']
         self.save_files = p['save_files']
 
 

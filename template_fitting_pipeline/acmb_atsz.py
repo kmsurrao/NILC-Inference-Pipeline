@@ -60,9 +60,9 @@ def get_all_acmb_atsz(inp, Clij):
 
         '''
 
-        Clij_with_A_00 = Acmb*Clij[0,0,0] + Atsz*Clij[0,0,1] + Anoise*Clij[0,0,2]
-        Clij_with_A_01 = Acmb*Clij[0,1,0] + Atsz*Clij[0,1,1] + Anoise*Clij[0,1,2]
-        Clij_with_A_11 = Acmb*Clij[1,1,0] + Atsz*Clij[1,1,1] + Anoise*Clij[1,1,2]
+        Clij_with_A_00 = Acmb*Clij00[0] + Atsz*Clij00[1] + Anoise*Clij00[2]
+        Clij_with_A_01 = Acmb*Clij01[0] + Atsz*Clij01[1] + Anoise*Clij01[2]
+        Clij_with_A_11 = Acmb*Clij11[0] + Atsz*Clij11[1] + Anoise*Clij11[2]
         return np.array([[Clij_with_A_00[l], Clij_with_A_01[l], Clij_with_A_11[l]] for l in range(inp.ellmax+1)])
 
 
@@ -83,9 +83,10 @@ def get_all_acmb_atsz(inp, Clij):
         negative log likelihood for one simulation, combined over multipoles 
         '''
         model = f(*pars)
-        Clij00d = np.mean(np.sum(Clij00_all_sims, axis=(3,4)), axis=0)
-        Clij01d = np.mean(np.sum(Clij01_all_sims, axis=(3,4)), axis=0)
-        Clij11d = np.mean(np.sum(Clij11_all_sims, axis=(3,4)), axis=0)
+        Clij00d = np.mean(np.sum(Clij00_all_sims, axis=3), axis=0)
+        Clij01d = np.mean(np.sum(Clij01_all_sims, axis=3), axis=0)
+        Clij11d = np.mean(np.sum(Clij11_all_sims, axis=3), axis=0)
+        assert Clij00d.shape == (inp.ellmax+1,), f"Clij00d.shape is {Clij00d.shape}, should be ({inp.ellmax+1},)"
         return np.sum([1/2* \
          ((model[l][0,0]-Clij00d[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-Clij00d[l]) + (model[l][0,0]-Clij00d[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-Clij01d[l]) + (model[l][0,0]-Clij00d[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clij11d[l]) \
         + (model[l][0,1]-Clij01d[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-Clij00d[l]) + (model[l][0,1]-Clij01d[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-Clij01d[l]) + (model[l][0,1]-Clij01d[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clij11d[l]) \
