@@ -83,9 +83,9 @@ def get_all_acmb_atsz(inp, Clij):
         negative log likelihood for one simulation, combined over multipoles 
         '''
         model = f(*pars)
-        Clij00d = np.mean(np.sum(Clij00_all_sims, axis=3), axis=0)
-        Clij01d = np.mean(np.sum(Clij01_all_sims, axis=3), axis=0)
-        Clij11d = np.mean(np.sum(Clij11_all_sims, axis=3), axis=0)
+        Clij00d = np.mean(np.sum(Clij00_all_sims, axis=1), axis=0)
+        Clij01d = np.mean(np.sum(Clij01_all_sims, axis=1), axis=0)
+        Clij11d = np.mean(np.sum(Clij11_all_sims, axis=1), axis=0)
         assert Clij00d.shape == (inp.ellmax+1,), f"Clij00d.shape is {Clij00d.shape}, should be ({inp.ellmax+1},)"
         return np.sum([1/2* \
          ((model[l][0,0]-Clij00d[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-Clij00d[l]) + (model[l][0,0]-Clij00d[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-Clij01d[l]) + (model[l][0,0]-Clij00d[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clij11d[l]) \
