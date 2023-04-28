@@ -81,3 +81,39 @@ def main(inp):
 
     return lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz
 
+
+if __name__ == '__main__':
+
+    start_time = time.time()
+
+    # main input file containing most specifications 
+    try:
+        input_file = (sys.argv)[1]
+    except IndexError:
+        input_file = 'laptop.yaml'
+
+    # read in the input file and set up relevant info object
+    inp = Info(input_file)
+    inp.ell_sum_max = inp.ellmax
+
+    # current environment, also environment in which to run subprocesses
+    my_env = os.environ.copy()
+
+    #set up output directory
+    setup_output_dir(inp, my_env)
+
+    #get wigner 3j symbols
+    if inp.wigner_file != '':
+        inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+    else:
+        inp.wigner3j = compute_3j(inp.ellmax)
+    
+    #set up output directory
+    setup_output_dir(inp, my_env)
+
+    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = main(inp, my_env)
+    print(f'Acmb = {mean_acmb} + {upper_acmb-mean_acmb} - {mean_acmb-lower_acmb}', flush=True)
+    print(f'Atsz = {mean_atsz} + {upper_atsz-mean_atsz} - {mean_atsz-lower_atsz}', flush=True)
+    print('PROGRAM FINISHED RUNNING')
+    print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+
