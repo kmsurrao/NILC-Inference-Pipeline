@@ -45,8 +45,6 @@ class Info(object):
 
         self.verbose = p['verbose']
         self.remove_files = p['remove_files']
-
-        self.plot = p['plot']
         self.save_files = p['save_files']
 
 
