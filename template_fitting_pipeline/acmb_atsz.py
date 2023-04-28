@@ -6,36 +6,36 @@ from scipy import ndimage
 
 
 
-def get_PScov_sim(inp, Clpq):
+def get_PScov_sim(inp, Clij):
     '''
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clpq: (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=3, N_comps=3, ellmax+1) ndarray 
-        containing propagation of each pair of component maps
-        to NILC map auto- and cross-spectra
+    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=3, ellmax+1) ndarray 
+        containing contributions of each component to the 
+        auto- and cross- spectra of freq maps at freqs i and j
     
     RETURNS
     -------
-    cov: (ellmax+1,3,3) ndarray containing covariance matrix Cov_{pq,rs}
-        index as cov[l, 0-2 for ClTT ClTy Clyy, 0-2 for ClTT ClTy Clyy]
+    cov: (ellmax+1,3,3) ndarray containing covariance matrix Cov_{ij,kl}
+        index as cov[l, freq1, freq2]
     '''
-    Clpq_tmp = np.sum(Clpq, axis=(3,4))
-    Clpq_tmp = np.array([Clpq_tmp[:,0,0], Clpq_tmp[:,0,1], Clpq_tmp[:,1,1]])
-    Clpq_tmp = np.transpose(Clpq_tmp, axes=(2,0,1)) #shape (ellmax+1, 3 for ClTT, ClTy, Clyy, Nsims)
-    cov = np.array([np.cov(Clpq_tmp[l]) for l in range(inp.ellmax+1)]) #shape (ellmax+1,3,3)
+    Clij_tmp = np.sum(Clij, axis=3)
+    Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,1]])
+    Clij_tmp = np.transpose(Clij_tmp, axes=(2,0,1)) #shape (ellmax+1, 3 for Cl00 Cl01 and Cl11, Nsims)
+    cov = np.array([np.cov(Clij_tmp[l]) for l in range(inp.ellmax+1)]) #shape (ellmax+1,3,3)
     assert cov.shape == (inp.ellmax+1, 3, 3), f"covariance shape is {cov.shape} but should be ({inp.ellmax+1},3,3)"
     return cov
 
 
-def get_all_acmb_atsz(inp, Clpq):
+def get_all_acmb_atsz(inp, Clij):
     '''
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clpq: (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=3, N_comps=3, ellmax+1) ndarray 
-        containing propagation of each pair of component maps
-        to NILC map auto- and cross-spectra
+    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=3, ellmax+1) ndarray 
+        containing contributions of each component to the 
+        auto- and cross- spectra of freq maps at freqs i and j
 
     RETURNS
     -------
@@ -44,7 +44,7 @@ def get_all_acmb_atsz(inp, Clpq):
 
     '''
 
-    def ClpqA(Acmb, Atsz):
+    def ClijA(Acmb, Atsz, Anoise=1.0):
         '''
         Model for theoretical spectra Clpq including Acmb and Atsz parameters
 
@@ -56,34 +56,14 @@ def get_all_acmb_atsz(inp, Clpq):
         RETURNS
         -------
         (ellmax+1, 2, 2) ndarray, 
-        index as array[l, 0-1 for T or y, 0-1 for T or y]
+        index as array[l;  0-2 or ij=00, 01, 11]
 
         '''
-        # ClTT_with_A = Acmb*ClTT[0,0]               + np.sqrt(Acmb*Atsz)*ClTT[0,1] + np.sqrt(Acmb)*ClTT[0,2] \
-        #             + np.sqrt(Acmb*Atsz)*ClTT[1,0] + Atsz*ClTT[1,1]               + np.sqrt(Atsz)*ClTT[1,2] \
-        #             + np.sqrt(Acmb)*ClTT[2,0]      + np.sqrt(Atsz)*ClTT[2,1]      + ClTT[2,2]
-        
-        # ClTy_with_A = Acmb*ClTy[0,0]               + np.sqrt(Acmb*Atsz)*ClTy[0,1] + np.sqrt(Acmb)*ClTy[0,2] \
-        #             + np.sqrt(Acmb*Atsz)*ClTy[1,0] + Atsz*ClTy[1,1]               + np.sqrt(Atsz)*ClTy[1,2] \
-        #             + np.sqrt(Acmb)*ClTy[2,0]      + np.sqrt(Atsz)*ClTy[2,1]      + ClTy[2,2]
-        
-        # ClyT_with_A = Acmb*ClyT[0,0]               + np.sqrt(Acmb*Atsz)*ClyT[0,1] + np.sqrt(Acmb)*ClyT[0,2] \
-        #             + np.sqrt(Acmb*Atsz)*ClyT[1,0] + Atsz*ClyT[1,1]               + np.sqrt(Atsz)*ClyT[1,2] \
-        #             + np.sqrt(Acmb)*ClyT[2,0]      + np.sqrt(Atsz)*ClyT[2,1]      + ClyT[2,2]
-        
-        # Clyy_with_A = Acmb*Clyy[0,0]               + np.sqrt(Acmb*Atsz)*Clyy[0,1] + np.sqrt(Acmb)*Clyy[0,2] \
-        #             + np.sqrt(Acmb*Atsz)*Clyy[1,0] + Atsz*Clyy[1,1]               + np.sqrt(Atsz)*Clyy[1,2] \
-        #             + np.sqrt(Acmb)*Clyy[2,0]      + np.sqrt(Atsz)*Clyy[2,1]      + Clyy[2,2]
 
-        ClTT_with_A = Acmb*ClTT[0,0] + Atsz*ClTT[1,1] + ClTT[2,2]
-        
-        ClTy_with_A = Acmb*ClTy[0,0] + Atsz*ClTy[1,1] + ClTy[2,2]
-        
-        ClyT_with_A = Acmb*ClyT[0,0] + Atsz*ClyT[1,1] + ClyT[2,2]
-        
-        Clyy_with_A = Acmb*Clyy[0,0] + Atsz*Clyy[1,1] + Clyy[2,2]
-        
-        return np.array([[[ClTT_with_A[l], ClTy_with_A[l]], [ClyT_with_A[l], Clyy_with_A[l]]] for l in range(inp.ellmax+1)])
+        Clij_with_A_00 = Acmb*Clij[0,0,0] + Atsz*Clij[0,0,1] + Anoise*Clij[0,0,2]
+        Clij_with_A_01 = Acmb*Clij[0,1,0] + Atsz*Clij[0,1,1] + Anoise*Clij[0,1,2]
+        Clij_with_A_11 = Acmb*Clij[1,1,0] + Atsz*Clij[1,1,1] + Anoise*Clij[1,1,2]
+        return np.array([[Clij_with_A_00[l], Clij_with_A_01[l], Clij_with_A_11[l]] for l in range(inp.ellmax+1)])
 
 
     def lnL(pars, f, inp): 
@@ -103,16 +83,16 @@ def get_all_acmb_atsz(inp, Clpq):
         negative log likelihood for one simulation, combined over multipoles 
         '''
         model = f(*pars)
-        ClTTd = np.mean(np.sum(ClTT_all_sims, axis=(1,2)), axis=0)
-        ClTyd = np.mean(np.sum(ClTy_all_sims, axis=(1,2)), axis=0)
-        Clyyd = np.mean(np.sum(Clyy_all_sims, axis=(1,2)), axis=0)
+        Clij00d = np.mean(np.sum(Clij00_all_sims, axis=(3,4)), axis=0)
+        Clij01d = np.mean(np.sum(Clij01_all_sims, axis=(3,4)), axis=0)
+        Clij11d = np.mean(np.sum(Clij11_all_sims, axis=(3,4)), axis=0)
         return np.sum([1/2* \
-            ((model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clyyd[l]) \
-        + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clyyd[l]) \
-        + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,0]*(model[l][0,0]-ClTTd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,1]*(model[l][0,1]-ClTyd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,2]*(model[l][1,1]-Clyyd[l])) \
+         ((model[l][0,0]-Clij00d[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-Clij00d[l]) + (model[l][0,0]-Clij00d[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-Clij01d[l]) + (model[l][0,0]-Clij00d[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clij11d[l]) \
+        + (model[l][0,1]-Clij01d[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-Clij00d[l]) + (model[l][0,1]-Clij01d[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-Clij01d[l]) + (model[l][0,1]-Clij01d[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clij11d[l]) \
+        + (model[l][1,1]-Clij11d[l])*PScov_sim_Inv[l][2,0]*(model[l][0,0]-Clij00d[l]) + (model[l][1,1]-Clij11d[l])*PScov_sim_Inv[l][2,1]*(model[l][0,1]-Clij01d[l]) + (model[l][1,1]-Clij11d[l])*PScov_sim_Inv[l][2,2]*(model[l][1,1]-Clij11d[l])) \
         for l in range(2, inp.ellmax+1)]) 
 
-    def acmb_atsz():
+    def acmb_atsz(sim):
         '''
         Maximize likelihood with respect to Acmb and Atsz for one sim
 
@@ -126,11 +106,11 @@ def get_all_acmb_atsz(inp, Clpq):
         '''
         acmb_start = 1.0
         atsz_start = 1.0
-        bounds = ((0.0, None), (0.0, None))
-        res = minimize(lnL, x0 = [acmb_start, atsz_start], args = (ClpqA, inp), method='Nelder-Mead', bounds=bounds) #default method is BFGS
-        return res.x #acmb, atsz
+        anoise_start = 1.0
+        res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise_start], args = (ClijA, inp), method='Nelder-Mead') #default method is BFGS
+        return res.x #acmb, atsz, anoise
     
-    PScov_sim = get_PScov_sim(inp, Clpq)
+    PScov_sim = get_PScov_sim(inp, Clij)
     # PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
     #remove chunk below and uncomment above
     PScov_sim_Inv = np.zeros((inp.ellmax+1, 3, 3))
@@ -142,20 +122,23 @@ def get_all_acmb_atsz(inp, Clpq):
             inv = np.eye(3,3)
         PScov_sim_Inv[l] = inv
 
-    ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq[:,0,0], Clpq[:,0,1], Clpq[:,1,0], Clpq[:,1,1]
+    Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 
     acmb_array = np.ones(inp.Nsims, dtype=np.float32)
     atsz_array = np.ones(inp.Nsims, dtype=np.float32)
+    anoise_array = np.ones(inp.Nsims, dtype=np.float32)
     for sim in range(inp.Nsims):
-        ClTT, ClTy, ClyT, Clyy = ClTT_all_sims[sim], ClTy_all_sims[sim], ClyT_all_sims[sim], Clyy_all_sims[sim]
-        acmb, atsz = acmb_atsz()
+        Clij00, Clij01, Clij10, Clij11 = Clij00_all_sims[sim], Clij01_all_sims[sim], Clij10_all_sims[sim], Clij11_all_sims[sim]
+        acmb, atsz, anoise = acmb_atsz(sim)
         acmb_array[sim] = acmb
         atsz_array[sim] = atsz
+        anoise_array[sim] = anoise
     
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_nilc.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_nilc.p', 'wb'))
+    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'wb'))
+    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'wb'))
+    pickle.dump(anoise_array, open(f'{inp.output_dir}/anoise_array_template_fitting.p', 'wb'))
     if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array.p and {inp.output_dir}/atsz_array.p', flush=True)
+        print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz_array_template_fitting.p and anoise_array_template_fitting.p', flush=True)
    
     return acmb_array, atsz_array
 
