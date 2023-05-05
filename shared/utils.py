@@ -33,7 +33,7 @@ def setup_output_dir(inp, env, scalings=None):
         for comp1 in ['CMB', 'tSZ', 'noise1', 'noise2']:
             for comp2 in ['CMB', 'tSZ', 'noise1', 'noise2']:
                 for s1 in range(len(scalings)):
-                    for s2 in range(len(scalings)):
+                    for s2 in range(s1, len(scalings)):
                         scale1, scale2 = scalings[s1], scalings[s2]
                         new_dir1 = f'{inp.output_dir}/pyilc_outputs/scaling{scale1}{comp1}_scaling{scale2}{comp2}'
                         if not os.path.isdir(new_dir1):

@@ -53,7 +53,7 @@ def get_data_vectors(sim, inp, env):
     for y in range(N_comps):
         for z in range(N_comps):
             for s1 in range(len(scalings)):
-                for s2 in range(len(scalings)):
+                for s2 in range(s1, len(scalings)):
                 
                     #scaling parameters to feed into functions
                     scaling = [[scalings[s1], comps[y]], [scalings[s2], comps[z]]]
@@ -84,10 +84,10 @@ def get_data_vectors(sim, inp, env):
 
                     y_to_CMB_preserved, y_to_tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[compy_freq1, compy_freq2])
                     z_to_CMB_preserved, z_to_tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[compz_freq1, compz_freq2])
-                    Clpq[s1,s2,0,0,y,z] = hp.anafast(y_to_CMB_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
-                    Clpq[s1,s2,1,1,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
-                    Clpq[s1,s2,0,1,y,z] = hp.anafast(y_to_CMB_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
-                    Clpq[s1,s2,1,0,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
+                    Clpq[s1,s2,0,0,y,z] = Clpq[s2,s1,0,0,z,y] = hp.anafast(y_to_CMB_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
+                    Clpq[s1,s2,1,1,y,z] = Clpq[s2,s1,1,1,z,y] = hp.anafast(y_to_tSZ_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
+                    Clpq[s1,s2,0,1,y,z] = Clpq[s2,s1,0,1,z,y] = hp.anafast(y_to_CMB_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
+                    Clpq[s1,s2,1,0,y,z] = Clpq[s2,s1,1,0,z,y] = hp.anafast(y_to_tSZ_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
             
                     if inp.remove_files:
                         #remove pyilc outputs

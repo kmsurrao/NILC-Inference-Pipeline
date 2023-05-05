@@ -76,7 +76,7 @@ def get_all_acmb_atsz(inp, Clpq):
                     best_fits_here, Clpq_here = best_fits[1,1], Clyy
 
                 theory_model[l,p,q] = \
-                call_fit([Acmb,Acmb], best_fits_here[0,0,l])*Clpq_here[0,0]      + call_fit([Acmb,Atsz], best_fits_here[0,1,l])*Clpq_here[0,1]      + call_fit([Acmb,Anoise1], best_fits_here[0,2,l])*Clpq_here[0,2]       + call_fit([Acmb,Anoise2], best_fits_here[0,3,l])*Clpq_here[0,3]\
+                  call_fit([Acmb,Acmb], best_fits_here[0,0,l])*Clpq_here[0,0]      + call_fit([Acmb,Atsz], best_fits_here[0,1,l])*Clpq_here[0,1]      + call_fit([Acmb,Anoise1], best_fits_here[0,2,l])*Clpq_here[0,2]       + call_fit([Acmb,Anoise2], best_fits_here[0,3,l])*Clpq_here[0,3]\
                 + call_fit([Atsz,Acmb], best_fits_here[1,0,l])*Clpq_here[1,0]      + call_fit([Atsz,Atsz], best_fits_here[1,1,l])*Clpq_here[1,1]      + call_fit([Atsz,Anoise1], best_fits_here[1,2,l])*Clpq_here[1,2]       + call_fit([Atsz,Anoise2], best_fits_here[1,3,l])*Clpq_here[1,3] \
                 + call_fit([Anoise1,Acmb], best_fits_here[2,0,l])*Clpq_here[2,0]   + call_fit([Anoise1,Atsz], best_fits_here[2,1,l])*Clpq_here[2,1]   + call_fit([Anoise1,Anoise1], best_fits_here[2,2,l])*Clpq_here[2,2]    + call_fit([Anoise1,Anoise2], best_fits_here[2,3,l])*Clpq_here[2,3] \
                 + call_fit([Anoise2,Acmb], best_fits_here[3,0,l])*Clpq_here[3,0]   + call_fit([Anoise2,Atsz], best_fits_here[3,1,l])*Clpq_here[3,1]   + call_fit([Anoise2,Anoise1], best_fits_here[3,2,l])*Clpq_here[3,2]    + call_fit([Anoise2,Anoise2], best_fits_here[3,3,l])*Clpq_here[3,3]
@@ -107,8 +107,8 @@ def get_all_acmb_atsz(inp, Clpq):
         Clyyd = np.mean(np.sum(Clyy_all_sims, axis=(1,2)), axis=0)
         return np.sum([1/2* \
             ((model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clyyd[l]) \
-        + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clyyd[l]) \
-        + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,0]*(model[l][0,0]-ClTTd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,1]*(model[l][0,1]-ClTyd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,2]*(model[l][1,1]-Clyyd[l])) \
+           + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clyyd[l]) \
+           + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,0]*(model[l][0,0]-ClTTd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,1]*(model[l][0,1]-ClTyd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,2]*(model[l][1,1]-Clyyd[l])) \
         for l in range(2, inp.ellmax+1)]) 
 
     def acmb_atsz():
