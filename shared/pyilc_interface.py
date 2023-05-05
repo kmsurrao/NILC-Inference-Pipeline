@@ -1,11 +1,30 @@
 import subprocess
 import yaml
 
-def setup_pyilc(sim, inp, env, suppress_printing=False):
+def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
+    '''
+    Sets up yaml files for pyilc and runs the code
+
+    ARGUMENTS
+    ---------
+    sim: int, simulation number
+    inp: Info object containing input parameter specifications
+    env: environment object
+    suppress_printing: Bool, whether to suppress outputs and errors from pyilc code itself
+    scaling: None or 2D list of [[scaling_amplitude1, component1], [scaling_amplitude2, component2]]
+
+    RETURNS
+    -------
+    None
+    '''
 
     #set up yaml files for pyilc
     pyilc_input_params = {}
     pyilc_input_params['output_dir'] = str(inp.output_dir) + "/pyilc_outputs/"
+    if scaling: 
+        s1, comp1 = scaling[0]
+        s2, comp2 = scaling[1]
+        pyilc_input_params['output_dir'] += f"scaling{s1}{comp1}_scaling{s2}{comp2}/"
     pyilc_input_params['output_prefix'] = "sim" + str(sim)
     pyilc_input_params['save_weights'] = "yes"
     pyilc_input_params['ELLMAX'] = inp.ell_sum_max
@@ -46,7 +65,5 @@ def setup_pyilc(sim, inp, env, suppress_printing=False):
         subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_tSZ_preserved.yml"], shell=True, env=env)
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}', flush=True)
-    if inp.remove_files: #don't need frequency maps anymore
-        subprocess.call(f'rm {inp.output_dir}/maps/sim{sim}_freq1.fits {inp.output_dir}/maps/sim{sim}_freq2.fits', shell=True, env=env)
-    
+
     return

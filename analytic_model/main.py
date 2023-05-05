@@ -34,7 +34,7 @@ def get_data_vectors(sim, inp, env):
     '''
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, N, CMB_map, tSZ_map, noise_map = generate_freq_maps(sim, inp, band_limit=True)
+    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, band_limit=True)
     
     #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
     setup_pyilc(sim, inp, env)
@@ -143,8 +143,7 @@ def get_data_vectors(sim, inp, env):
         pickle.dump(directly_computed_prop_to_NILC_PS, open(f'{inp.output_dir}/data_vecs/sim{sim}_directly_computed_prop_to_NILC_PS.p', 'wb'), protocol=4)
 
     if inp.remove_files: #don't need pyilc output files anymore
-        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
-        subprocess.call(f'rm {inp.scratch_path}/pyilc_outputs/sim{sim}*', shell=True, env=env)
+        subprocess.call(f'rm {inp.output_dir}/pyilc_outputs/sim{sim}*', shell=True, env=env)
     
     return Clpq, Clpq_direct
 
