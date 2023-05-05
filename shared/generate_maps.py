@@ -87,7 +87,7 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     sim_map_1 = cmb_map + g1*tsz_map + noise1_map
     sim_map_2 = cmb_map + g2*tsz_map + noise2_map #make noise different in both maps
     if save:
-        if tSZ_amp_extra == CMB_amp == noise1_amp == noise2_amp == 1.:
+        if not scaling:
             map1_fname = f'{inp.output_dir}/maps/sim{sim}_freq1.fits'
             map2_fname = f'{inp.output_dir}/maps/sim{sim}_freq2.fits'
         else:

@@ -32,7 +32,7 @@ def get_parameter_dependence(inp, Clpq):
     '''
     N_preserved_comps = 2
     N_comps = 4
-    scalings = [1,10,50,100]
+    scalings = [1,10,50]
 
     Clpq_mean = np.transpose( np.mean(Clpq, axis=0), axes=(2,3,4,5,6,0,1) )
 

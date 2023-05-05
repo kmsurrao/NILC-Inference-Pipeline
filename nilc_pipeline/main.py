@@ -38,7 +38,7 @@ def get_data_vectors(sim, inp, env):
     N_preserved_comps = 2 #components to create NILC maps for: CMB, tSZ
     N_comps = 4 #CMB, tSZ, noise1, noise2
     comps = ['CMB', 'tSZ', 'noise1', 'noise2']
-    scalings = [1, 10, 50, 100]
+    scalings = [1, 10, 50]
 
     #define array of data vectors
     Clpq = np.zeros((len(scalings), len(scalings), N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1))
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     my_env = os.environ.copy()
 
     #set up output directory
-    setup_output_dir(inp, my_env, scalings=[1, 10, 50, 100])
+    setup_output_dir(inp, my_env, scalings=[1, 10, 50])
 
 
     lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = main(inp, my_env)
