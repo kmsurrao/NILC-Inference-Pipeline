@@ -42,7 +42,10 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     pyilc_input_params['N_deproj'] = 0
     pyilc_input_params['N_SED_params'] = 0
     pyilc_input_params['N_maps_xcorr'] = 0
-    pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/sim{sim}_freq2.fits']
+    if not scaling:
+        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/sim{sim}_freq2.fits']
+    else:
+        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/scaling{s1}{comp1}_scaling{s2}{comp2}/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/scaling{s1}{comp1}_scaling{s2}{comp2}/sim{sim}_freq2.fits']
     pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)
