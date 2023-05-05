@@ -69,4 +69,9 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}', flush=True)
 
+    #remove unncessary files
+    subprocess.run(f'rm {inp.output_dir}/pyilc_outputs/scaling{s1}{comp1}_scaling{s2}{comp2}/sim{sim}_needletcoeff*', shell=True, env=env)
+    subprocess.run(f'rm {inp.output_dir}/pyilc_outputs/scaling{s1}{comp1}_scaling{s2}{comp2}/sim{sim}*.pdf', shell=True, env=env)
+    
+    
     return
