@@ -70,8 +70,8 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}', flush=True)
 
     #remove unncessary files
-    subprocess.run('rm ' + pyilc_input_params['output_dir'] + f'sim{sim}_needletcoeff*', shell=True, env=env)
-    subprocess.run('rm ' + pyilc_input_params['output_dir'] + f'sim{sim}*.pdf', shell=True, env=env)
+    subprocess.run('rm -f ' + pyilc_input_params['output_dir'] + f'sim{sim}_needletcoeff*', shell=True, env=env)
+    subprocess.run('rm -f ' + pyilc_input_params['output_dir'] + f'sim{sim}*.pdf', shell=True, env=env)
     
     
     return
