@@ -24,16 +24,17 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
 
     #Determine which components to scale
     tSZ_amp_extra, CMB_amp, noise1_amp, noise2_amp = 1, 1, 1, 1
-    s1, comp1 = scaling[0]
-    s2, comp2 = scaling[1]
-    if comp1=='CMB': CMB_amp = s1
-    elif comp1=='tSZ': tSZ_amp_extra = s1
-    elif comp1=='noise1': noise1_amp = s1
-    elif comp1=='noise2': noise2_amp = s1
-    if comp2=='CMB': CMB_amp = s2
-    elif comp2=='tSZ': tSZ_amp_extra = s2
-    elif comp2=='noise1': noise1_amp = s2
-    elif comp2=='noise2': noise2_amp = s2
+    if scaling:
+        s1, comp1 = scaling[0]
+        s2, comp2 = scaling[1]
+        if comp1=='CMB': CMB_amp = s1
+        elif comp1=='tSZ': tSZ_amp_extra = s1
+        elif comp1=='noise1': noise1_amp = s1
+        elif comp1=='noise2': noise2_amp = s1
+        if comp2=='CMB': CMB_amp = s2
+        elif comp2=='tSZ': tSZ_amp_extra = s2
+        elif comp2=='noise1': noise1_amp = s2
+        elif comp2=='noise2': noise2_amp = s2
 
     #Read tSZ halosky map
     tsz_map = hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
