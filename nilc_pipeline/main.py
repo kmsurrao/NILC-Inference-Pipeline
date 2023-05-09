@@ -57,12 +57,13 @@ def get_data_vectors(sim, inp, env):
                 
                     #scaling parameters to feed into functions
                     scaling = [[scalings[s1], comps[y]], [scalings[s2], comps[z]]]
-
+                    
                     #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)
                     CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, scaling=scaling)
                     
-                    #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
-                    setup_pyilc(sim, inp, env, suppress_printing=True, scaling=scaling)
+                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/scaling{scaling[0][0]}{scaling[0][1]}_scaling{scaling[1][0]}{scaling[1][1]}/sim{sim}needletILCmap_component_tSZ.fits"):
+                        #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
+                        setup_pyilc(sim, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
 
                     #load weight maps
                     CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, scaling=scaling)

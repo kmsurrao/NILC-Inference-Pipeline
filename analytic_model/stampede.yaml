@@ -14,6 +14,6 @@ save_files: 1 #set to nonzero value to save pickle files
 
 halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' #Path to folder containing tSZ maps, assumed to be in Kelvin
 cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' #File for CMB map in Kelvin, lensed_alm is in uK
-pyilc_path: '/home1/09334/ksurrao/GitHub/pyilc' #Path to pyilc code
+pyilc_path: '/work2/09334/ksurrao/stampede2/GitHub/pyilc' #Path to pyilc code
 wigner_file: '/scratch/09334/ksurrao/NILC/inputs/wigner3j_ellmax1000.p' #File containing wigner-3j symbols with zero m values, indexed as wigner3j[l1,l2,l3]. Leave empty if no such file.
 output_dir: '/scratch/09334/ksurrao/NILC/outputs_high_noise' #Path to folder to store temporary outputs
