@@ -1,5 +1,6 @@
 import subprocess
 import yaml
+import os
 
 def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     '''
@@ -75,3 +76,29 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     
     
     return
+
+def weight_maps_exist(sim, inp, scaling=None):
+    '''
+    Sets up yaml files for pyilc and runs the code
+
+    ARGUMENTS
+    ---------
+    sim: int, simulation number
+    inp: Info object containing input parameter specifications
+    scaling: None or 2D list of [[scaling_amplitude1, component1], [scaling_amplitude2, component2]]
+
+    RETURNS
+    -------
+    Bool, whether or not weight maps already exist
+    '''
+    
+    for comp in ['CMB', 'tSZ']:
+        for freq in range(len(inp.freqs)):
+            for scale in range(inp.Nscales):
+                if scaling:
+                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/scaling{scaling[0][0]}{scaling[0][1]}_scaling{scaling[1][0]}{scaling[1][1]}/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
+                        return False
+                else:
+                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
+                        return False
+    return True
