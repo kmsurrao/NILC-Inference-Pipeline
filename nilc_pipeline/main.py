@@ -44,7 +44,13 @@ def get_scaled_maps_and_wts(sim, inp, env, scale_factor):
         CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, scaling=scaling)
         
         #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
-        setup_pyilc(sim, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
+        if not weight_maps_exist(sim, inp, scaling=scaling): #check if not all the weight maps already exist
+            #remove any existing weight maps for this sim and scaling to prevent pyilc errors
+            if scaling:                                                     
+                subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/scaled_{scaling[1]}/sim{sim}*', shell=True, env=env)
+            else:
+                subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/unscaled/sim{sim}*', shell=True, env=env)
+            setup_pyilc(sim, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
 
         #load weight maps
         CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, scaling=scaling)
