@@ -11,7 +11,7 @@ def get_PScov_sim(inp, Clij):
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=3, ellmax+1) ndarray 
+    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, ellmax+1) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
     
@@ -33,7 +33,7 @@ def get_all_acmb_atsz(inp, Clij):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=3, ellmax+1) ndarray 
+    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, ellmax+1) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
 
@@ -41,10 +41,12 @@ def get_all_acmb_atsz(inp, Clij):
     -------
     acmb_array: array of length Nsims containing best fit Acmb for each simulation
     atsz_array: array of length Nsims containing best fit Atsz for each simulation
+    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
+    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
 
     '''
 
-    def ClijA(Acmb, Atsz, Anoise=1.0):
+    def ClijA(Acmb, Atsz, Anoise1, Anoise2):
         '''
         Model for theoretical spectra Clpq including Acmb and Atsz parameters
 
@@ -52,6 +54,8 @@ def get_all_acmb_atsz(inp, Clij):
         ---------
         Acmb: float, scaling parameter for CMB power spectrum
         Atsz: float, scaling parameter for tSZ power spectrum
+        Anoise1: float, scaling parameter for 90 GHz noise power spectrum
+        Anoise2: float, scaling parameter for 150 GHz noise power spectrum
 
         RETURNS
         -------
@@ -60,10 +64,10 @@ def get_all_acmb_atsz(inp, Clij):
 
         '''
 
-        Clij_with_A_00 = Acmb*Clij00[0] + Atsz*Clij00[1] + Anoise*Clij00[2]
-        Clij_with_A_01 = Acmb*Clij01[0] + Atsz*Clij01[1] + Anoise*Clij01[2]
-        Clij_with_A_10 = Acmb*Clij10[0] + Atsz*Clij10[1] + Anoise*Clij10[2]
-        Clij_with_A_11 = Acmb*Clij11[0] + Atsz*Clij11[1] + Anoise*Clij11[2]
+        Clij_with_A_00 = Acmb*Clij00[0] + Atsz*Clij00[1] + Anoise1*Clij00[2] + Anoise2*Clij00[3]
+        Clij_with_A_01 = Acmb*Clij01[0] + Atsz*Clij01[1] + Anoise1*Clij01[2] + Anoise2*Clij01[3]
+        Clij_with_A_10 = Acmb*Clij10[0] + Atsz*Clij10[1] + Anoise1*Clij10[2] + Anoise2*Clij10[3]
+        Clij_with_A_11 = Acmb*Clij11[0] + Atsz*Clij11[1] + Anoise1*Clij11[2] + Anoise2*Clij11[3]
         return np.array([[[Clij_with_A_00[l], Clij_with_A_01[l]],[Clij_with_A_10[l], Clij_with_A_11[l]]] for l in range(inp.ellmax+1)])
 
 
@@ -104,45 +108,40 @@ def get_all_acmb_atsz(inp, Clij):
 
         RETURNS
         -------
-        best fit Acmb, Atsz (floats)
+        best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
         '''
         acmb_start = 1.0
         atsz_start = 1.0
-        anoise_start = 1.0
-        res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise_start], args = (ClijA, inp), method='Nelder-Mead') #default method is BFGS
+        anoise1_start = 1.0
+        anoise2_start = 1.0
+        res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise1_start, anoise2_start], args = (ClijA, inp), method='Nelder-Mead') #default method is BFGS
         return res.x #acmb, atsz, anoise
     
     PScov_sim = get_PScov_sim(inp, Clij)
-    # PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
-    #remove chunk below and uncomment above
-    PScov_sim_Inv = np.zeros((inp.ellmax+1, 3, 3))
-    for l in range(inp.ellmax+1):
-        try:
-            inv = scipy.linalg.inv(PScov_sim[l])
-        except Exception:
-            print('l: ', l)
-            inv = np.eye(3,3)
-        PScov_sim_Inv[l] = inv
+    PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 
     acmb_array = np.ones(inp.Nsims, dtype=np.float32)
     atsz_array = np.ones(inp.Nsims, dtype=np.float32)
-    anoise_array = np.ones(inp.Nsims, dtype=np.float32)
+    anoise1_array = np.ones(inp.Nsims, dtype=np.float32)
+    anoise2_array = np.ones(inp.Nsims, dtype=np.float32)
     for sim in range(inp.Nsims):
         Clij00, Clij01, Clij10, Clij11 = Clij00_all_sims[sim], Clij01_all_sims[sim], Clij10_all_sims[sim], Clij11_all_sims[sim]
-        acmb, atsz, anoise = acmb_atsz(sim)
+        acmb, atsz, anoise1, anoise2 = acmb_atsz(sim)
         acmb_array[sim] = acmb
         atsz_array[sim] = atsz
-        anoise_array[sim] = anoise
+        anoise1_array[sim] = anoise1
+        anoise2_array[sim] = anoise2
     
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'wb'))
     pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'wb'))
-    pickle.dump(anoise_array, open(f'{inp.output_dir}/anoise_array_template_fitting.p', 'wb'))
+    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'wb'))
+    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'wb'))
     if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz_array_template_fitting.p and anoise_array_template_fitting.p', flush=True)
+        print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz and anoise1 and anoise2', flush=True)
    
-    return acmb_array, atsz_array
+    return acmb_array, atsz_array, anoise1_array, anoise2_array
 
 
 
@@ -178,13 +177,15 @@ def get_var(P, edges, scaling):
     mean = scaling*idx_min/len(P)+np.amin(edges)
     return lower, upper, mean
 
-def get_parameter_cov_matrix(acmb_array, atsz_array, nbins=100, smoothing_factor=0.065):
+def get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065):
     '''
     ARGUMENTS
     ---------
     acmb_array: array of length Nsims containing best fit Acmb for each simulation
     atsz_array: array of length Nsims containing best fit Atsz for each simulation
-    nbins: int, number of bins in each dimension for histogram of Acmb and Atsz values 
+    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
+    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
+    nbins: int, number of bins in each dimension for histogram of Acmb, Atsz, Anoise1, Anoise2 values 
     smoothing_factor: float, nbins*smoothing_factor is standard deviation of Gaussian kernel for smoothing histogram
 
     RETURNS

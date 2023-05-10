@@ -23,22 +23,23 @@ def get_data_vectors(sim, inp):
 
     RETURNS
     -------
-    Clij: (Nfreqs=2, Nfreqs=2, Ncomps=3, ellmax+1) ndarray 
+    Clij: (Nfreqs=2, Nfreqs=2, Ncomps=4, ellmax+1) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
     '''
-    Ncomps = 3 #CMB, tSZ, noise
+    Ncomps = 4 #CMB, tSZ, noise 90 nGHz, noise 150 GHz
     Nfreqs = len(inp.freqs)
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, N, CMB_map, tSZ_map, noise_map = generate_freq_maps(sim, inp, save=False)
-    all_spectra = [CC, T, N]
+    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, save=False)
+    all_spectra = [CC, T, N1, N2]
 
     #get spectral responses
     g_cmb = np.ones(len(inp.freqs))
     g_tsz = tsz_spectral_response(inp.freqs)
-    g_noise = np.array([1.,1.5]) #based on how we defined noise spectra
-    all_g_vecs = np.array([g_cmb, g_tsz, g_noise])
+    g_noise1 = np.array([1.,0.])
+    g_noise2 = np.array([0.,1.])
+    all_g_vecs = np.array([g_cmb, g_tsz, g_noise1, g_noise2])
 
     #define and fill in array of data vectors
     Clij = np.zeros((Nfreqs, Nfreqs, Ncomps, inp.ellmax+1))
@@ -76,8 +77,8 @@ def main(inp):
         if inp.verbose:
             print(f'saved {inp.output_dir}/data_vecs/Clij.p')
     
-    acmb_array, atsz_array = get_all_acmb_atsz(inp, Clij)
-    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(acmb_array, atsz_array, nbins=100, smoothing_factor=0.065) 
+    acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clij)
+    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065) 
 
     return lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz
 
@@ -101,12 +102,6 @@ if __name__ == '__main__':
 
     #set up output directory
     setup_output_dir(inp, my_env)
-
-    #get wigner 3j symbols
-    if inp.wigner_file != '':
-        inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
-    else:
-        inp.wigner3j = compute_3j(inp.ellmax)
     
     #set up output directory
     setup_output_dir(inp, my_env)
