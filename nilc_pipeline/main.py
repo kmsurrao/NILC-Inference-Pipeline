@@ -26,14 +26,14 @@ def get_scaled_maps_and_wts(sim, inp, env, scale_factor):
     RETURNS
     -------
     CMB_map, tSZ_map, noise1_map, noise2_map: unscaled maps of all the components
-    all_wt_maps: (N_comps+1, 2) ndarray containing all weight maps
+    all_wt_maps: (N_comps+1, 2, Nscales, Nfreqs, Npix) ndarray containing all weight maps
     '''
 
     N_comps = 4 #CMB, tSZ, noise1, noise2
     comps = ['CMB', 'tSZ', 'noise1', 'noise2']
 
     #array for all weight maps, dim (N_comps+1 for each scaled comp followed by all unscaled, 2 for CMB or tSZ-preserved)
-    all_wt_maps = np.zeros((N_comps+1, 2))
+    all_wt_maps = np.zeros((N_comps+1, 2, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
 
     for y in range(N_comps+1):
 
@@ -54,7 +54,7 @@ def get_scaled_maps_and_wts(sim, inp, env, scale_factor):
 
         #load weight maps
         CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, scaling=scaling)
-        all_wt_maps[y] = [CMB_wt_maps, tSZ_wt_maps]
+        all_wt_maps[y] = np.array([CMB_wt_maps, tSZ_wt_maps])
     
     return CMB_map, tSZ_map, noise1_map, noise2_map, all_wt_maps
 
@@ -168,14 +168,16 @@ def main(inp, env):
     mean_atsz: float, mean value of atsz
     '''
 
-    pool = mp.Pool(inp.num_parallel)
-    Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
-    pool.close()
-    Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, 2 for unscaled/scaled, 2 for unscaled/scaled, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1)
-    if inp.save_files:
-        pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/Clpq.p')
+    #pool = mp.Pool(inp.num_parallel)
+    #Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
+    #pool.close()
+    #Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, 2 for unscaled/scaled, 2 for unscaled/scaled, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1)
+    #if inp.save_files:
+        #pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
+        #if inp.verbose:
+            #print(f'saved {inp.output_dir}/data_vecs/Clpq.p')
+
+    Clpq = pickle.load(open('/scratch/09334/ksurrao/NILC/outputs_weight_dep/data_vecs/Clpq.p', 'rb'))
     
     acmb_array, atsz_array = get_all_acmb_atsz(inp, Clpq)
     lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(acmb_array, atsz_array, nbins=100, smoothing_factor=0.065) 
