@@ -12,7 +12,7 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     inp: Info object containing input parameter specifications
     save: Bool, whether to save frequency map files
     band_limit: Bool, whether or not to remove all power in weight maps above ellmax
-    scaling: None or 2D list of [[scaling_amplitude1, component1], [scaling_amplitude2, component2]]
+    scaling: None or list of [scale factor, scaled comp]
 
     RETURNS
     -------
@@ -25,16 +25,11 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     #Determine which components to scale
     tSZ_amp_extra, CMB_amp, noise1_amp, noise2_amp = 1, 1, 1, 1
     if scaling:
-        s1, comp1 = scaling[0]
-        s2, comp2 = scaling[1]
-        if comp1=='CMB': CMB_amp = s1
-        elif comp1=='tSZ': tSZ_amp_extra = s1
-        elif comp1=='noise1': noise1_amp = s1
-        elif comp1=='noise2': noise2_amp = s1
-        if comp2=='CMB': CMB_amp = s2
-        elif comp2=='tSZ': tSZ_amp_extra = s2
-        elif comp2=='noise1': noise1_amp = s2
-        elif comp2=='noise2': noise2_amp = s2
+        scale_factor, comp = scaling
+        if comp=='CMB': CMB_amp = scale_factor
+        elif comp=='tSZ': tSZ_amp_extra = scale_factor
+        elif comp=='noise1': noise1_amp = scale_factor
+        elif comp=='noise2': noise2_amp = scale_factor
 
     #Read tSZ halosky map
     tsz_map = hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
@@ -89,11 +84,11 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     sim_map_2 = cmb_map + g2*tsz_map + noise2_map #make noise different in both maps
     if save:
         if not scaling:
-            map1_fname = f'{inp.output_dir}/maps/sim{sim}_freq1.fits'
-            map2_fname = f'{inp.output_dir}/maps/sim{sim}_freq2.fits'
+            map1_fname = f'{inp.output_dir}/maps/unscaled/sim{sim}_freq1.fits'
+            map2_fname = f'{inp.output_dir}/maps/unscaled/sim{sim}_freq2.fits'
         else:
-            map1_fname = f'{inp.output_dir}/maps/scaling{s1}{comp1}_scaling{s2}{comp2}/sim{sim}_freq1.fits'
-            map2_fname = f'{inp.output_dir}/maps/scaling{s1}{comp1}_scaling{s2}{comp2}/sim{sim}_freq2.fits'
+            map1_fname = f'{inp.output_dir}/maps/scaled_{comp}/sim{sim}_freq1.fits'
+            map2_fname = f'{inp.output_dir}/maps/scaled_{comp}/sim{sim}_freq2.fits'
         hp.write_map(map1_fname, sim_map_1, overwrite=True, dtype=np.float32)
         hp.write_map(map2_fname, sim_map_2, overwrite=True, dtype=np.float32)
         if inp.verbose:

@@ -3,16 +3,16 @@ import pickle
 import scipy
 from scipy.optimize import minimize
 from scipy import ndimage
-from fits import func_to_fit, call_fit, get_parameter_dependence
+from fits import fit_func, call_fit, get_parameter_dependence
 
 
 
-def get_PScov_sim(inp, Clpq_scaling1):
+def get_PScov_sim(inp, Clpq_unscaled):
     '''
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clpq_scaling1: (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=3, N_comps=3, ellmax+1) ndarray 
+    Clpq_unscaled: (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=3, N_comps=3, ellmax+1) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
     
@@ -21,7 +21,7 @@ def get_PScov_sim(inp, Clpq_scaling1):
     cov: (ellmax+1,3,3) ndarray containing covariance matrix Cov_{pq,rs}
         index as cov[l, 0-2 for ClTT ClTy Clyy, 0-2 for ClTT ClTy Clyy]
     '''
-    Clpq_tmp = np.sum(Clpq_scaling1, axis=(3,4))
+    Clpq_tmp = np.sum(Clpq_unscaled, axis=(3,4))
     Clpq_tmp = np.array([Clpq_tmp[:,0,0], Clpq_tmp[:,0,1], Clpq_tmp[:,1,1]])
     Clpq_tmp = np.transpose(Clpq_tmp, axes=(2,0,1)) #shape (ellmax+1, 3 for ClTT, ClTy, Clyy, Nsims)
     cov = np.array([np.cov(Clpq_tmp[l]) for l in range(inp.ellmax+1)]) #shape (ellmax+1,3,3)
@@ -29,14 +29,15 @@ def get_PScov_sim(inp, Clpq_scaling1):
     return cov
 
 
-def get_all_acmb_atsz(inp, Clpq):
+def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
     '''
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clpq: (Nsims, N_amps, N_amps, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
+    Clpq: (Nsims, 2, 2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
+    scale_factor: float, multiplicative scaling factor used to determine parameter dependence
 
     RETURNS
     -------
@@ -131,13 +132,13 @@ def get_all_acmb_atsz(inp, Clpq):
         res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise1_start, anoise2_start], args = (ClpqA, inp), method='Nelder-Mead', bounds=bounds) #default method is BFGS
         return res.x #acmb, atsz, anoise1, anoise2
     
-    best_fits = get_parameter_dependence(inp, Clpq) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 9)
-    Clpq_scaling1 = Clpq[:,0,0]
+    best_fits = get_parameter_dependence(inp, Clpq, scale_factor) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2)
+    Clpq_unscaled = Clpq[:,0,0]
 
-    PScov_sim = get_PScov_sim(inp, Clpq_scaling1)
+    PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
     PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
 
-    ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq_scaling1[:,0,0], Clpq_scaling1[:,0,1], Clpq_scaling1[:,1,0], Clpq_scaling1[:,1,1]
+    ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq_unscaled[:,0,0], Clpq_unscaled[:,0,1], Clpq_unscaled[:,1,0], Clpq_unscaled[:,1,1]
 
     acmb_array = np.ones(inp.Nsims, dtype=np.float32)
     atsz_array = np.ones(inp.Nsims, dtype=np.float32)

@@ -12,7 +12,7 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     inp: Info object containing input parameter specifications
     env: environment object
     suppress_printing: Bool, whether to suppress outputs and errors from pyilc code itself
-    scaling: None or 2D list of [[scaling_amplitude1, component1], [scaling_amplitude2, component2]]
+    scaling: None or list of [scaling_amplitude1, component1]
 
     RETURNS
     -------
@@ -23,9 +23,10 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     pyilc_input_params = {}
     pyilc_input_params['output_dir'] = str(inp.output_dir) + "/pyilc_outputs/"
     if scaling: 
-        s1, comp1 = scaling[0]
-        s2, comp2 = scaling[1]
-        pyilc_input_params['output_dir'] += f"scaling{s1}{comp1}_scaling{s2}{comp2}/"
+        scale_factor, scaled_comp = scaling
+        pyilc_input_params['output_dir'] += f"scaled_{scaled_comp}/"
+    else:
+        pyilc_input_params['output_dir'] += "unscaled/"
     pyilc_input_params['output_prefix'] = "sim" + str(sim)
     pyilc_input_params['save_weights'] = "yes"
     pyilc_input_params['ELLMAX'] = inp.ell_sum_max
@@ -44,9 +45,9 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     pyilc_input_params['N_SED_params'] = 0
     pyilc_input_params['N_maps_xcorr'] = 0
     if not scaling:
-        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/sim{sim}_freq2.fits']
+        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/unscaled/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/unscaled/sim{sim}_freq2.fits']
     else:
-        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/scaling{s1}{comp1}_scaling{s2}{comp2}/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/scaling{s1}{comp1}_scaling{s2}{comp2}/sim{sim}_freq2.fits']
+        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/scaled_{scaled_comp}/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/scaled_{scaled_comp}/sim{sim}_freq2.fits']
     pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)

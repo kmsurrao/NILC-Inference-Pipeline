@@ -3,7 +3,7 @@ import os
 import subprocess
 import healpy as hp
 
-def setup_output_dir(inp, env, scalings=None):
+def setup_output_dir(inp, env, scaling=False):
     '''
     Sets up directory for output files
 
@@ -11,7 +11,7 @@ def setup_output_dir(inp, env, scalings=None):
     ---------
     inp: Info() object containing input specifications
     env: environment object
-    scalings: None or list of scaling amplitudes to apply to each component
+    scaling: Bool, whether multiplicative scale factors are used to fit parameter dependence
 
     RETURNS
     -------
@@ -29,18 +29,20 @@ def setup_output_dir(inp, env, scalings=None):
         subprocess.call(f'mkdir {inp.output_dir}/n_point_funcs', shell=True, env=env)
     if not os.path.isdir(f'{inp.output_dir}/data_vecs'):
         subprocess.call(f'mkdir {inp.output_dir}/data_vecs', shell=True, env=env)
-    if scalings:
-        for comp1 in ['CMB', 'tSZ', 'noise1', 'noise2']:
-            for comp2 in ['CMB', 'tSZ', 'noise1', 'noise2']:
-                for s1 in range(len(scalings)):
-                    for s2 in range(s1, len(scalings)):
-                        scale1, scale2 = scalings[s1], scalings[s2]
-                        new_dir1 = f'{inp.output_dir}/pyilc_outputs/scaling{scale1}{comp1}_scaling{scale2}{comp2}'
-                        if not os.path.isdir(new_dir1):
-                            subprocess.call(f'mkdir {new_dir1}', shell=True, env=env)
-                        new_dir2 = f'{inp.output_dir}/maps/scaling{scale1}{comp1}_scaling{scale2}{comp2}'
-                        if not os.path.isdir(new_dir2):
-                            subprocess.call(f'mkdir {new_dir2}', shell=True, env=env)
+    if not os.path.isdir(f'{inp.output_dir}/pyilc_outputs/unscaled'):
+        subprocess.call(f'mkdir {inp.output_dir}/pyilc_outputs/unscaled', shell=True, env=env)
+    if not os.path.isdir(f'{inp.output_dir}/maps/unscaled'):
+        subprocess.call(f'mkdir {inp.output_dir}/maps/unscaled', shell=True, env=env)
+    if scaling:
+        comps = ['CMB', 'tSZ', 'noise1', 'noise2']
+        for y in range(len(comps)):
+            scaling_str = f'scaled_{comps[y]}'
+            new_dir1 = f'{inp.output_dir}/pyilc_outputs/{scaling_str}'
+            if not os.path.isdir(new_dir1):
+                subprocess.call(f'mkdir {new_dir1}', shell=True, env=env)
+            new_dir2 = f'{inp.output_dir}/maps/{scaling_str}'
+            if not os.path.isdir(new_dir2):
+                subprocess.call(f'mkdir {new_dir2}', shell=True, env=env)
 
     return 
 

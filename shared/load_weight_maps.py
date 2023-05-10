@@ -7,7 +7,7 @@ def load_wt_maps(inp, sim, band_limit=False, scaling=None):
     inp: Info object containing input parameter specifications
     sim: int, simulation number
     band_limit: Bool, whether or not to remove all power in weight maps above ellmax
-    scaling: None or 2D list of [[scaling_amplitude1, component1], [scaling_amplitude2, component2]]
+    scaling: None or list of [scaling_amplitude, scaled component]
 
     RETURNS
     --------
@@ -23,11 +23,10 @@ def load_wt_maps(inp, sim, band_limit=False, scaling=None):
         for scale in range(inp.Nscales):
             for freq in range(2):
                 if not scaling:
-                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
+                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/unscaled/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
                 else:
-                    s1, comp1 = scaling[0]
-                    s2, comp2 = scaling[1]
-                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/scaling{s1}{comp1}_scaling{s2}{comp2}/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
+                    scale_factor, scaled_comp = scaling
+                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/scaled_{scaled_comp}/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
                 wt_map = hp.read_map(wt_map_path)
                 wt_map = hp.ud_grade(wt_map, inp.nside)
                 if band_limit:
