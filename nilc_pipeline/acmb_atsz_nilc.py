@@ -132,33 +132,39 @@ def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
         res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise1_start, anoise2_start], args = (ClpqA, inp), method='Nelder-Mead', bounds=bounds) #default method is BFGS
         return res.x #acmb, atsz, anoise1, anoise2
     
-    best_fits = get_parameter_dependence(inp, Clpq, scale_factor) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2)
-    Clpq_unscaled = Clpq[:,0,0]
+    # best_fits = get_parameter_dependence(inp, Clpq, scale_factor) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2)
+    # Clpq_unscaled = Clpq[:,0,0]
 
-    PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
-    PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
+    # PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
+    # PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
 
-    ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq_unscaled[:,0,0], Clpq_unscaled[:,0,1], Clpq_unscaled[:,1,0], Clpq_unscaled[:,1,1]
+    # ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq_unscaled[:,0,0], Clpq_unscaled[:,0,1], Clpq_unscaled[:,1,0], Clpq_unscaled[:,1,1]
 
-    acmb_array = np.ones(inp.Nsims, dtype=np.float32)
-    atsz_array = np.ones(inp.Nsims, dtype=np.float32)
-    anoise1_array = np.ones(inp.Nsims, dtype=np.float32)
-    anoise2_array = np.ones(inp.Nsims, dtype=np.float32)
-    for sim in range(inp.Nsims):
-        ClTT, ClTy, ClyT, Clyy = ClTT_all_sims[sim], ClTy_all_sims[sim], ClyT_all_sims[sim], Clyy_all_sims[sim]
-        acmb, atsz, anoise1, anoise2 = acmb_atsz()
-        acmb_array[sim] = acmb
-        atsz_array[sim] = atsz
-        anoise1_array[sim] = anoise1
-        anoise2_array[sim] = anoise2
+    # acmb_array = np.ones(inp.Nsims, dtype=np.float32)
+    # atsz_array = np.ones(inp.Nsims, dtype=np.float32)
+    # anoise1_array = np.ones(inp.Nsims, dtype=np.float32)
+    # anoise2_array = np.ones(inp.Nsims, dtype=np.float32)
+    # for sim in range(inp.Nsims):
+    #     ClTT, ClTy, ClyT, Clyy = ClTT_all_sims[sim], ClTy_all_sims[sim], ClyT_all_sims[sim], Clyy_all_sims[sim]
+    #     acmb, atsz, anoise1, anoise2 = acmb_atsz()
+    #     acmb_array[sim] = acmb
+    #     atsz_array[sim] = atsz
+    #     anoise1_array[sim] = anoise1
+    #     anoise2_array[sim] = anoise2
     
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_nilc.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_nilc.p', 'wb'))
-    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_nilc.p', 'wb'))
-    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_nilc.p', 'wb'))
-    if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_nilc.p, atsz_array_nilc.p, anoise1_array_nilc.p, anoise2_array_nilc.p', flush=True)
+    # pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_nilc.p', 'wb'))
+    # pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_nilc.p', 'wb'))
+    # pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_nilc.p', 'wb'))
+    # pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_nilc.p', 'wb'))
+    # if inp.verbose:
+    #     print(f'created {inp.output_dir}/acmb_array_nilc.p, atsz_array_nilc.p, anoise1_array_nilc.p, anoise2_array_nilc.p', flush=True)
    
+    #remove section below and uncomment above
+    acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_nilc.p', 'rb'))
+    atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_nilc.p', 'rb'))
+    anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_nilc.p', 'rb'))
+    anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_nilc.p', 'rb'))
+    
     return acmb_array, atsz_array, anoise1_array, anoise2_array
 
 
@@ -195,32 +201,60 @@ def get_var(P, edges, scaling):
     mean = scaling*idx_min/len(P)+np.amin(edges)
     return lower, upper, mean
 
-def get_parameter_cov_matrix(acmb_array, atsz_array, nbins=100, smoothing_factor=0.065):
+def get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065):
     '''
     ARGUMENTS
     ---------
     acmb_array: array of length Nsims containing best fit Acmb for each simulation
     atsz_array: array of length Nsims containing best fit Atsz for each simulation
-    nbins: int, number of bins in each dimension for histogram of Acmb and Atsz values 
+    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
+    anoise2_array: array of length Nsims containing best fit Anoise1 for each simulation
+    nbins: int, number of bins in each dimension for histogram of A_y and A_z values 
     smoothing_factor: float, nbins*smoothing_factor is standard deviation of Gaussian kernel for smoothing histogram
 
     RETURNS
     -------
-    lower_acmb: float, lower bound of Acmb (68% confidence)
-    upper_acmb: float, upper bound of Acmb (68% confidence)
-    mean_acmb: float, mean value of Acmb
-    lower_atsz: float, lower bound of Atsz (68% confidence)
-    upper_atsz: float, upper bound of Atsz (68% confidence)
-    mean_atsz: float, mean value of Atsz
+    [[lower_acmb, upper_acmb, mean_acmb],
+     [lower_atsz, upper_atsz, mean_atsz],
+     [lower_anoise1, upper_anoise1, mean_anoise1],
+     [lower_anoise2, upper_anoise2, mean_anoise2]]
+    
+    lower_a: float, lower bound of parameter A (68% confidence)
+    upper_a: float, upper bound of parameter A (68% confidence)
+    mean_a: float, mean value of parameter A
+
     '''
-    hist, xedges, yedges = np.histogram2d(acmb_array, atsz_array, bins=[nbins, nbins])
+    hist_arr = np.array([acmb_array, atsz_array, anoise1_array, anoise2_array])
+    hist_arr = np.transpose(hist_arr)
+    hist, edges = np.histogramdd(hist_arr, bins=[nbins, nbins, nbins, nbins])
     hist = hist/np.sum(hist)
     hist = ndimage.gaussian_filter(hist, nbins*smoothing_factor) #smooth hist
-    scaling = [np.amax(xedges)-np.amin(xedges), np.amax(yedges)-np.amin(yedges)]
-    lower_acmb, upper_acmb, mean_acmb = get_var(np.sum(hist, axis=1), xedges, scaling[0])
-    lower_atsz, upper_atsz, mean_atsz = get_var(np.sum(hist, axis=0), yedges, scaling[1])
-    return lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz
+    scaling = [(np.amax(edges[i])-np.amin(edges[i])) for i in range(4)]
+    lower_acmb, upper_acmb, mean_acmb = get_var(np.sum(hist, axis=(1,2,3)), edges[0], scaling[0])
+    lower_atsz, upper_atsz, mean_atsz = get_var(np.sum(hist, axis=(0,2,3)), edges[1], scaling[1])
+    lower_anoise1, upper_anoise1, mean_anoise1 = get_var(np.sum(hist, axis=(0,1,3)), edges[2], scaling[2])
+    lower_anoise2, upper_anoise2, mean_anoise2 = get_var(np.sum(hist, axis=(0,1,2)), edges[3], scaling[3])
+    return [[lower_acmb, upper_acmb, mean_acmb], [lower_atsz, upper_atsz, mean_atsz], \
+            [lower_anoise1, upper_anoise1, mean_anoise1], [lower_anoise2, upper_anoise2, mean_anoise2]]
     
 
+def print_result(param_name, a_vals):
+    '''
+    ARGUMENTS
+    ---------
+    param_name: str, either 'Acmb', 'Atsz', 'Anoise1', 'Anoise2'
+    a_vals: list of floats, [lower_a, upper_a, mean_a]
+    
+    where
+    lower_a: float, lower bound of parameter A (68% confidence)
+    upper_a: float, upper bound of parameter A (68% confidence)
+    mean_a: float, mean value of parameter A
 
+    RETURNS
+    -------
+    None
+    '''
+    lower_a, upper_a, mean_a = a_vals
+    print(f'{param_name} = {mean_a} + {upper_a-mean_a} - {mean_a-lower_a}', flush=True)
+    return
 

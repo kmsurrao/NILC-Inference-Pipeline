@@ -160,12 +160,15 @@ def main(inp, env):
 
     RETURNS
     -------
-    lower_acmb: float, 1sigma below mean for acmb
-    upper_acmb: float, 1sigma above mean for acmb
-    mean_acmb: float, mean value of acmb
-    lower_atsz: float, 1sigma below mean for atsz
-    upper_atsz: float, 1sigma above mean for atsz
-    mean_atsz: float, mean value of atsz
+    acmb_vals: [lower_acmb, upper_acmb, mean_acmb]
+    atsz_vals: [lower_atsz, upper_atsz, mean_atsz]
+    anoise1_vals: [lower_anoise1, upper_anoise1, mean_anoise1]
+    anoise2_vals: [lower_anoise2, upper_anoise2, mean_anoise2]
+    
+    where
+    lower_a: float, lower bound of parameter A (68% confidence)
+    upper_a: float, upper bound of parameter A (68% confidence)
+    mean_a: float, mean value of parameter A
     '''
 
     # pool = mp.Pool(inp.num_parallel)
@@ -179,10 +182,10 @@ def main(inp, env):
 
     Clpq = pickle.load(open('/scratch/09334/ksurrao/NILC/outputs_weight_dep/data_vecs/Clpq.p', 'rb'))
     
-    acmb_array, atsz_array = get_all_acmb_atsz(inp, Clpq)
-    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(acmb_array, atsz_array, nbins=100, smoothing_factor=0.065) 
+    acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
+    acmb_vals, atsz_vals, anoise1_vals, anoise2_vals = get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065) 
 
-    return lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz
+    return acmb_vals, atsz_vals, anoise1_vals, anoise2_vals
 
 
 
@@ -207,9 +210,11 @@ if __name__ == '__main__':
     setup_output_dir(inp, my_env, scaling=True)
 
 
-    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = main(inp, my_env)
-    print(f'Acmb = {mean_acmb} + {upper_acmb-mean_acmb} - {mean_acmb-lower_acmb}', flush=True)
-    print(f'Atsz = {mean_atsz} + {upper_atsz-mean_atsz} - {mean_atsz-lower_atsz}', flush=True)
+    acmb_vals, atsz_vals, anoise1_vals, anoise2_vals = main(inp, my_env)
+    print_result('Acmb', acmb_vals)
+    print_result('Atsz', atsz_vals)
+    print_result('Anoise1', anoise1_vals)
+    print_result('Anoise2', anoise2_vals)
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
 
