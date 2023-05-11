@@ -9,7 +9,7 @@ def fit_func(A, n):
     A: independent variable--A_CMB, A_tSZ, A_noise1, or A_noise2
     n: float, best fit exponent for power law scaling
     '''
-    return A**n
+    return A**(2*n) #need factor of 2 because fitting A when only one map in cross-spectrum is scaled
 
 def call_fit(A_vec, n_vec):
     '''
