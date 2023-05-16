@@ -9,7 +9,7 @@ def fit_func(A, n):
     A: independent variable--A_CMB, A_tSZ, A_noise1, or A_noise2
     n: float, best fit exponent for power law scaling
     '''
-    return A**(2*n) #need factor of 2 because fitting A when only one map in cross-spectrum is scaled
+    return A**n
 
 def call_fit(A_vec, n_vec):
     '''
@@ -44,7 +44,7 @@ def get_parameter_dependence(inp, Clpq, scale_factor):
     '''
     N_preserved_comps = 2
     N_comps = 4
-    x_vals = [1., scale_factor]
+    x_vals = [1., scale_factor**2]
 
     Clpq_mean = np.transpose( np.mean(Clpq, axis=0), axes=(2,3,4,5,6,0,1) )
 

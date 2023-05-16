@@ -75,7 +75,6 @@ def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
                     best_fits_here, Clpq_here = best_fits[1,0], ClyT
                 elif p==1 and q==1:
                     best_fits_here, Clpq_here = best_fits[1,1], Clyy
-
                 theory_model[l,p,q] = \
                   call_fit([Acmb,Acmb], best_fits_here[0,0,l])*Clpq_here[0,0,l]      + call_fit([Acmb,Atsz], best_fits_here[0,1,l])*Clpq_here[0,1,l]      + call_fit([Acmb,Anoise1], best_fits_here[0,2,l])*Clpq_here[0,2,l]       + call_fit([Acmb,Anoise2], best_fits_here[0,3,l])*Clpq_here[0,3,l]\
                 + call_fit([Atsz,Acmb], best_fits_here[1,0,l])*Clpq_here[1,0,l]      + call_fit([Atsz,Atsz], best_fits_here[1,1,l])*Clpq_here[1,1,l]      + call_fit([Atsz,Anoise1], best_fits_here[1,2,l])*Clpq_here[1,2,l]       + call_fit([Atsz,Anoise2], best_fits_here[1,3,l])*Clpq_here[1,3,l] \
@@ -132,39 +131,39 @@ def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
         res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise1_start, anoise2_start], args = (ClpqA, inp), method='Nelder-Mead', bounds=bounds) #default method is BFGS
         return res.x #acmb, atsz, anoise1, anoise2
     
-    # best_fits = get_parameter_dependence(inp, Clpq, scale_factor) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2)
-    # Clpq_unscaled = Clpq[:,0,0]
+    best_fits = get_parameter_dependence(inp, Clpq, scale_factor) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2)
+    Clpq_unscaled = Clpq[:,0,0]
 
-    # PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
-    # PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
+    PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
+    PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
 
-    # ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq_unscaled[:,0,0], Clpq_unscaled[:,0,1], Clpq_unscaled[:,1,0], Clpq_unscaled[:,1,1]
+    ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq_unscaled[:,0,0], Clpq_unscaled[:,0,1], Clpq_unscaled[:,1,0], Clpq_unscaled[:,1,1]
 
-    # acmb_array = np.ones(inp.Nsims, dtype=np.float32)
-    # atsz_array = np.ones(inp.Nsims, dtype=np.float32)
-    # anoise1_array = np.ones(inp.Nsims, dtype=np.float32)
-    # anoise2_array = np.ones(inp.Nsims, dtype=np.float32)
-    # for sim in range(inp.Nsims):
-    #     ClTT, ClTy, ClyT, Clyy = ClTT_all_sims[sim], ClTy_all_sims[sim], ClyT_all_sims[sim], Clyy_all_sims[sim]
-    #     acmb, atsz, anoise1, anoise2 = acmb_atsz()
-    #     acmb_array[sim] = acmb
-    #     atsz_array[sim] = atsz
-    #     anoise1_array[sim] = anoise1
-    #     anoise2_array[sim] = anoise2
+    acmb_array = np.ones(inp.Nsims, dtype=np.float32)
+    atsz_array = np.ones(inp.Nsims, dtype=np.float32)
+    anoise1_array = np.ones(inp.Nsims, dtype=np.float32)
+    anoise2_array = np.ones(inp.Nsims, dtype=np.float32)
+    for sim in range(inp.Nsims):
+        ClTT, ClTy, ClyT, Clyy = ClTT_all_sims[sim], ClTy_all_sims[sim], ClyT_all_sims[sim], Clyy_all_sims[sim]
+        acmb, atsz, anoise1, anoise2 = acmb_atsz()
+        acmb_array[sim] = acmb
+        atsz_array[sim] = atsz
+        anoise1_array[sim] = anoise1
+        anoise2_array[sim] = anoise2
     
-    # pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_nilc.p', 'wb'))
-    # pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_nilc.p', 'wb'))
-    # pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_nilc.p', 'wb'))
-    # pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_nilc.p', 'wb'))
-    # if inp.verbose:
-    #     print(f'created {inp.output_dir}/acmb_array_nilc.p, atsz_array_nilc.p, anoise1_array_nilc.p, anoise2_array_nilc.p', flush=True)
+    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_nilc.p', 'wb'))
+    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_nilc.p', 'wb'))
+    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_nilc.p', 'wb'))
+    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_nilc.p', 'wb'))
+    if inp.verbose:
+        print(f'created {inp.output_dir}/acmb_array_nilc.p, atsz_array_nilc.p, anoise1_array_nilc.p, anoise2_array_nilc.p', flush=True)
    
-    #remove section below and uncomment above
-    acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_nilc.p', 'rb'))
-    atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_nilc.p', 'rb'))
-    anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_nilc.p', 'rb'))
-    anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_nilc.p', 'rb'))
-    
+    # #remove section below and uncomment above
+    # acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_nilc.p', 'rb'))
+    # atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_nilc.p', 'rb'))
+    # anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_nilc.p', 'rb'))
+    # anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_nilc.p', 'rb'))
+
     return acmb_array, atsz_array, anoise1_array, anoise2_array
 
 
