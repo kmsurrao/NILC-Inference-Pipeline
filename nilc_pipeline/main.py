@@ -7,6 +7,7 @@ from input import Info
 import pickle
 import subprocess
 import time
+import argparse
 import healpy as hp
 from generate_maps import generate_freq_maps
 from pyilc_interface import setup_pyilc, weight_maps_exist
@@ -116,9 +117,7 @@ def get_data_vectors(sim, inp, env):
             y_to_CMB_preserved, y_to_tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[compy_freq1, compy_freq2])
             all_map_level_prop[0,y,s] = y_to_CMB_preserved
             all_map_level_prop[1,y,s] = y_to_tSZ_preserved
-    if sim==0: pickle.dump(all_map_level_prop, open('all_map_level_prop.p', 'wb')) #remove
 
-    
     #define and fill in array of data vectors (dim 0 has size N_comps+1 for each scaled component and then all unscaled)
     Clpq = np.zeros((N_comps+1, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1))
 
@@ -167,6 +166,24 @@ def main(inp, env):
     mean_a: float, mean value of parameter A
     '''
 
+    # main input file containing most specifications 
+    parser = argparse.ArgumentParser(description="Covariance from NILC approach.")
+    parser.add_argument("--config", default="stampede.yaml")
+    args = parser.parse_args()
+    input_file = args.config
+
+    start_time = time.time()
+
+    # read in the input file and set up relevant info object
+    inp = Info(input_file)
+    inp.ell_sum_max = inp.ellmax
+
+    # current environment, also environment in which to run subprocesses
+    env = os.environ.copy()
+
+    #set up output directory
+    setup_output_dir(inp, env, scaling=True)
+
     pool = mp.Pool(inp.num_parallel)
     Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
     pool.close()
@@ -180,165 +197,16 @@ def main(inp, env):
     
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
     acmb_vals, atsz_vals, anoise1_vals, anoise2_vals = get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065) 
-
-    return acmb_vals, atsz_vals, anoise1_vals, anoise2_vals
-
-
-
-
-# def get_data_vectors(sim, inp, env):
-#     '''
-#     ARGUMENTS
-#     ---------
-#     sim: int, simulation number
-#     inp: Info object containing input parameter specifications
-#     env: environment object
-
-#     RETURNS
-#     -------
-#     Clpq: (2, 2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
-#         containing propagation of each pair of component maps to NILC map auto- and cross-spectra. 
-#         Size of dimensions 0 and 1 is 2 for unscaled or scaled.
-#         preserved_comps = CMB, ftSZ
-#         comps = CMB, ftSZ, noise 90 GHz, noise 150 GHz
-#         For example, Clpq[0,1,0,1,1,2] is cross-spectrum of unscaled ftSZ propagation to 
-#         CMB-preserved NILC map and scaled 90 GHz noise propagation to ftSZ-preserved NILC map
-#     '''
-    
-#     N_preserved_comps = 2 #components to create NILC maps for: CMB, tSZ
-#     N_comps = 4 #CMB, tSZ, noise1, noise2
-#     comps = ['CMB', 'tSZ', 'noise1', 'noise2']
-#     scale_factor = 1.1
-
-#     #get needlet filters and spectral responses
-#     h = GaussianNeedlets(inp)[1]
-#     g_tsz = tsz_spectral_response(inp.freqs)
-#     g_cmb = np.ones(len(inp.freqs))
-#     g_noise1 = [1.,0.]
-#     g_noise2 = [0.,1.]
-
-#     #get maps and weight maps, all_wt_maps is (N_comps+1, 2, Nscales, Nfreqs, Npix) array
-#     CMB_map, tSZ_map, noise1_map, noise2_map, all_wt_maps = get_scaled_maps_and_wts(sim, inp, env, scale_factor)
-
-
-#     #get map level propagation of components
-#     Npix = 12*inp.nside**2
-#     all_map_level_prop = np.zeros((N_preserved_comps, N_comps, 2, Npix)) #2 for unscaled and scaled
-    
-#     for y in range(N_comps):
-#         for s in range(2): #0 for no scaling and 1 for scaling
-
-#             if y==0: compy, g_vecy = CMB_map, g_cmb #CMB
-#             elif y==1: compy, g_vecy = tSZ_map, g_tsz #ftSZ
-#             elif y==2: compy, g_vecy = noise1_map, g_noise1 #noise 90 GHz
-#             elif y==3: compy, g_vecy = noise2_map, g_noise2 #noise 150 GHz
-
-#             if s==1: compy *= scale_factor
-#             compy_freq1, compy_freq2 = g_vecy[0]*compy, g_vecy[1]*compy
-
-#             if s==0:
-#                 CMB_wt_maps, tSZ_wt_maps = all_wt_maps[-1]
-#             else:
-#                 CMB_wt_maps, tSZ_wt_maps = all_wt_maps[y]
-            
-#             y_to_CMB_preserved, y_to_tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[compy_freq1, compy_freq2])
-#             all_map_level_prop[0,y,s] = y_to_CMB_preserved
-#             all_map_level_prop[1,y,s] = y_to_tSZ_preserved
-
-    
-#     #define and fill in array of data vectors (dims 0 and 1 have size 2 for unscaled or scaled)
-#     Clpq = np.zeros((2, 2, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1))
-
-#     for y in range(N_comps):
-#         for sy in range(2): #unscaled and scaled component y
-#             for z in range(N_comps):
-#                 for sz in range(2): #unscaled and scaled component z
-
-#                     y_to_CMB_preserved = all_map_level_prop[0,y,sy]
-#                     y_to_tSZ_preserved = all_map_level_prop[1,y,sy]
-#                     z_to_CMB_preserved = all_map_level_prop[0,z,sz]
-#                     z_to_tSZ_preserved = all_map_level_prop[1,z,sz]
-                
-#                     Clpq[sy,sz,0,0,y,z] = hp.anafast(y_to_CMB_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
-#                     Clpq[sy,sz,1,1,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
-#                     Clpq[sy,sz,0,1,y,z] = hp.anafast(y_to_CMB_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
-#                     Clpq[sy,sz,1,0,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
-
-
-#     if inp.remove_files:
-#         #remove pyilc outputs
-#         subprocess.call(f'rm {inp.output_dir}/pyilc_outputs/*/sim{sim}*', shell=True, env=env)
-#         #remove frequency map files
-#         subprocess.call(f'rm {inp.output_dir}/maps/*/sim{sim}_freq*.fits', shell=True, env=env)
-
-#     return Clpq
-
-
-
-# def main(inp, env):
-#     '''
-#     ARGUMENTS
-#     ---------
-#     inp: Info object containing input parameter specifications
-#     env: environment object
-
-#     RETURNS
-#     -------
-#     acmb_vals: [lower_acmb, upper_acmb, mean_acmb]
-#     atsz_vals: [lower_atsz, upper_atsz, mean_atsz]
-#     anoise1_vals: [lower_anoise1, upper_anoise1, mean_anoise1]
-#     anoise2_vals: [lower_anoise2, upper_anoise2, mean_anoise2]
-    
-#     where
-#     lower_a: float, lower bound of parameter A (68% confidence)
-#     upper_a: float, upper bound of parameter A (68% confidence)
-#     mean_a: float, mean value of parameter A
-#     '''
-
-#     # pool = mp.Pool(inp.num_parallel)
-#     # Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
-#     # pool.close()
-#     # Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, 2 for unscaled/scaled, 2 for unscaled/scaled, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1)
-#     # if inp.save_files:
-#     #     pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
-#     #     if inp.verbose:
-#     #         print(f'saved {inp.output_dir}/data_vecs/Clpq.p')
-
-#     Clpq = pickle.load(open('/scratch/09334/ksurrao/NILC/outputs_weight_dep/data_vecs/Clpq.p', 'rb'))
-    
-#     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
-#     acmb_vals, atsz_vals, anoise1_vals, anoise2_vals = get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065) 
-
-#     return acmb_vals, atsz_vals, anoise1_vals, anoise2_vals
-
-
-
-if __name__ == '__main__':
-
-    start_time = time.time()
-
-    # main input file containing most specifications 
-    try:
-        input_file = (sys.argv)[1]
-    except IndexError:
-        input_file = 'laptop.yaml'
-
-    # read in the input file and set up relevant info object
-    inp = Info(input_file)
-    inp.ell_sum_max = inp.ellmax
-
-    # current environment, also environment in which to run subprocesses
-    my_env = os.environ.copy()
-
-    #set up output directory
-    setup_output_dir(inp, my_env, scaling=True)
-
-
-    acmb_vals, atsz_vals, anoise1_vals, anoise2_vals = main(inp, my_env)
     print_result('Acmb', acmb_vals)
     print_result('Atsz', atsz_vals)
     print_result('Anoise1', anoise1_vals)
     print_result('Anoise2', anoise2_vals)
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+    return acmb_vals, atsz_vals, anoise1_vals, anoise2_vals
+
+
+if __name__ == '__main__':
+    main()
+
 

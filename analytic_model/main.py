@@ -4,6 +4,7 @@ import os
 import subprocess
 import pickle
 import time
+import argparse
 from input import Info
 from generate_maps import generate_freq_maps
 from pyilc_interface import setup_pyilc
@@ -149,15 +150,28 @@ def get_data_vectors(sim, inp, env):
 
 
 
-if __name__ == '__main__':
+
+def main():
+    '''
+    RETURNS
+    -------
+    Clpq: (N_preserved_comps, N_preserved_comps, N_comps, 4, ellmax+1) numpy array,
+            contains contributions from each component to the power spectrum of NILC maps
+            with preserved components p and q,
+            index as Clpq[p,q,z,reMASTERed term,l]
+    Clpq_direct: (N_preserved_comps, N_preserved_comps, ellmax+1) numpy array,
+            directly computed auto- and cross- spectra of NILC maps from pyilc,
+            index as Clpq_direct[p,q,l]
+    '''
+    
 
     start_time = time.time()
 
     # main input file containing most specifications 
-    try:
-        input_file = (sys.argv)[1]
-    except IndexError:
-        input_file = 'laptop.yaml'
+    parser = argparse.ArgumentParser(description="Analytic NILC power spectrum.")
+    parser.add_argument("--config", default="stampede.yaml")
+    args = parser.parse_args()
+    input_file = args.config
 
     # read in the input file and set up relevant info object
     inp = Info(input_file)
@@ -178,5 +192,14 @@ if __name__ == '__main__':
 
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+
+    return Clpq, Clpq_direct
+
+
+
+
+if __name__ == '__main__':
+    main()
+
     
 

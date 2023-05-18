@@ -2,6 +2,7 @@
 
 import numpy as np
 import pickle
+import argparse
 import sys
 sys.path.append('../shared')
 from input import Info
@@ -10,10 +11,10 @@ from utils import tsz_spectral_response
 def main():
 
     # main input file containing most specifications 
-    try:
-        input_file = (sys.argv)[1]
-    except IndexError:
-        input_file = 'laptop.yaml'
+    parser = argparse.ArgumentParser(description="Analytic covariance from template-fitting approach.")
+    parser.add_argument("--config", default="stampede.yaml")
+    args = parser.parse_args()
+    input_file = args.config
 
     # read in the input file and set up relevant info object
     inp = Info(input_file)
@@ -25,7 +26,7 @@ def main():
     g1, g2 = tsz_spectral_response(inp.freqs) #tSZ spectral response at 90 and 150 GHz
 
     CC = Clij[0,0,0] #CMB
-    T = Clij[0,0,1]/g90**2 #tSZ (in Compton-y)
+    T = Clij[0,0,1]/g1**2 #tSZ (in Compton-y)
     N1 = Clij[0,0,2] #noise 90 GHz
     N2 = Clij[1,1,3] #noise 150 GHz
 
@@ -51,6 +52,10 @@ def main():
     print('variance on Acmb: ', CMB_var, flush=True)
     print('variance on Atsz: ', tSZ_var, flush=True)
     print('covariance of Acmb and Atsz: ', CMB_tSZ_covar, flush=True)
+
+    full_covar = np.array([CMB_var, CMB_tSZ_covar, tSZ_var])
+    if inp.save_files:
+        pickle.dump(full_covar, open(f'{inp.output_dir}/template_fiting_analytic_covar.p'))
 
 
 if __name__=='__main__':

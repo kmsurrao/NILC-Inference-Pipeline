@@ -7,6 +7,7 @@ from input import Info
 import pickle
 import subprocess
 import time
+import argparse
 import healpy as hp
 from generate_maps import generate_freq_maps
 from utils import setup_output_dir, tsz_spectral_response
@@ -52,12 +53,8 @@ def get_data_vectors(sim, inp):
 
 
 
-def main(inp):
+def main():
     '''
-    ARGUMENTS
-    ---------
-    inp: Info object containing input parameter specifications
-
     RETURNS
     -------
     lower_acmb: float, 1sigma below mean for acmb
@@ -67,6 +64,24 @@ def main(inp):
     upper_atsz: float, 1sigma above mean for atsz
     mean_atsz: float, mean value of atsz
     '''
+
+    # main input file containing most specifications 
+    parser = argparse.ArgumentParser(description="Covariance from template-fitting approach.")
+    parser.add_argument("--config", default="stampede.yaml")
+    args = parser.parse_args()
+    input_file = args.config
+
+    start_time = time.time()
+
+    # read in the input file and set up relevant info object
+    inp = Info(input_file)
+    inp.ell_sum_max = inp.ellmax
+
+    # current environment, also environment in which to run subprocesses
+    my_env = os.environ.copy()
+
+    #set up output directory
+    setup_output_dir(inp, my_env)
 
     pool = mp.Pool(inp.num_parallel)
     Clij = pool.starmap(get_data_vectors, [(sim, inp) for sim in range(inp.Nsims)])
@@ -79,36 +94,15 @@ def main(inp):
     
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clij)
     lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065) 
-
-    return lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz
-
-
-if __name__ == '__main__':
-
-    start_time = time.time()
-
-    # main input file containing most specifications 
-    try:
-        input_file = (sys.argv)[1]
-    except IndexError:
-        input_file = 'laptop.yaml'
-
-    # read in the input file and set up relevant info object
-    inp = Info(input_file)
-    inp.ell_sum_max = inp.ellmax
-
-    # current environment, also environment in which to run subprocesses
-    my_env = os.environ.copy()
-
-    #set up output directory
-    setup_output_dir(inp, my_env)
-    
-    #set up output directory
-    setup_output_dir(inp, my_env)
-
-    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = main(inp)
     print(f'Acmb = {mean_acmb} + {upper_acmb-mean_acmb} - {mean_acmb-lower_acmb}', flush=True)
     print(f'Atsz = {mean_atsz} + {upper_atsz-mean_atsz} - {mean_atsz-lower_atsz}', flush=True)
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+    return lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz
+
+
+if __name__ == '__main__':
+    main()
+
+
 
