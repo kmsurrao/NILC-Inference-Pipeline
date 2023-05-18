@@ -46,7 +46,7 @@ def get_parameter_dependence(inp, Clpq, scale_factor):
     N_comps = 4
     x_vals = [scale_factor**2] #square needed since each comp scaled at map level and want parameter fit at power spectrum level
 
-    Clpq_mean = np.transpose( np.mean(Clpq, axis=0), axes=(1,2,3,4,5,0) )
+    Clpq_mean = np.mean(Clpq, axis=0)
 
     best_fits = np.zeros((N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4)) #4 is for 4 exponent params
     for p in range(N_preserved_comps):
@@ -54,10 +54,8 @@ def get_parameter_dependence(inp, Clpq, scale_factor):
             for y in range(N_comps):
                 for z in range(N_comps):
                     for ell in range(inp.ellmax+1):
-                        best_fits[p,q,y,z,ell,0] = curve_fit(fit_func, x_vals, Clpq_mean[p,q,y,z,ell,0]/Clpq_mean[p,q,y,z,ell,N_comps])[0][0]
-                        best_fits[p,q,y,z,ell,1] = curve_fit(fit_func, x_vals, Clpq_mean[p,q,y,z,ell,1]/Clpq_mean[p,q,y,z,ell,N_comps])[0][0]
-                        best_fits[p,q,y,z,ell,2] = curve_fit(fit_func, x_vals, Clpq_mean[p,q,y,z,ell,2]/Clpq_mean[p,q,y,z,ell,N_comps])[0][0]
-                        best_fits[p,q,y,z,ell,3] = curve_fit(fit_func, x_vals, Clpq_mean[p,q,y,z,ell,3]/Clpq_mean[p,q,y,z,ell,N_comps])[0][0]
+                        for s in range(N_comps):
+                            best_fits[s,p,q,y,z,ell] = curve_fit(fit_func, x_vals, Clpq_mean[s,p,q,y,z,ell]/Clpq_mean[N_comps,p,q,y,z,ell])[0][0]
     
     if inp.save_files:
         pickle.dump(best_fits, open(f'{inp.output_dir}/data_vecs/best_fits.p', 'wb'), protocol=4)

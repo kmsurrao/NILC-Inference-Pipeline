@@ -82,9 +82,8 @@ def get_data_vectors(sim, inp, env):
         when 150 GHz noise is scaled 
     '''
     
-    N_preserved_comps = 2 #components to create NILC maps for: CMB, tSZ
-    N_comps = 4 #CMB, tSZ, noise1, noise2
-    comps = ['CMB', 'tSZ', 'noise1', 'noise2']
+    N_preserved_comps = 2 #components to create NILC maps for: CMB, ftSZ
+    N_comps = 4 #CMB, ftSZ, noise1, noise2
     scale_factor = 1.1
 
     #get needlet filters and spectral responses
@@ -117,6 +116,7 @@ def get_data_vectors(sim, inp, env):
             y_to_CMB_preserved, y_to_tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[compy_freq1, compy_freq2])
             all_map_level_prop[0,y,s] = y_to_CMB_preserved
             all_map_level_prop[1,y,s] = y_to_tSZ_preserved
+    if sim==0: pickle.dump(all_map_level_prop, open('all_map_level_prop.p', 'wb')) #remove
 
     
     #define and fill in array of data vectors (dim 0 has size N_comps+1 for each scaled component and then all unscaled)
