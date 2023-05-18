@@ -34,7 +34,7 @@ def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clpq: (Nsims, N_comps+1, N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
+    Clpq: (Nsims, N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
     scale_factor: float, multiplicative scaling factor used to determine parameter dependence
@@ -132,8 +132,9 @@ def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
         res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise1_start, anoise2_start], args = (ClpqA, inp), method='Nelder-Mead', bounds=bounds) #default method is BFGS
         return res.x #acmb, atsz, anoise1, anoise2
     
-    best_fits = get_parameter_dependence(inp, Clpq, scale_factor) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2)
-    Clpq_unscaled = Clpq[:,0,0]
+    N_comps = 4
+    best_fits = get_parameter_dependence(inp, Clpq, scale_factor) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4)
+    Clpq_unscaled = Clpq[:,N_comps]
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
     PScov_sim_Inv = np.array([scipy.linalg.inv(PScov_sim[l]) for l in range(inp.ellmax+1)])
