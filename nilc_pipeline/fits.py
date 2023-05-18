@@ -55,11 +55,11 @@ def get_parameter_dependence(inp, Clpq, scale_factor):
                 for z in range(N_comps):
                     for ell in range(inp.ellmax+1):
                         for s in range(N_comps):
-                            best_fits[s,p,q,y,z,ell] = curve_fit(fit_func, x_vals, Clpq_mean[s,p,q,y,z,ell]/Clpq_mean[N_comps,p,q,y,z,ell])[0][0]
+                            best_fits[p,q,y,z,ell,s] = curve_fit(fit_func, x_vals, [Clpq_mean[s,p,q,y,z,ell]/Clpq_mean[N_comps,p,q,y,z,ell]])[0][0]
     
     if inp.save_files:
         pickle.dump(best_fits, open(f'{inp.output_dir}/data_vecs/best_fits.p', 'wb'), protocol=4)
         if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/best_fits.p')
+            print(f'saved {inp.output_dir}/data_vecs/best_fits.p', flush=True)
     
     return best_fits
