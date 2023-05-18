@@ -104,10 +104,10 @@ def get_data_vectors(sim, inp, env):
     for y in range(N_comps):
         for s in range(N_comps+1): #N_comps+1 for each scaled comp, then all unscaled
 
-            if y==0: compy, g_vecy = CMB_map, g_cmb #CMB
-            elif y==1: compy, g_vecy = tSZ_map, g_tsz #ftSZ
-            elif y==2: compy, g_vecy = noise1_map, g_noise1 #noise 90 GHz
-            elif y==3: compy, g_vecy = noise2_map, g_noise2 #noise 150 GHz
+            if y==0: compy, g_vecy = np.copy(CMB_map), g_cmb #CMB
+            elif y==1: compy, g_vecy = np.copy(tSZ_map), g_tsz #ftSZ
+            elif y==2: compy, g_vecy = np.copy(noise1_map), g_noise1 #noise 90 GHz
+            elif y==3: compy, g_vecy = np.copy(noise2_map), g_noise2 #noise 150 GHz
             
             if s==y: compy *= scale_factor #if component y is the one that's scaled
             CMB_wt_maps, tSZ_wt_maps = all_wt_maps[s]
