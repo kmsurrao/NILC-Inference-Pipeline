@@ -2,7 +2,6 @@ import numpy as np
 import pickle
 import scipy
 from scipy.optimize import minimize
-from scipy import ndimage
 from fits import fit_func, call_fit, get_parameter_dependence
 
 
@@ -43,6 +42,8 @@ def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
     -------
     acmb_array: array of length Nsims containing best fit Acmb for each simulation
     atsz_array: array of length Nsims containing best fit Atsz for each simulation
+    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
+    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
 
     '''
 
@@ -170,96 +171,9 @@ def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
     # anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_nilc.p', 'rb'))
     # anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_nilc.p', 'rb'))
 
+    print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
+    print(f'AtSZ = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
+    print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
+    print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
+
     return acmb_array, atsz_array, anoise1_array, anoise2_array
-
-
-
-
-def get_var(P, edges, scaling):
-    '''
-    ARGUMENTS
-    ---------
-    P: ndarray of marginalized probabilities 
-    edges: (nbins+1,) ndarray containing edges of the bins
-    scaling: float, (maximum of edges) - (minimum of edges)
-
-    RETURNS
-    -------
-    lower: float, lower bound of parameter (68% confidence)
-    upper: float, upper bound of parameter (68% confidence)
-    mean: float, mean of parameter
-
-    Note: chi^2 for 1 sigma and 1 dof is 1.00
-    '''
-    P = -0.5*np.log(P) #convert probability to chi^2
-    min, idx_min = np.amin(P), np.argmin(P)
-    lower_idx, upper_idx = None, None
-    for i, elt in enumerate(P):
-        if i < idx_min:
-            if abs(elt-min) <= 1.0 and lower_idx is None: #gets smallest value within 68% confidence interval
-                lower_idx = i 
-        elif i > idx_min:
-            if abs(elt-min) <= 1.0: #gets largest value within 68% confidence interval
-                upper_idx = i
-    lower = scaling*lower_idx/len(P)+np.amin(edges)
-    upper = scaling*upper_idx/len(P)+np.amin(edges)
-    mean = scaling*idx_min/len(P)+np.amin(edges)
-    return lower, upper, mean
-
-def get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065):
-    '''
-    ARGUMENTS
-    ---------
-    acmb_array: array of length Nsims containing best fit Acmb for each simulation
-    atsz_array: array of length Nsims containing best fit Atsz for each simulation
-    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
-    anoise2_array: array of length Nsims containing best fit Anoise1 for each simulation
-    nbins: int, number of bins in each dimension for histogram of A_y and A_z values 
-    smoothing_factor: float, nbins*smoothing_factor is standard deviation of Gaussian kernel for smoothing histogram
-
-    RETURNS
-    -------
-    [[lower_acmb, upper_acmb, mean_acmb],
-     [lower_atsz, upper_atsz, mean_atsz],
-     [lower_anoise1, upper_anoise1, mean_anoise1],
-     [lower_anoise2, upper_anoise2, mean_anoise2]]
-    
-    lower_a: float, lower bound of parameter A (68% confidence)
-    upper_a: float, upper bound of parameter A (68% confidence)
-    mean_a: float, mean value of parameter A
-
-    '''
-    hist_arr = np.array([acmb_array, atsz_array, anoise1_array, anoise2_array])
-    hist_arr = np.transpose(hist_arr)
-    hist, edges = np.histogramdd(hist_arr, bins=[nbins, nbins, nbins, nbins])
-    hist = hist/np.sum(hist)
-    hist = ndimage.gaussian_filter(hist, nbins*smoothing_factor) #smooth hist
-    scaling = [(np.amax(edges[i])-np.amin(edges[i])) for i in range(4)]
-    lower_acmb, upper_acmb, mean_acmb = get_var(np.sum(hist, axis=(1,2,3)), edges[0], scaling[0])
-    lower_atsz, upper_atsz, mean_atsz = get_var(np.sum(hist, axis=(0,2,3)), edges[1], scaling[1])
-    lower_anoise1, upper_anoise1, mean_anoise1 = get_var(np.sum(hist, axis=(0,1,3)), edges[2], scaling[2])
-    lower_anoise2, upper_anoise2, mean_anoise2 = get_var(np.sum(hist, axis=(0,1,2)), edges[3], scaling[3])
-    return [[lower_acmb, upper_acmb, mean_acmb], [lower_atsz, upper_atsz, mean_atsz], \
-            [lower_anoise1, upper_anoise1, mean_anoise1], [lower_anoise2, upper_anoise2, mean_anoise2]]
-    
-
-def print_result(param_name, a_vals):
-    '''
-    ARGUMENTS
-    ---------
-    param_name: str, either 'Acmb', 'Atsz', 'Anoise1', 'Anoise2'
-    a_vals: list of floats, [lower_a, upper_a, mean_a]
-    
-    where
-    lower_a: float, lower bound of parameter A (68% confidence)
-    upper_a: float, upper bound of parameter A (68% confidence)
-    mean_a: float, mean value of parameter A
-
-    RETURNS
-    -------
-    None
-    '''
-    lower_a, upper_a, mean_a = a_vals
-    print(f'{param_name} = {mean_a} + {upper_a-mean_a} - {mean_a-lower_a}', flush=True)
-    return
-

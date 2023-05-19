@@ -57,12 +57,10 @@ def main():
     '''
     RETURNS
     -------
-    lower_acmb: float, 1sigma below mean for acmb
-    upper_acmb: float, 1sigma above mean for acmb
-    mean_acmb: float, mean value of acmb
-    lower_atsz: float, 1sigma below mean for atsz
-    upper_atsz: float, 1sigma above mean for atsz
-    mean_atsz: float, mean value of atsz
+    acmb_array: array of length Nsims containing best fit Acmb for each simulation
+    atsz_array: array of length Nsims containing best fit Atsz for each simulation
+    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
+    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
     '''
 
     # main input file containing most specifications 
@@ -93,12 +91,10 @@ def main():
             print(f'saved {inp.output_dir}/data_vecs/Clij.p')
     
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clij)
-    lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz = get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065) 
-    print(f'Acmb = {mean_acmb} + {upper_acmb-mean_acmb} - {mean_acmb-lower_acmb}', flush=True)
-    print(f'Atsz = {mean_atsz} + {upper_atsz-mean_atsz} - {mean_atsz-lower_atsz}', flush=True)
+    
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
-    return lower_acmb, upper_acmb, mean_acmb, lower_atsz, upper_atsz, mean_atsz
+    return acmb_array, atsz_array, anoise1_array, anoise2_array
 
 
 if __name__ == '__main__':

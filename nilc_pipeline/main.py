@@ -155,15 +155,10 @@ def main(inp, env):
 
     RETURNS
     -------
-    acmb_vals: [lower_acmb, upper_acmb, mean_acmb]
-    atsz_vals: [lower_atsz, upper_atsz, mean_atsz]
-    anoise1_vals: [lower_anoise1, upper_anoise1, mean_anoise1]
-    anoise2_vals: [lower_anoise2, upper_anoise2, mean_anoise2]
-    
-    where
-    lower_a: float, lower bound of parameter A (68% confidence)
-    upper_a: float, upper bound of parameter A (68% confidence)
-    mean_a: float, mean value of parameter A
+    acmb_array: array of length Nsims containing best fit Acmb for each simulation
+    atsz_array: array of length Nsims containing best fit Atsz for each simulation
+    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
+    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
     '''
 
     # main input file containing most specifications 
@@ -196,14 +191,9 @@ def main(inp, env):
     # Clpq = pickle.load(open('/scratch/09334/ksurrao/NILC/outputs_weight_dep/data_vecs/Clpq.p', 'rb'))
     
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
-    acmb_vals, atsz_vals, anoise1_vals, anoise2_vals = get_parameter_cov_matrix(acmb_array, atsz_array, anoise1_array, anoise2_array, nbins=100, smoothing_factor=0.065) 
-    print_result('Acmb', acmb_vals)
-    print_result('Atsz', atsz_vals)
-    print_result('Anoise1', anoise1_vals)
-    print_result('Anoise2', anoise2_vals)
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
-    return acmb_vals, atsz_vals, anoise1_vals, anoise2_vals
+    return acmb_array, atsz_array, anoise1_array, anoise2_array
 
 
 if __name__ == '__main__':

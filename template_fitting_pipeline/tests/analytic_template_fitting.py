@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import argparse
 import sys
-sys.path.append('../shared')
+sys.path.append('../../shared')
 from input import Info
 from utils import tsz_spectral_response
 
@@ -55,7 +55,7 @@ def main():
 
     full_covar = np.array([CMB_var, CMB_tSZ_covar, tSZ_var])
     if inp.save_files:
-        pickle.dump(full_covar, open(f'{inp.output_dir}/template_fiting_analytic_covar.p'))
+        pickle.dump(full_covar, open(f'{inp.output_dir}/template_fiting_analytic_covar.p', 'wb'))
 
 
 if __name__=='__main__':
