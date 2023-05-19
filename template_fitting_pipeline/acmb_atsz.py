@@ -97,7 +97,7 @@ def get_all_acmb_atsz(inp, Clij):
         + (model[l][1,1]-Clij11d[l])*PScov_sim_Inv[l][2,0]*(model[l][0,0]-Clij00d[l]) + (model[l][1,1]-Clij11d[l])*PScov_sim_Inv[l][2,1]*(model[l][0,1]-Clij01d[l]) + (model[l][1,1]-Clij11d[l])*PScov_sim_Inv[l][2,2]*(model[l][1,1]-Clij11d[l])) \
         for l in range(2, inp.ellmax+1)]) 
 
-    def acmb_atsz(sim):
+    def acmb_atsz():
         '''
         Maximize likelihood with respect to Acmb and Atsz for one sim
 
@@ -127,7 +127,7 @@ def get_all_acmb_atsz(inp, Clij):
     anoise2_array = np.ones(inp.Nsims, dtype=np.float32)
     for sim in range(inp.Nsims):
         Clij00, Clij01, Clij10, Clij11 = Clij00_all_sims[sim], Clij01_all_sims[sim], Clij10_all_sims[sim], Clij11_all_sims[sim]
-        acmb, atsz, anoise1, anoise2 = acmb_atsz(sim)
+        acmb, atsz, anoise1, anoise2 = acmb_atsz()
         acmb_array[sim] = acmb
         atsz_array[sim] = atsz
         anoise1_array[sim] = anoise1
