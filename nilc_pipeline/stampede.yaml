@@ -8,6 +8,7 @@ noise: 30000 #noise level in uK arcmin
 freqs: [90., 150.] #frequencies for maps, in GHz
 Nscales: 4 #number of needlet filter scales
 GN_FWHM_arcmin: [300., 120., 60.] #array of FWHM used for constrution of Gaussians (needlet filters are differences of two Gaussians). FWHM need to be in strictly decreasing order.
+scaling_factor: 0.9 #scaling factor for components to fit power law parameter dependence, default is 1.1
 
 verbose: 1 #set to 0 if do not want intermediate printing
 remove_files: 0 #set to 0 if do not want to remove intermediate files between each sim
@@ -17,4 +18,4 @@ halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' #Path to fo
 cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' #File for CMB map in Kelvin, lensed_alm is in uK
 pyilc_path: '/work2/09334/ksurrao/stampede2/GitHub/pyilc' #Path to pyilc code
 wigner_file: '/scratch/09334/ksurrao/NILC/inputs/wigner3j_ellmax1000.p' #File containing wigner-3j symbols with zero m values, indexed as wigner3j[l1,l2,l3]. Leave empty if no such file.
-output_dir: '/scratch/09334/ksurrao/NILC/outputs_weight_dep' #Path to folder to store temporary outputs
+output_dir: '/scratch/09334/ksurrao/NILC/outputs_weight_dep_0p9' #Path to folder to store temporary outputs

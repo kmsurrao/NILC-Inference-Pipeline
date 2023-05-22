@@ -26,7 +26,7 @@ def call_fit(A_vec, n_vec):
     ncmb, ntsz, nnoise1, nnoise2 = n_vec
     return fit_func(Acmb, ncmb) * fit_func(Atsz, ntsz) * fit_func(Anoise1, nnoise1) * fit_func(Anoise2, nnoise2)
 
-def get_parameter_dependence(inp, Clpq, scale_factor):
+def get_parameter_dependence(inp, Clpq):
     '''
     ARGUMENTS
     ---------
@@ -34,7 +34,6 @@ def get_parameter_dependence(inp, Clpq, scale_factor):
     Clpq: (Nsims, N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
-    scale_factor: float, multiplicative scaling factor used to determine parameter dependence
     
     RETURNS
     -------
@@ -44,7 +43,7 @@ def get_parameter_dependence(inp, Clpq, scale_factor):
     '''
     N_preserved_comps = 2
     N_comps = 4
-    x_vals = [scale_factor**2] #square needed since each comp scaled at map level and want parameter fit at power spectrum level
+    x_vals = [inp.scaling_factor**2] #square needed since each comp scaled at map level and want parameter fit at power spectrum level
 
     Clpq_mean = np.mean(Clpq, axis=0)
 

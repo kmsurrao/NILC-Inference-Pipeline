@@ -15,14 +15,13 @@ from load_weight_maps import load_wt_maps
 from utils import setup_output_dir, tsz_spectral_response, GaussianNeedlets, build_NILC_maps
 from acmb_atsz_nilc import *
 
-def get_scaled_maps_and_wts(sim, inp, env, scale_factor):
+def get_scaled_maps_and_wts(sim, inp, env):
     '''
     ARGUMENTS
     ---------
     sim: int, simulation number
     inp: Info object containing input parameter specifications
     env: environment object
-    scale_factor: float, multiplicative factor by which to test scaling components
 
     RETURNS
     -------
@@ -41,7 +40,7 @@ def get_scaled_maps_and_wts(sim, inp, env, scale_factor):
     for y in range(N_comps+1):
 
         if y==N_comps: scaling=None
-        else: scaling = [scale_factor, comps[y]]
+        else: scaling = [inp.scaling_factor, comps[y]]
 
         #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)
         CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, scaling=scaling)
@@ -85,7 +84,6 @@ def get_data_vectors(sim, inp, env):
     
     N_preserved_comps = 2 #components to create NILC maps for: CMB, ftSZ
     N_comps = 4 #CMB, ftSZ, noise1, noise2
-    scale_factor = 1.1
 
     #get needlet filters and spectral responses
     h = GaussianNeedlets(inp)[1]
@@ -95,7 +93,7 @@ def get_data_vectors(sim, inp, env):
     g_noise2 = [0.,1.]
 
     #get maps and weight maps, all_wt_maps is (N_comps+1, N_preserved_comps, Nscales, Nfreqs, Npix) ndarray
-    CMB_map, tSZ_map, noise1_map, noise2_map, all_wt_maps = get_scaled_maps_and_wts(sim, inp, env, scale_factor)
+    CMB_map, tSZ_map, noise1_map, noise2_map, all_wt_maps = get_scaled_maps_and_wts(sim, inp, env)
 
 
     #get map level propagation of components
@@ -110,7 +108,7 @@ def get_data_vectors(sim, inp, env):
             elif y==2: compy, g_vecy = np.copy(noise1_map), g_noise1 #noise 90 GHz
             elif y==3: compy, g_vecy = np.copy(noise2_map), g_noise2 #noise 150 GHz
             
-            if s==y: compy *= scale_factor #if component y is the one that's scaled
+            if s==y: compy *= inp.scaling_factor #if component y is the one that's scaled
             CMB_wt_maps, tSZ_wt_maps = all_wt_maps[s]
             compy_freq1, compy_freq2 = g_vecy[0]*compy, g_vecy[1]*compy
 
@@ -188,7 +186,7 @@ def main(inp, env):
         if inp.verbose:
             print(f'saved {inp.output_dir}/data_vecs/Clpq.p')
 
-    # Clpq = pickle.load(open('/scratch/09334/ksurrao/NILC/outputs_weight_dep/data_vecs/Clpq.p', 'rb'))
+    # Clpq = pickle.load(open(f'{inp.output_dir}/data_vecs/Clpq.p', 'rb'))
     
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
     print('PROGRAM FINISHED RUNNING')

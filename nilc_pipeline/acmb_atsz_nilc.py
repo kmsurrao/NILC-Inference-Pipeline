@@ -28,7 +28,7 @@ def get_PScov_sim(inp, Clpq_unscaled):
     return cov
 
 
-def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
+def get_all_acmb_atsz(inp, Clpq):
     '''
     ARGUMENTS
     ---------
@@ -36,7 +36,6 @@ def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
     Clpq: (Nsims, N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
-    scale_factor: float, multiplicative scaling factor used to determine parameter dependence
 
     RETURNS
     -------
@@ -134,7 +133,7 @@ def get_all_acmb_atsz(inp, Clpq, scale_factor=1.1):
         return res.x #acmb, atsz, anoise1, anoise2
     
     N_comps = 4
-    best_fits = get_parameter_dependence(inp, Clpq, scale_factor) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4)
+    best_fits = get_parameter_dependence(inp, Clpq) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4)
     Clpq_unscaled = Clpq[:,N_comps]
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)

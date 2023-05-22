@@ -38,6 +38,8 @@ class Info(object):
         assert self.tsz_amp >= 0, 'tSZ_amp'
         self.noise = p['noise']
         assert self.noise >= 0, 'noise'
+        self.scaling_factor = p['scaling_factor']
+        assert self.scaling_factor > 0.
 
         self.pyilc_path = p['pyilc_path']
         assert type(self.pyilc_path) is str, "TypeError: pyilc_path"
