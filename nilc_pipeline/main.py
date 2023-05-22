@@ -144,13 +144,8 @@ def get_data_vectors(sim, inp, env):
 
 
 
-def main(inp, env):
+def main():
     '''
-    ARGUMENTS
-    ---------
-    inp: Info object containing input parameter specifications
-    env: environment object
-
     RETURNS
     -------
     acmb_array: array of length Nsims containing best fit Acmb for each simulation
