@@ -166,7 +166,7 @@ def main():
     inp = Info(input_file)
 
     Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb')) #dim (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, ellmax+1)
-    Clij = np.delete(Clij, 1, axis=3) #remove tSZ 
+    Clij = np.delete(Clij, 0, axis=3) #remove CMB 
 
     atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clij)
     return atsz_array, anoise1_array, anoise2_array
