@@ -50,12 +50,16 @@ def get_parameter_dependence(inp, Clpq):
     best_fits = np.zeros((N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4)) #4 is for 4 exponent params
     for p in range(N_preserved_comps):
         for q in range(N_preserved_comps):
+            tot_pq = np.sum(Clpq_mean[N_comps,p,q], axis=(0,1))
             for y in range(N_comps):
                 for z in range(N_comps):
                     for ell in range(inp.ellmax+1):
-                        for s in range(N_comps):
-                            best_fits[p,q,y,z,ell,s] = curve_fit(fit_func, x_vals, [Clpq_mean[s,p,q,y,z,ell]/Clpq_mean[N_comps,p,q,y,z,ell]])[0][0]
-    
+                        if np.abs(Clpq_mean[N_comps,p,q,y,z,ell]/tot_pq[ell]) <= 1e-4:
+                            best_fits[p,q,y,z,ell,:] = 0
+                        else:
+                            for s in range(N_comps):
+                                best_fits[p,q,y,z,ell,s] = curve_fit(fit_func, x_vals, [Clpq_mean[s,p,q,y,z,ell]/Clpq_mean[N_comps,p,q,y,z,ell]])[0][0]
+        
     if inp.save_files:
         pickle.dump(best_fits, open(f'{inp.output_dir}/data_vecs/best_fits.p', 'wb'), protocol=4)
         if inp.verbose:
