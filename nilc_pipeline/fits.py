@@ -37,7 +37,7 @@ def get_parameter_dependence(inp, Clpq):
     
     RETURNS
     -------
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4) array
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4) ndarray
         containing best fits to Acmb, Atsz, Anoise1, Anoise2
 
     '''
@@ -53,12 +53,18 @@ def get_parameter_dependence(inp, Clpq):
             tot_pq = np.sum(Clpq_mean[N_comps,p,q], axis=(0,1))
             for y in range(N_comps):
                 for z in range(N_comps):
-                    for ell in range(inp.ellmax+1):
-                        if np.abs(Clpq_mean[N_comps,p,q,y,z,ell]/tot_pq[ell]) <= 1e-4:
-                            best_fits[p,q,y,z,ell,:] = 0
-                        else:
+                    if np.mean(np.abs(Clpq_mean[N_comps,p,q,y,z]/tot_pq)) <= 1e-4:
+                        best_fits[p,q,y,z,:,:] = 0
+                    else:
+                        for ell in range(inp.ellmax+1):
                             for s in range(N_comps):
                                 best_fits[p,q,y,z,ell,s] = curve_fit(fit_func, x_vals, [Clpq_mean[s,p,q,y,z,ell]/Clpq_mean[N_comps,p,q,y,z,ell]])[0][0]
+                    # for ell in range(inp.ellmax+1):
+                    #     if np.abs(Clpq_mean[N_comps,p,q,y,z,ell]/tot_pq[ell]) <= 1e-4:
+                    #         best_fits[p,q,y,z,ell,:] = 0
+                    #     else:
+                    #         for s in range(N_comps):
+                    #             best_fits[p,q,y,z,ell,s] = curve_fit(fit_func, x_vals, [Clpq_mean[s,p,q,y,z,ell]/Clpq_mean[N_comps,p,q,y,z,ell]])[0][0]
         
     if inp.save_files:
         pickle.dump(best_fits, open(f'{inp.output_dir}/data_vecs/best_fits.p', 'wb'), protocol=4)

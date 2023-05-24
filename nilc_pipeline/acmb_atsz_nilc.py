@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import scipy
 from scipy.optimize import minimize
+import multiprocessing as mp
 from fits import fit_func, call_fit, get_parameter_dependence
 
 
@@ -28,6 +29,114 @@ def get_PScov_sim(inp, Clpq_unscaled):
     return cov
 
 
+def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, best_fits):
+    '''
+    Model for theoretical spectra Clpq including Acmb, Atsz, and Anoise parameters
+
+    ARGUMENTS
+    ---------
+    USED BY MINIMIZER
+    Acmb: float, scaling parameter for CMB power spectrum
+    Atsz: float, scaling parameter for tSZ power spectrum
+    Anoise1: float, scaling parameter for 90 GHz noise power spectrum
+    Anoise2: float, scaling parameter for 150 GHz noise power spectrum
+    
+    CONSTANT ARGS
+    inp: Info object containing input parameter specifications
+    Cl{p}{q}: (N_comps=4, N_comps=4, ellmax+1) ndarray containing contribution of components to Clpq
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4) ndarray
+        containing best fits to Acmb, Atsz, Anoise1, Anoise2
+
+    RETURNS
+    -------
+    theory_model: (ellmax+1, 2, 2) ndarray for ClTT, ClTy, ClyT, and Clyy in terms of A_y and A_z parameters
+
+    '''
+    theory_model = np.zeros((inp.ellmax+1, 2, 2))
+
+    for l in range(inp.ellmax+1):
+        for p,q in [(0,0), (0,1), (1,0), (1,1)]:
+
+            if p==0 and q==0: 
+                best_fits_here, Clpq_here = best_fits[0,0], ClTT
+            elif p==0 and q==1:
+                best_fits_here, Clpq_here = best_fits[0,1], ClTy
+            elif p==1 and q==0:
+                best_fits_here, Clpq_here = best_fits[1,0], ClyT
+            elif p==1 and q==1:
+                best_fits_here, Clpq_here = best_fits[1,1], Clyy
+            A_vec = [Acmb, Atsz, Anoise1, Anoise2]
+            theory_model[l,p,q] = \
+                call_fit(A_vec, best_fits_here[0,0,l])*Clpq_here[0,0,l]  + call_fit(A_vec, best_fits_here[0,1,l])*Clpq_here[0,1,l]  + call_fit(A_vec, best_fits_here[0,2,l])*Clpq_here[0,2,l]  + call_fit(A_vec, best_fits_here[0,3,l])*Clpq_here[0,3,l]\
+            + call_fit(A_vec, best_fits_here[1,0,l])*Clpq_here[1,0,l]  + call_fit(A_vec, best_fits_here[1,1,l])*Clpq_here[1,1,l]  + call_fit(A_vec, best_fits_here[1,2,l])*Clpq_here[1,2,l]  + call_fit(A_vec, best_fits_here[1,3,l])*Clpq_here[1,3,l] \
+            + call_fit(A_vec, best_fits_here[2,0,l])*Clpq_here[2,0,l]  + call_fit(A_vec, best_fits_here[2,1,l])*Clpq_here[2,1,l]  + call_fit(A_vec, best_fits_here[2,2,l])*Clpq_here[2,2,l]  + call_fit(A_vec, best_fits_here[2,3,l])*Clpq_here[2,3,l] \
+            + call_fit(A_vec, best_fits_here[3,0,l])*Clpq_here[3,0,l]  + call_fit(A_vec, best_fits_here[3,1,l])*Clpq_here[3,1,l]  + call_fit(A_vec, best_fits_here[3,2,l])*Clpq_here[3,2,l]  + call_fit(A_vec, best_fits_here[3,3,l])*Clpq_here[3,3,l]
+
+    return theory_model
+
+
+
+def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits): 
+    '''
+    Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
+    Let Clpqd be the data spectra obtained by averaging over all the theory spectra from each sim
+
+    ARGUMENTS
+    ---------
+    pars: parameters to function f (not manually inputted but used by minimizer)
+    f: function that returns theory model in terms of Acmb, Atsz, Anoise1, and Anoise2
+    inp: Info object containing input parameter specifications
+    sim: int, simulation number
+    Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, ellmax+1) ndarray containing contribution of components to Clpq
+    PScov_sim_Inv: (ellmax+1, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4) ndarray
+        containing best fits to Acmb, Atsz, Anoise1, Anoise2
+
+
+    RETURNS
+    -------
+    negative log likelihood for one simulation, combined over multipoles 
+    '''
+    ClTT = ClTT_all_sims[sim]
+    ClTy = ClTy_all_sims[sim]
+    ClyT = ClyT_all_sims[sim]
+    Clyy = Clyy_all_sims[sim]
+    model = f(*pars, inp, ClTT, ClTy, ClyT, Clyy, best_fits)
+    ClTTd = np.mean(np.sum(ClTT_all_sims, axis=(1,2)), axis=0)
+    ClTyd = np.mean(np.sum(ClTy_all_sims, axis=(1,2)), axis=0)
+    Clyyd = np.mean(np.sum(Clyy_all_sims, axis=(1,2)), axis=0)
+    return np.sum([1/2* \
+        ((model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clyyd[l]) \
+        + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clyyd[l]) \
+        + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,0]*(model[l][0,0]-ClTTd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,1]*(model[l][0,1]-ClTyd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,2]*(model[l][1,1]-Clyyd[l])) \
+    for l in range(2, inp.ellmax+1)]) 
+
+def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits):
+    '''
+    Maximize likelihood with respect to Acmb and Atsz for one sim
+
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+    sim: int, simulation number
+    Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, ellmax+1) ndarray containing contribution of components to Clpq
+    PScov_sim_Inv: (ellmax+1, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4) ndarray
+        containing best fits to Acmb, Atsz, Anoise1, Anoise2
+
+    RETURNS
+    -------
+    best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
+    '''
+    acmb_start = 1.0
+    atsz_start = 1.0
+    anoise1_start = 1.0
+    anoise2_start = 1.0
+    bounds = ((0.0, None), (0.0, None), (0.0, None), (0.0, None))
+    res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise1_start, anoise2_start], args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits), method='Nelder-Mead', bounds=bounds) #default method is BFGS
+    return res.x #acmb, atsz, anoise1, anoise2
+
+
 def get_all_acmb_atsz(inp, Clpq):
     '''
     ARGUMENTS
@@ -45,92 +154,6 @@ def get_all_acmb_atsz(inp, Clpq):
     anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
 
     '''
-
-    def ClpqA(Acmb, Atsz, Anoise1, Anoise2):
-        '''
-        Model for theoretical spectra Clpq including Acmb, Atsz, and Anoise parameters
-
-        ARGUMENTS
-        ---------
-        Acmb: float, scaling parameter for CMB power spectrum
-        Atsz: float, scaling parameter for tSZ power spectrum
-        Anoise1: float, scaling parameter for 90 GHz noise power spectrum
-        Anoise2: float, scaling parameter for 150 GHz noise power spectrum
-
-        RETURNS
-        -------
-        theory_model: (ellmax+1, 2, 2) ndarray for ClTT, ClTy, ClyT, and Clyy in terms of A_y and A_z parameters
-
-        '''
-        theory_model = np.zeros((inp.ellmax+1, 2, 2))
-
-        for l in range(inp.ellmax+1):
-            for p,q in [(0,0), (0,1), (1,0), (1,1)]:
-
-                if p==0 and q==0: 
-                    best_fits_here, Clpq_here = best_fits[0,0], ClTT
-                elif p==0 and q==1:
-                    best_fits_here, Clpq_here = best_fits[0,1], ClTy
-                elif p==1 and q==0:
-                    best_fits_here, Clpq_here = best_fits[1,0], ClyT
-                elif p==1 and q==1:
-                    best_fits_here, Clpq_here = best_fits[1,1], Clyy
-                A_vec = [Acmb, Atsz, Anoise1, Anoise2]
-                theory_model[l,p,q] = \
-                  call_fit(A_vec, best_fits_here[0,0,l])*Clpq_here[0,0,l]  + call_fit(A_vec, best_fits_here[0,1,l])*Clpq_here[0,1,l]  + call_fit(A_vec, best_fits_here[0,2,l])*Clpq_here[0,2,l]  + call_fit(A_vec, best_fits_here[0,3,l])*Clpq_here[0,3,l]\
-                + call_fit(A_vec, best_fits_here[1,0,l])*Clpq_here[1,0,l]  + call_fit(A_vec, best_fits_here[1,1,l])*Clpq_here[1,1,l]  + call_fit(A_vec, best_fits_here[1,2,l])*Clpq_here[1,2,l]  + call_fit(A_vec, best_fits_here[1,3,l])*Clpq_here[1,3,l] \
-                + call_fit(A_vec, best_fits_here[2,0,l])*Clpq_here[2,0,l]  + call_fit(A_vec, best_fits_here[2,1,l])*Clpq_here[2,1,l]  + call_fit(A_vec, best_fits_here[2,2,l])*Clpq_here[2,2,l]  + call_fit(A_vec, best_fits_here[2,3,l])*Clpq_here[2,3,l] \
-                + call_fit(A_vec, best_fits_here[3,0,l])*Clpq_here[3,0,l]  + call_fit(A_vec, best_fits_here[3,1,l])*Clpq_here[3,1,l]  + call_fit(A_vec, best_fits_here[3,2,l])*Clpq_here[3,2,l]  + call_fit(A_vec, best_fits_here[3,3,l])*Clpq_here[3,3,l]
-    
-        return theory_model
-
-
-
-    def lnL(pars, f, inp): 
-        '''
-        Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
-        Let Clpqd be the data spectra obtained by averaging over all the theory spectra from each sim
-
-        ARGUMENTS
-        ---------
-        pars: parameters to function f (not manually inputted but used by minimizer)
-        f: function that returns theory model in terms of Acmb and Atsz
-        sim: int, simulation number
-        inp: Info object containing input parameter specifications
-
-        RETURNS
-        -------
-        negative log likelihood for one simulation, combined over multipoles 
-        '''
-        model = f(*pars)
-        ClTTd = np.mean(np.sum(ClTT_all_sims, axis=(1,2)), axis=0)
-        ClTyd = np.mean(np.sum(ClTy_all_sims, axis=(1,2)), axis=0)
-        Clyyd = np.mean(np.sum(Clyy_all_sims, axis=(1,2)), axis=0)
-        return np.sum([1/2* \
-            ((model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,0]-ClTTd[l])*PScov_sim_Inv[l][0,2]*(model[l][1,1]-Clyyd[l]) \
-           + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,0]*(model[l][0,0]-ClTTd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,1]*(model[l][0,1]-ClTyd[l]) + (model[l][0,1]-ClTyd[l])*PScov_sim_Inv[l][1,2]*(model[l][1,1]-Clyyd[l]) \
-           + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,0]*(model[l][0,0]-ClTTd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,1]*(model[l][0,1]-ClTyd[l]) + (model[l][1,1]-Clyyd[l])*PScov_sim_Inv[l][2,2]*(model[l][1,1]-Clyyd[l])) \
-        for l in range(2, inp.ellmax+1)]) 
-
-    def acmb_atsz():
-        '''
-        Maximize likelihood with respect to Acmb and Atsz for one sim
-
-        ARGUMENTS
-        ---------
-        sim: int, simulation number
-
-        RETURNS
-        -------
-        best fit Acmb, Atsz (floats)
-        '''
-        acmb_start = 1.0
-        atsz_start = 1.0
-        anoise1_start = 1.0
-        anoise2_start = 1.0
-        bounds = ((0.0, None), (0.0, None), (0.0, None), (0.0, None))
-        res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise1_start, anoise2_start], args = (ClpqA, inp), method='Nelder-Mead', bounds=bounds) #default method is BFGS
-        return res.x #acmb, atsz, anoise1, anoise2
     
     N_comps = 4
     best_fits = get_parameter_dependence(inp, Clpq) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 4)
@@ -141,17 +164,14 @@ def get_all_acmb_atsz(inp, Clpq):
 
     ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq_unscaled[:,0,0], Clpq_unscaled[:,0,1], Clpq_unscaled[:,1,0], Clpq_unscaled[:,1,1]
 
-    acmb_array = np.ones(inp.Nsims, dtype=np.float32)
-    atsz_array = np.ones(inp.Nsims, dtype=np.float32)
-    anoise1_array = np.ones(inp.Nsims, dtype=np.float32)
-    anoise2_array = np.ones(inp.Nsims, dtype=np.float32)
-    for sim in range(inp.Nsims):
-        ClTT, ClTy, ClyT, Clyy = ClTT_all_sims[sim], ClTy_all_sims[sim], ClyT_all_sims[sim], Clyy_all_sims[sim]
-        acmb, atsz, anoise1, anoise2 = acmb_atsz()
-        acmb_array[sim] = acmb
-        atsz_array[sim] = atsz
-        anoise1_array[sim] = anoise1
-        anoise2_array[sim] = anoise2
+    pool = mp.Pool(inp.num_parallel)
+    param_array = pool.starmap(acmb_atsz, [(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits) for sim in range(inp.Nsims)])
+    pool.close()
+    param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 4 for Acmb Atsz Anoise1 Anoise2)
+    acmb_array = param_array[:,0]
+    atsz_array = param_array[:,1]
+    anoise1_array = param_array[:,2]
+    anoise2_array = param_array[:,3]
     
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_nilc.p', 'wb'))
     pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_nilc.p', 'wb'))
