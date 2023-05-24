@@ -5,6 +5,7 @@ import pickle
 import argparse
 import sys
 sys.path.append('../../shared')
+sys.path.append('..')
 from input import Info
 from utils import tsz_spectral_response
 
@@ -12,7 +13,7 @@ def main():
 
    # main input file containing most specifications 
    parser = argparse.ArgumentParser(description="Analytic covariance from template-fitting approach.")
-   parser.add_argument("--config", default="stampede.yaml")
+   parser.add_argument("--config", default="../stampede.yaml")
    args = parser.parse_args()
    input_file = args.config
 
@@ -54,14 +55,11 @@ def main():
    g2**2*N1*N2 + 2*g1**2*N2**2 + (g1 - g2)**2 *(g2**2*N1 + g1**2*N2)*T +
    CC*(g1 - g2)**2 *(N1 + N2 + (g1 - g2)**2 *T)))
 
-   print('RESULTS USING GAUSSIAN POWER SPECTRUM COVARIANCE MATRIX')
-   print('variance on Acmb: ', CMB_var, flush=True)
-   print('variance on Atsz: ', tSZ_var, flush=True)
-   print('covariance of Acmb and Atsz: ', CMB_tSZ_covar, flush=True)
-
    full_covar = np.array([CMB_var, CMB_tSZ_covar, tSZ_var])
    if inp.save_files:
       pickle.dump(full_covar, open(f'{inp.output_dir}/template_fiting_analytic_covar_gaussian.p', 'wb'))
+      if inp.verbose:
+         print(f'saved {inp.output_dir}/template_fiting_analytic_covar_gaussian.p')
 
 
 
@@ -69,12 +67,6 @@ def main():
 
    #use analytic expressions derived from Mathematica notebook but with power spectrum
    #covariance matrix measured directly from sims
-
-   #set up arrays
-   CMB_var_template = np.zeros(inp.ellmax+1)
-   CMB_tSZ_covar_template = np.zeros(inp.ellmax+1)
-   tSZ_var_template = np.zeros(inp.ellmax+1)
-
 
    '''
    First, construct the covariance matrix of the auto- and cross-frequency power spectra.
@@ -143,14 +135,11 @@ def main():
    '''
    FinalCovTemplateFitting = np.array([np.linalg.inv(K[l]) for l in range(inp.ellmax+1)])
 
-   print('RESULTS MEASURING POWER SPECTRUM COVARIANCE MATRIX FROM SIMULATIONS')
-   print('variance on Acmb: ', FinalCovTemplateFitting[:,0,0], flush=True)
-   print('variance on Atsz: ', FinalCovTemplateFitting[:,0,0], flush=True)
-   print('covariance of Acmb and Atsz: ', FinalCovTemplateFitting[:,0,1], flush=True)
-
    full_covar = np.array([FinalCovTemplateFitting[:,0,0], FinalCovTemplateFitting[:,0,1], FinalCovTemplateFitting[:,1,1]])
    if inp.save_files:
       pickle.dump(full_covar, open(f'{inp.output_dir}/template_fiting_analytic_covar_sims.p', 'wb'))
+      if inp.verbose:
+         print(f'saved {inp.output_dir}/template_fiting_analytic_covar_sims.p')
 
 
 
