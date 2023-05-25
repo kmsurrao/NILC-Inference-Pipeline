@@ -114,7 +114,7 @@ def get_data_vectors(sim, inp, env):
             
             if s==y: #if component y is the one that's scaled and is scaled down
                 compy *= inp.scaling_factors[0]
-            elif s==2*y: #if component y is the one that's scaled and is scaled up
+            elif s==y+N_comps: #if component y is the one that's scaled and is scaled up
                 compy *= inp.scaling_factors[1]
             CMB_wt_maps, tSZ_wt_maps = all_wt_maps[s]
             compy_freq1, compy_freq2 = g_vecy[0]*compy, g_vecy[1]*compy
@@ -128,7 +128,7 @@ def get_data_vectors(sim, inp, env):
 
     for y in range(N_comps):
         for z in range(N_comps):
-            for s in range(2*N_comps+1): #each scaled high component, each scaled low comp, and then all unscaled
+            for s in range(2*N_comps+1): #each scaled low component, each scaled high comp, and then all unscaled
                 
                 y_to_CMB_preserved = all_map_level_prop[0,y,s]
                 y_to_tSZ_preserved = all_map_level_prop[1,y,s]
