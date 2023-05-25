@@ -186,7 +186,7 @@ def main():
     if inp.save_files:
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
         if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/Clpq.p')
+            print(f'saved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
 
     # Clpq = pickle.load(open(f'{inp.output_dir}/data_vecs/Clpq.p', 'rb'))
     
