@@ -44,9 +44,8 @@ def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, best_fits):
     CONSTANT ARGS
     inp: Info object containing input parameter specifications
     Cl{p}{q}: (N_comps=4, N_comps=4, ellmax+1) ndarray containing contribution of components to Clpq
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2*N_comps) ndarray
-        containing best fits to Acmb, Atsz, Anoise1, Anoise2 for low and high scalings
-        2*N_comps is for exponent params, N_comps for scaled low and N_comps for scaled high
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, N_comps) ndarray
+        containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
 
     RETURNS
     -------
@@ -68,7 +67,7 @@ def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, best_fits):
                 best_fits_here, Clpq_here = best_fits[1,1], Clyy
             A_vec = [Acmb, Atsz, Anoise1, Anoise2]
             theory_model[l,p,q] = \
-                call_fit(A_vec, best_fits_here[0,0,l])*Clpq_here[0,0,l]  + call_fit(A_vec, best_fits_here[0,1,l])*Clpq_here[0,1,l]  + call_fit(A_vec, best_fits_here[0,2,l])*Clpq_here[0,2,l]  + call_fit(A_vec, best_fits_here[0,3,l])*Clpq_here[0,3,l]\
+              call_fit(A_vec, best_fits_here[0,0,l])*Clpq_here[0,0,l]  + call_fit(A_vec, best_fits_here[0,1,l])*Clpq_here[0,1,l]  + call_fit(A_vec, best_fits_here[0,2,l])*Clpq_here[0,2,l]  + call_fit(A_vec, best_fits_here[0,3,l])*Clpq_here[0,3,l]\
             + call_fit(A_vec, best_fits_here[1,0,l])*Clpq_here[1,0,l]  + call_fit(A_vec, best_fits_here[1,1,l])*Clpq_here[1,1,l]  + call_fit(A_vec, best_fits_here[1,2,l])*Clpq_here[1,2,l]  + call_fit(A_vec, best_fits_here[1,3,l])*Clpq_here[1,3,l] \
             + call_fit(A_vec, best_fits_here[2,0,l])*Clpq_here[2,0,l]  + call_fit(A_vec, best_fits_here[2,1,l])*Clpq_here[2,1,l]  + call_fit(A_vec, best_fits_here[2,2,l])*Clpq_here[2,2,l]  + call_fit(A_vec, best_fits_here[2,3,l])*Clpq_here[2,3,l] \
             + call_fit(A_vec, best_fits_here[3,0,l])*Clpq_here[3,0,l]  + call_fit(A_vec, best_fits_here[3,1,l])*Clpq_here[3,1,l]  + call_fit(A_vec, best_fits_here[3,2,l])*Clpq_here[3,2,l]  + call_fit(A_vec, best_fits_here[3,3,l])*Clpq_here[3,3,l]
@@ -90,9 +89,8 @@ def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all
     sim: int, simulation number
     Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, ellmax+1) ndarray containing contribution of components to Clpq
     PScov_sim_Inv: (ellmax+1, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2*N_comps) ndarray
-        containing best fits to Acmb, Atsz, Anoise1, Anoise2 for low and high scalings
-        2*N_comps is for exponent params, N_comps for scaled low and N_comps for scaled high
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, N_comps) ndarray
+        containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
 
 
     RETURNS
@@ -123,9 +121,8 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
     sim: int, simulation number
     Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, ellmax+1) ndarray containing contribution of components to Clpq
     PScov_sim_Inv: (ellmax+1, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2*N_comps) ndarray
-        containing best fits to Acmb, Atsz, Anoise1, Anoise2 for low and high scalings
-        2*N_comps is for exponent params, N_comps for scaled low and N_comps for scaled high
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, N_comps) ndarray
+        containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
 
     RETURNS
     -------
