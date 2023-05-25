@@ -38,7 +38,7 @@ def setup_output_dir(inp, env, scaling=False):
         scaling_types = ['low', 'high']
         for y in range(len(comps)):
             for s in scaling_types:
-                scaling_str = f'scaled_{scaling_types[s]}_{comps[y]}'
+                scaling_str = f'scaled_{s}_{comps[y]}'
                 new_dir1 = f'{inp.output_dir}/pyilc_outputs/{scaling_str}'
                 if not os.path.isdir(new_dir1):
                     subprocess.call(f'mkdir {new_dir1}', shell=True, env=env)
