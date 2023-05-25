@@ -87,8 +87,9 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
             map1_fname = f'{inp.output_dir}/maps/unscaled/sim{sim}_freq1.fits'
             map2_fname = f'{inp.output_dir}/maps/unscaled/sim{sim}_freq2.fits'
         else:
-            map1_fname = f'{inp.output_dir}/maps/scaled_{comp}/sim{sim}_freq1.fits'
-            map2_fname = f'{inp.output_dir}/maps/scaled_{comp}/sim{sim}_freq2.fits'
+            scaling_type = 'low' if scaling[0] < 1.0 else 'high'
+            map1_fname = f'{inp.output_dir}/maps/scaled_{scaling_type}_{comp}/sim{sim}_freq1.fits'
+            map2_fname = f'{inp.output_dir}/maps/scaled_{scaling_type}_{comp}/sim{sim}_freq2.fits'
         hp.write_map(map1_fname, sim_map_1, overwrite=True, dtype=np.float32)
         hp.write_map(map2_fname, sim_map_2, overwrite=True, dtype=np.float32)
         if inp.verbose:

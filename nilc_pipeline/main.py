@@ -26,21 +26,24 @@ def get_scaled_maps_and_wts(sim, inp, env):
     RETURNS
     -------
     CMB_map, tSZ_map, noise1_map, noise2_map: unscaled maps of all the components
-    all_wt_maps: (N_comps+1 for each scaled component followed by all unscaled, N_preserved_comps, 
-                Nscales, Nfreqs, Npix) ndarray containing all weight maps
+    all_wt_maps: 2*N_comps+1 for each scaled low component, followed by each scaled high component, then all unscaled;
+                 N_preserved_comps, Nscales, Nfreqs, Npix) ndarray containing all weight maps
     '''
 
     N_comps = 4 #CMB, tSZ, noise1, noise2
     N_preserved_comps = 2
     comps = ['CMB', 'tSZ', 'noise1', 'noise2']
 
-    #array for all weight maps, shape (N_comps+1, N_preserved_comps, Nscales, Nfreqs, Npix)
-    all_wt_maps = np.zeros((N_comps+1, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
+    #array for all weight maps, shape (2*N_comps+1, N_preserved_comps, Nscales, Nfreqs, Npix)
+    all_wt_maps = np.zeros((2*N_comps+1, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
 
-    for y in range(N_comps+1):
+    for y in range(2*N_comps+1):
 
-        if y==N_comps: scaling=None
-        else: scaling = [inp.scaling_factor, comps[y]]
+        if y==2*N_comps: 
+            scaling=None
+        else: 
+            if y < N_comps: scaling = [inp.scaling_factors[0], comps[y%N_comps]]
+            else: scaling = [inp.scaling_factors[1], comps[y%N_comps]]
 
         #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)
         CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, scaling=scaling)
@@ -48,8 +51,9 @@ def get_scaled_maps_and_wts(sim, inp, env):
         #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
         if not weight_maps_exist(sim, inp, scaling=scaling): #check if not all the weight maps already exist
             #remove any existing weight maps for this sim and scaling to prevent pyilc errors
-            if scaling:                                                     
-                subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/scaled_{scaling[1]}/sim{sim}*', shell=True, env=env)
+            if scaling:
+                scaling_type = 'low' if scaling[0] < 1.0 else 'high'                                                     
+                subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/scaled_{scaling_type}_{scaling[1]}/sim{sim}*', shell=True, env=env)
             else:
                 subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/unscaled/sim{sim}*', shell=True, env=env)
             setup_pyilc(sim, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
@@ -72,14 +76,14 @@ def get_data_vectors(sim, inp, env):
 
     RETURNS
     -------
-    Clpq: (N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
+    Clpq: (2*N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
         containing propagation of each pair of component maps to NILC map auto- and cross-spectra. 
         Size of dimension 0 is N_comps+1 for each scaled component, then all unscaled.
         preserved_comps = CMB, ftSZ
         comps = CMB, ftSZ, noise 90 GHz, noise 150 GHz
         For example, Clpq[3,0,1,1,2] is cross-spectrum of ftSZ propagation to 
         CMB-preserved NILC map and 90 GHz noise propagation to ftSZ-preserved NILC map 
-        when 150 GHz noise is scaled 
+        when 150 GHz noise is scaled low
     '''
     
     N_preserved_comps = 2 #components to create NILC maps for: CMB, ftSZ
@@ -92,23 +96,26 @@ def get_data_vectors(sim, inp, env):
     g_noise1 = [1.,0.]
     g_noise2 = [0.,1.]
 
-    #get maps and weight maps, all_wt_maps is (N_comps+1, N_preserved_comps, Nscales, Nfreqs, Npix) ndarray
+    #get maps and weight maps, all_wt_maps is (2*N_comps+1, N_preserved_comps, Nscales, Nfreqs, Npix) ndarray
     CMB_map, tSZ_map, noise1_map, noise2_map, all_wt_maps = get_scaled_maps_and_wts(sim, inp, env)
 
 
     #get map level propagation of components
     Npix = 12*inp.nside**2
-    all_map_level_prop = np.zeros((N_preserved_comps, N_comps, N_comps+1, Npix)) 
+    all_map_level_prop = np.zeros((N_preserved_comps, N_comps, 2*N_comps+1, Npix)) 
     
     for y in range(N_comps):
-        for s in range(N_comps+1): #N_comps+1 for each scaled comp, then all unscaled
+        for s in range(2*N_comps+1): #2*N_comps+1 for each scaled low comp, each scaled high comp, then all unscaled
 
             if y==0: compy, g_vecy = np.copy(CMB_map), g_cmb #CMB
             elif y==1: compy, g_vecy = np.copy(tSZ_map), g_tsz #ftSZ
             elif y==2: compy, g_vecy = np.copy(noise1_map), g_noise1 #noise 90 GHz
             elif y==3: compy, g_vecy = np.copy(noise2_map), g_noise2 #noise 150 GHz
             
-            if s==y: compy *= inp.scaling_factor #if component y is the one that's scaled
+            if s==y: #if component y is the one that's scaled and is scaled down
+                compy *= inp.scaling_factors[0]
+            elif s==2*y: #if component y is the one that's scaled and is scaled up
+                compy *= inp.scaling_factors[1]
             CMB_wt_maps, tSZ_wt_maps = all_wt_maps[s]
             compy_freq1, compy_freq2 = g_vecy[0]*compy, g_vecy[1]*compy
 
@@ -116,12 +123,12 @@ def get_data_vectors(sim, inp, env):
             all_map_level_prop[0,y,s] = y_to_CMB_preserved
             all_map_level_prop[1,y,s] = y_to_tSZ_preserved
 
-    #define and fill in array of data vectors (dim 0 has size N_comps+1 for each scaled component and then all unscaled)
-    Clpq = np.zeros((N_comps+1, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1))
+    #define and fill in array of data vectors (dim 0 has size 2*N_comps+1 for each scaled low component, each scaled high comp, and then all unscaled)
+    Clpq = np.zeros((2*N_comps+1, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1))
 
     for y in range(N_comps):
         for z in range(N_comps):
-            for s in range(N_comps+1): #each scaled component and then all unscaled
+            for s in range(2*N_comps+1): #each scaled high component, each scaled low comp, and then all unscaled
                 
                 y_to_CMB_preserved = all_map_level_prop[0,y,s]
                 y_to_tSZ_preserved = all_map_level_prop[1,y,s]
@@ -175,7 +182,7 @@ def main():
     pool = mp.Pool(inp.num_parallel)
     Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
     pool.close()
-    Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, N_comps+1 for scalings, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1)
+    Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, 2*N_comps+1 for scalings, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1)
     if inp.save_files:
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
         if inp.verbose:

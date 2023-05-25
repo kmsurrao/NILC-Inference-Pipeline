@@ -24,7 +24,8 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     pyilc_input_params['output_dir'] = str(inp.output_dir) + "/pyilc_outputs/"
     if scaling: 
         scale_factor, scaled_comp = scaling
-        pyilc_input_params['output_dir'] += f"scaled_{scaled_comp}/"
+        scaling_type = 'low' if scale_factor < 1.0 else 'high'
+        pyilc_input_params['output_dir'] += f"scaled_{scaling_type}_{scaled_comp}/"
     else:
         pyilc_input_params['output_dir'] += "unscaled/"
     pyilc_input_params['output_prefix'] = "sim" + str(sim)
@@ -47,7 +48,7 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     if not scaling:
         pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/unscaled/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/unscaled/sim{sim}_freq2.fits']
     else:
-        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/scaled_{scaled_comp}/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/scaled_{scaled_comp}/sim{sim}_freq2.fits']
+        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/scaled_{scaling_type}_{scaled_comp}/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/scaled_{scaled_comp}/sim{sim}_freq2.fits']
     pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)
@@ -97,7 +98,8 @@ def weight_maps_exist(sim, inp, scaling=None):
         for freq in range(len(inp.freqs)):
             for scale in range(inp.Nscales):
                 if scaling:
-                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/scaled_{scaling[1]}/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
+                    scaling_type = 'low' if scaling[0] < 1.0 else 'high'
+                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/scaled_{scaling_type}_{scaling[1]}/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
                         return False
                 else:
                     if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/unscaled/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):

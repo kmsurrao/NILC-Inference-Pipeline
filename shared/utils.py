@@ -35,14 +35,16 @@ def setup_output_dir(inp, env, scaling=False):
         subprocess.call(f'mkdir {inp.output_dir}/maps/unscaled', shell=True, env=env)
     if scaling:
         comps = ['CMB', 'tSZ', 'noise1', 'noise2']
+        scaling_types = ['low', 'high']
         for y in range(len(comps)):
-            scaling_str = f'scaled_{comps[y]}'
-            new_dir1 = f'{inp.output_dir}/pyilc_outputs/{scaling_str}'
-            if not os.path.isdir(new_dir1):
-                subprocess.call(f'mkdir {new_dir1}', shell=True, env=env)
-            new_dir2 = f'{inp.output_dir}/maps/{scaling_str}'
-            if not os.path.isdir(new_dir2):
-                subprocess.call(f'mkdir {new_dir2}', shell=True, env=env)
+            for s in scaling_types:
+                scaling_str = f'scaled_{scaling_types[s]}_{comps[y]}'
+                new_dir1 = f'{inp.output_dir}/pyilc_outputs/{scaling_str}'
+                if not os.path.isdir(new_dir1):
+                    subprocess.call(f'mkdir {new_dir1}', shell=True, env=env)
+                new_dir2 = f'{inp.output_dir}/maps/{scaling_str}'
+                if not os.path.isdir(new_dir2):
+                    subprocess.call(f'mkdir {new_dir2}', shell=True, env=env)
 
     return 
 

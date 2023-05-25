@@ -26,7 +26,8 @@ def load_wt_maps(inp, sim, band_limit=False, scaling=None):
                     wt_map_path = f'{inp.output_dir}/pyilc_outputs/unscaled/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
                 else:
                     scale_factor, scaled_comp = scaling
-                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/scaled_{scaled_comp}/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
+                    scaling_type = 'low' if scale_factor < 1.0 else 'high'
+                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/scaled_{scaling_type}_{scaled_comp}/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
                 wt_map = hp.read_map(wt_map_path)
                 wt_map = hp.ud_grade(wt_map, inp.nside)
                 if band_limit:

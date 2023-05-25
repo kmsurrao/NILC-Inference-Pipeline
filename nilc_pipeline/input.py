@@ -38,8 +38,10 @@ class Info(object):
         assert self.tsz_amp >= 0, 'tSZ_amp'
         self.noise = p['noise']
         assert self.noise >= 0, 'noise'
-        self.scaling_factor = p['scaling_factor']
-        assert self.scaling_factor > 0.
+        self.scaling_factors = p['scaling_factors']
+        assert len(self.scaling_factors) == 2, "wrong number of scaling factors"
+        assert self.scaling_factors[0] < 1.0 and self.scaling_factors[1] > 1.0, \
+            "first scaling factor should be less than 1.0 and second scaling factor should be greater than 1.0"
 
         self.pyilc_path = p['pyilc_path']
         assert type(self.pyilc_path) is str, "TypeError: pyilc_path"
