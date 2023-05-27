@@ -18,15 +18,23 @@ def get_PScov_sim(inp, Clpq_unscaled):
     
     RETURNS
     -------
-    cov: (ellmax+1,3,3) ndarray containing covariance matrix Cov_{pq,rs}
-        index as cov[l, 0-2 for ClTT ClTy Clyy, 0-2 for ClTT ClTy Clyy]
+    cov: (ellmax+1,ellmax+1,3,3) ndarray containing covariance matrix Cov_{pq,rs}
+        index as cov[l1, l2, 0-2 for ClTT ClTy Clyy, 0-2 for ClTT ClTy Clyy]
     '''
+    cov = np.zeros((inp.ellmax+1, inp.ellmax+1, 3, 3))
     Clpq_tmp = np.sum(Clpq_unscaled, axis=(3,4))
     Clpq_tmp = np.array([Clpq_tmp[:,0,0], Clpq_tmp[:,0,1], Clpq_tmp[:,1,1]])
     Clpq_tmp = np.transpose(Clpq_tmp, axes=(2,0,1)) #shape (ellmax+1, 3 for ClTT, ClTy, Clyy, Nsims)
-    Clpq_tmp = np.reshape(Clpq_tmp, (3*(inp.ellmax+1),inp.Nsims))
-    cov = np.cov(Clpq_tmp) #shape (3*(ellmax+1), 3*(ellmax+1))
+    Clpq_tmp_means = np.mean(Clpq_tmp, axis=2)
+    for l1 in range(inp.ellmax+1):
+        for l2 in range(inp.ellmax+1):
+            for i in range(3):
+                for j in range(3):
+                    for sim in range(inp.Nsims):
+                        cov[l1,l2,i,j] += (Clpq_tmp[l1,i,sim]-Clpq_tmp_means[l1,i])*(Clpq_tmp[l2,j,sim]-Clpq_tmp_means[l2,j])
+    cov /= inp.Nsims
     return cov
+
 
 
 def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, best_fits):
@@ -106,9 +114,9 @@ def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all
     ClTyd = np.mean(np.sum(ClTy_all_sims, axis=(1,2)), axis=0)
     Clyyd = np.mean(np.sum(Clyy_all_sims, axis=(1,2)), axis=0)
     return np.sum([[1/2* \
-         ((model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,0,l2,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,0,l2,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,0,l2,2]*(model[l2][1,1]-Clyyd[l2]) \
-        + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,1,l2,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,1,l2,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,1,l2,2]*(model[l2][1,1]-Clyyd[l2]) \
-        + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,2,l2,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,2,l2,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,2,l2,2]*(model[l2][1,1]-Clyyd[l2])) \
+         ((model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clyyd[l2]) \
+        + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clyyd[l2]) \
+        + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,2]*(model[l2][1,1]-Clyyd[l2])) \
     for l1 in range(2, inp.ellmax+1)] for l2 in range(2, inp.ellmax+1)]) 
 
 def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits):
@@ -160,8 +168,10 @@ def get_all_acmb_atsz(inp, Clpq):
     Clpq_unscaled = Clpq[:,2*N_comps]
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
-    PScov_sim_Inv = scipy.linalg.inv(PScov_sim)
-    PScov_sim_Inv = np.reshape(PScov_sim_Inv, (inp.ellmax+1, 3, inp.ellmax+1, 3))
+    PScov_sim_Inv = np.zeros_like(PScov_sim)
+    for l1 in range(inp.ellmax+1):
+        for l2 in range(inp.ellmax+1):
+            PScov_sim_Inv[l1,l2] = scipy.linalg.inv(PScov_sim[l1,l2])
 
     ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq_unscaled[:,0,0], Clpq_unscaled[:,0,1], Clpq_unscaled[:,1,0], Clpq_unscaled[:,1,1]
 

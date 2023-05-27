@@ -16,16 +16,22 @@ def get_PScov_sim(inp, Clij):
     
     RETURNS
     -------
-    cov: (3*(ellmax+1),3*(ellmax+1)) ndarray containing covariance matrix Cov_{ij ell1, kl ell2}
-        index as cov[3*ell1+freq1, 3*ell2+freq2]
+    cov: (ellmax+1, ellmax+1, 3, 3) ndarray containing covariance matrix Cov_{ij ell1, kl ell2}
+        index as cov[l1, l2, 0-2 for Cl00 Cl01 Cl11, 0-2 for Cl00 Cl01 Cl11]
     '''
+    cov = np.zeros((inp.ellmax+1, inp.ellmax+1, 3, 3))
     Clij_tmp = np.sum(Clij, axis=3) #shape (Nsims, Nfreqs=2, Nfreqs=2, ellmax+1)
     Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,1]]) #shape (3, Nsims, ellmax+1)
     Clij_tmp = np.transpose(Clij_tmp, axes=(2,0,1)) #shape (ellmax+1, 3 for Cl00 Cl01 and Cl11, Nsims)
-    Clij_tmp = np.reshape(Clij_tmp, (3*(inp.ellmax+1),inp.Nsims))
-    cov = np.cov(Clij_tmp) #shape (3*(ellmax+1), 3*(ellmax+1))
+    Clij_tmp_means = np.mean(Clij_tmp, axis=2)
+    for l1 in range(inp.ellmax+1):
+        for l2 in range(inp.ellmax+1):
+            for i in range(3):
+                for j in range(3):
+                    for sim in range(inp.Nsims):
+                        cov[l1,l2,i,j] += (Clij_tmp[l1,i,sim]-Clij_tmp_means[l1,i])*(Clij_tmp[l2,j,sim]-Clij_tmp_means[l2,j])
+    cov /= inp.Nsims
     return cov
-
 
 
 def ClijA(Acmb, Atsz, Anoise1, Anoise2, inp, Clij00, Clij01, Clij10, Clij11):
@@ -87,9 +93,9 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
     Clij11d = np.mean(np.sum(Clij11_all_sims, axis=1), axis=0)
     assert Clij00d.shape == (inp.ellmax+1,), f"Clij00d.shape is {Clij00d.shape}, should be ({inp.ellmax+1},)"
     return np.sum([[1/2* \
-     ((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,0,l2,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,0,l2,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,0,l2,2]*(model[l2][1,1]-Clij11d[l2]) \
-    + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,1,l2,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,1,l2,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,1,l2,2]*(model[l2][1,1]-Clij11d[l2]) \
-    + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,2,l2,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,2,l2,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,2,l2,2]*(model[l2][1,1]-Clij11d[l2])) \
+     ((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clij11d[l2]) \
+    + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clij11d[l2]) \
+    + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,2]*(model[l2][1,1]-Clij11d[l2])) \
     for l1 in range(2, inp.ellmax+1)] for l2 in range(2, inp.ellmax+1)]) 
 
 def acmb_atsz(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv):
@@ -134,8 +140,10 @@ def get_all_acmb_atsz(inp, Clij):
     '''
 
     PScov_sim = get_PScov_sim(inp, Clij)
-    PScov_sim_Inv = scipy.linalg.inv(PScov_sim)
-    PScov_sim_Inv = np.reshape(PScov_sim_Inv, (inp.ellmax+1, 3, inp.ellmax+1, 3))
+    PScov_sim_Inv = np.zeros_like(PScov_sim)
+    for l1 in range(inp.ellmax+1):
+        for l2 in range(inp.ellmax+1):
+            PScov_sim_Inv[l1,l2] = scipy.linalg.inv(PScov_sim[l1,l2])
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 
