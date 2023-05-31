@@ -3,7 +3,7 @@ num_parallel: 20 #number of sims to run in parallel
 
 nside: 128 #nside of NILC maps
 ellmax: 250 #ellmax for power spectra
-Nbins: 25 #number of ell-space bins
+Nbins: 10 #number of ell-space bins
 tSZ_amp: 1000. #amplification factor for tSZ map
 noise: 30000 #noise level in uK arcmin
 freqs: [90., 150.] #frequencies for maps, in GHz

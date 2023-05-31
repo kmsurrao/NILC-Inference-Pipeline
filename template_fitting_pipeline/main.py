@@ -39,9 +39,10 @@ def get_data_vectors(sim, inp):
     ells = np.arange(inp.ellmax+1)
     for Cl in all_spectra_orig:
         Dl = ells*(ells+1)/2/np.pi*Cl
-        res = scipy.stats.binned_statistic(ells, Dl, statistic='mean', bins=inp.Nbins)
+        res = scipy.stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
         mean_ells = (res[1][:-1]+res[1][1:])/2
         all_spectra.append(res[0]/(mean_ells*(mean_ells+1)/2/np.pi))
+
 
 
     #get spectral responses
