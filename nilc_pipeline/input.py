@@ -28,6 +28,8 @@ class Info(object):
         assert type(self.nside) is int and self.nside>0, "nside"
         self.ellmax = p['ellmax']
         assert type(self.ellmax) is int and self.ellmax>0, "ellmax"
+        self.Nbins = p['Nbins']
+        assert type(self.Nbins) is int and self.Nbins>0, "Nbins"
         self.freqs = p['freqs']
         self.Nscales = p['Nscales']
         assert type(self.Nscales) is int and self.Nscales > 0, "Nscales"

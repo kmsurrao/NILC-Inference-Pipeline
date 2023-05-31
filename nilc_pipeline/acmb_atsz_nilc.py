@@ -12,26 +12,26 @@ def get_PScov_sim(inp, Clpq_unscaled):
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clpq_unscaled: (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
+    Clpq_unscaled: (Nsims, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
     
     RETURNS
     -------
-    cov: (ellmax+1,ellmax+1,3,3) ndarray containing covariance matrix Cov_{pq,rs}
+    cov: (Nbins,Nbins,3,3) ndarray containing covariance matrix Cov_{pq,rs}
         index as cov[l1, l2, 0-2 for ClTT ClTy Clyy, 0-2 for ClTT ClTy Clyy]
     '''
-    cov = np.zeros((inp.ellmax+1, inp.ellmax+1, 3, 3))
+    cov = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
     Clpq_tmp = np.sum(Clpq_unscaled, axis=(3,4))
     Clpq_tmp = np.array([Clpq_tmp[:,0,0], Clpq_tmp[:,0,1], Clpq_tmp[:,1,1]])
-    Clpq_tmp = np.transpose(Clpq_tmp, axes=(2,0,1)) #shape (ellmax+1, 3 for ClTT, ClTy, Clyy, Nsims)
+    Clpq_tmp = np.transpose(Clpq_tmp, axes=(2,0,1)) #shape (Nbins, 3 for ClTT, ClTy, Clyy, Nsims)
     Clpq_tmp_means = np.mean(Clpq_tmp, axis=2)
-    for l1 in range(inp.ellmax+1):
-        for l2 in range(inp.ellmax+1):
+    for b1 in range(inp.Nbins):
+        for b2 in range(inp.Nbins):
             for i in range(3):
                 for j in range(3):
                     for sim in range(inp.Nsims):
-                        cov[l1,l2,i,j] += (Clpq_tmp[l1,i,sim]-Clpq_tmp_means[l1,i])*(Clpq_tmp[l2,j,sim]-Clpq_tmp_means[l2,j])
+                        cov[b1,b2,i,j] += (Clpq_tmp[b1,i,sim]-Clpq_tmp_means[b1,i])*(Clpq_tmp[b2,j,sim]-Clpq_tmp_means[b2,j])
     cov /= (inp.Nsims-1)
     return cov
 
@@ -51,8 +51,8 @@ def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, best_fits):
     
     CONSTANT ARGS
     inp: Info object containing input parameter specifications
-    Cl{p}{q}: (N_comps=4, N_comps=4, ellmax+1) ndarray containing contribution of components to Clpq
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, N_comps) ndarray
+    Cl{p}{q}: (N_comps=4, N_comps=4, Nbins) ndarray containing contribution of components to Clpq
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, N_comps) ndarray
         containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
 
     RETURNS
@@ -60,9 +60,9 @@ def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, best_fits):
     theory_model: (ellmax+1, 2, 2) ndarray for ClTT, ClTy, ClyT, and Clyy in terms of A_y and A_z parameters
 
     '''
-    theory_model = np.zeros((inp.ellmax+1, 2, 2))
+    theory_model = np.zeros((inp.Nbins, 2, 2))
 
-    for l in range(inp.ellmax+1):
+    for l in range(inp.Nbins):
         for p,q in [(0,0), (0,1), (1,0), (1,1)]:
 
             if p==0 and q==0: 
@@ -95,9 +95,9 @@ def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all
     f: function that returns theory model in terms of Acmb, Atsz, Anoise1, and Anoise2
     inp: Info object containing input parameter specifications
     sim: int, simulation number
-    Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, ellmax+1) ndarray containing contribution of components to Clpq
-    PScov_sim_Inv: (ellmax+1, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, N_comps) ndarray
+    Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, Nbins) ndarray containing contribution of components to Clpq
+    PScov_sim_Inv: (Nbins, Nbins, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, N_comps) ndarray
         containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
 
 
@@ -117,7 +117,7 @@ def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all
          ((model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clyyd[l2]) \
         + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clyyd[l2]) \
         + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,2]*(model[l2][1,1]-Clyyd[l2])) \
-    for l1 in range(2, inp.ellmax+1)] for l2 in range(2, inp.ellmax+1)]) 
+    for l1 in range(inp.Nbins)] for l2 in range(inp.Nbins)]) 
 
 def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits):
     '''
@@ -127,9 +127,9 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
     ---------
     inp: Info object containing input parameter specifications
     sim: int, simulation number
-    Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, ellmax+1) ndarray containing contribution of components to Clpq
-    PScov_sim_Inv: (ellmax+1, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, N_comps) ndarray
+    Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, Nbins) ndarray containing contribution of components to Clpq
+    PScov_sim_Inv: (Nbins, Nbins, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, N_comps) ndarray
         containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
 
     RETURNS
@@ -140,7 +140,7 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
     atsz_start = 1.0
     anoise1_start = 1.0
     anoise2_start = 1.0
-    bounds = ((0.0, None), (0.0, None), (0.0, None), (0.0, None))
+    bounds = ((0.001, None), (0.001, None), (0.001, None), (0.001, None))
     res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise1_start, anoise2_start], args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits), method='Nelder-Mead', bounds=bounds) #default method is BFGS
     return res.x #acmb, atsz, anoise1, anoise2
 
@@ -150,7 +150,7 @@ def get_all_acmb_atsz(inp, Clpq):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clpq: (Nsims, 2*N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
+    Clpq: (Nsims, 2*N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
 
@@ -164,14 +164,23 @@ def get_all_acmb_atsz(inp, Clpq):
     '''
     
     N_comps = 4
-    best_fits = get_parameter_dependence(inp, Clpq) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, 2*N_comps)
+    best_fits = get_parameter_dependence(inp, Clpq) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, 2*N_comps)
     Clpq_unscaled = Clpq[:,2*N_comps]
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
-    PScov_sim_Inv = np.zeros_like(PScov_sim)
-    for l1 in range(inp.ellmax+1):
-        for l2 in range(inp.ellmax+1):
-            PScov_sim_Inv[l1,l2] = scipy.linalg.inv(PScov_sim[l1,l2])
+    PScov_sim_alt = np.zeros((3*inp.Nbins, 3*inp.Nbins))
+    for b1 in range(inp.Nbins):
+        for b2 in range(inp.Nbins):
+            for i in range(3):
+                for j in range(3):
+                    PScov_sim_alt[i*inp.Nbins+b1, j*inp.Nbins+b2] = PScov_sim[b1,b2,i,j]
+    PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim_alt)
+    PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
+    for b1 in range(inp.Nbins):
+        for b2 in range(inp.Nbins):
+            for i in range(3):
+                for j in range(3):
+                    PScov_sim_Inv[b1, b2, i, j] = PScov_sim_alt_Inv[i*inp.Nbins+b1, j*inp.Nbins+b2]
 
     ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq_unscaled[:,0,0], Clpq_unscaled[:,0,1], Clpq_unscaled[:,1,0], Clpq_unscaled[:,1,1]
 

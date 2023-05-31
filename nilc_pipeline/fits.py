@@ -32,13 +32,13 @@ def get_parameter_dependence(inp, Clpq):
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clpq: (Nsims, 2*N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, ellmax+1) ndarray 
+    Clpq: (Nsims, 2*N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
     
     RETURNS
     -------
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, N_comps) ndarray
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, N_comps) ndarray
         containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
 
     '''
@@ -46,16 +46,16 @@ def get_parameter_dependence(inp, Clpq):
     N_comps = 4
     Clpq_mean = np.mean(Clpq, axis=0)
 
-    best_fits = np.zeros((N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1, N_comps))
+    best_fits = np.zeros((N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins, N_comps))
     for p in range(N_preserved_comps):
         for q in range(N_preserved_comps):
             for y in range(N_comps):
                 for z in range(N_comps):
-                    for ell in range(inp.ellmax+1):
+                    for bin in range(inp.Nbins):
                         for s in range(N_comps):
                             x_vals = np.array(inp.scaling_factors)**2 #square needed since each comp scaled at map level and want parameter fit at power spectrum level
-                            y_vals = [Clpq_mean[s,p,q,y,z,ell]/Clpq_mean[2*N_comps,p,q,y,z,ell], Clpq_mean[s+N_comps,p,q,y,z,ell]/Clpq_mean[2*N_comps,p,q,y,z,ell]]
-                            best_fits[p,q,y,z,ell,s] = curve_fit(fit_func, x_vals, y_vals)[0][0]
+                            y_vals = [Clpq_mean[s,p,q,y,z,bin]/Clpq_mean[2*N_comps,p,q,y,z,bin], Clpq_mean[s+N_comps,p,q,y,z,bin]/Clpq_mean[2*N_comps,p,q,y,z,bin]]
+                            best_fits[p,q,y,z,bin,s] = curve_fit(fit_func, x_vals, y_vals)[0][0]
     
     if inp.save_files:
         pickle.dump(best_fits, open(f'{inp.output_dir}/data_vecs/best_fits.p', 'wb'), protocol=4)
