@@ -8,6 +8,7 @@ import pickle
 import subprocess
 import time
 import argparse
+import scipy
 import healpy as hp
 from generate_maps import generate_freq_maps
 from utils import setup_output_dir, tsz_spectral_response
@@ -24,7 +25,7 @@ def get_data_vectors(sim, inp):
 
     RETURNS
     -------
-    Clij: (Nfreqs=2, Nfreqs=2, Ncomps=4, ellmax+1) ndarray 
+    Clij: (Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
     '''
@@ -33,7 +34,15 @@ def get_data_vectors(sim, inp):
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
     CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, save=False)
-    all_spectra = [CC, T, N1, N2]
+    all_spectra_orig = [CC, T, N1, N2]
+    all_spectra = []
+    ells = np.arange(inp.ellmax+1)
+    for Cl in all_spectra_orig:
+        Dl = ells*(ells+1)/2/np.pi*Cl
+        res = scipy.stats.binned_statistic(ells, Dl, statistic='mean', bins=inp.Nbins)
+        mean_ells = (res[1][:-1]+res[1][1:])/2
+        all_spectra.append(res[0]/(mean_ells*(mean_ells+1)/2/np.pi))
+
 
     #get spectral responses
     g_cmb = np.ones(len(inp.freqs))
@@ -43,7 +52,7 @@ def get_data_vectors(sim, inp):
     all_g_vecs = np.array([g_cmb, g_tsz, g_noise1, g_noise2])
 
     #define and fill in array of data vectors
-    Clij = np.zeros((Nfreqs, Nfreqs, Ncomps, inp.ellmax+1))
+    Clij = np.zeros((Nfreqs, Nfreqs, Ncomps, inp.Nbins))
     for i in range(Nfreqs):
       for j in range(Nfreqs):
          for y in range(Ncomps):
@@ -84,7 +93,7 @@ def main():
     pool = mp.Pool(inp.num_parallel)
     Clij = pool.starmap(get_data_vectors, [(sim, inp) for sim in range(inp.Nsims)])
     pool.close()
-    Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=3, ellmax+1)
+    Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=3, Nbins)
     if inp.save_files:
         pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
         if inp.verbose:

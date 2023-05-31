@@ -10,27 +10,27 @@ def get_PScov_sim(inp, Clij):
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, ellmax+1) ndarray 
+    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
     
     RETURNS
     -------
-    cov: (ellmax+1, ellmax+1, 3, 3) ndarray containing covariance matrix Cov_{ij ell1, kl ell2}
-        index as cov[l1, l2, 0-2 for Cl00 Cl01 Cl11, 0-2 for Cl00 Cl01 Cl11]
+    cov: (Nbins, Nbins, 3, 3) ndarray containing covariance matrix Cov_{ij b1, kl b2}
+        index as cov[b1, b2, 0-2 for Cl00 Cl01 Cl11, 0-2 for Cl00 Cl01 Cl11]
     '''
-    cov = np.zeros((inp.ellmax+1, inp.ellmax+1, 3, 3))
-    Clij_tmp = np.sum(Clij, axis=3) #shape (Nsims, Nfreqs=2, Nfreqs=2, ellmax+1)
-    Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,1]]) #shape (3, Nsims, ellmax+1)
-    Clij_tmp = np.transpose(Clij_tmp, axes=(2,0,1)) #shape (ellmax+1, 3 for Cl00 Cl01 and Cl11, Nsims)
+    cov = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
+    Clij_tmp = np.sum(Clij, axis=3) #shape (Nsims, Nfreqs=2, Nfreqs=2, Nbins)
+    Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,1]]) #shape (3, Nsims, Nbins)
+    Clij_tmp = np.transpose(Clij_tmp, axes=(2,0,1)) #shape (Nbins, 3 for Cl00 Cl01 and Cl11, Nsims)
     Clij_tmp_means = np.mean(Clij_tmp, axis=2)
-    for l1 in range(inp.ellmax+1):
-        for l2 in range(inp.ellmax+1):
+    for b1 in range(inp.Nbins):
+        for b2 in range(inp.Nbins):
             for i in range(3):
                 for j in range(3):
                     for sim in range(inp.Nsims):
-                        cov[l1,l2,i,j] += (Clij_tmp[l1,i,sim]-Clij_tmp_means[l1,i])*(Clij_tmp[l2,j,sim]-Clij_tmp_means[l2,j])
-    cov /= inp.Nsims
+                        cov[b1,b2,i,j] += (Clij_tmp[b1,i,sim]-Clij_tmp_means[b1,i])*(Clij_tmp[b2,j,sim]-Clij_tmp_means[b2,j])
+    cov /= (inp.Nsims-1)
     return cov
 
 
@@ -48,12 +48,12 @@ def ClijA(Acmb, Atsz, Anoise1, Anoise2, inp, Clij00, Clij01, Clij10, Clij11):
 
     CONSTANT ARGS
     inp: Info object containing input parameter specifications
-    Clij{i}{j}: (N_comps=4, ellmax+1) ndarray containing contribution of components to Clij
+    Clij{i}{j}: (N_comps=4, Nbins) ndarray containing contribution of components to Clij
 
     RETURNS
     -------
-    (ellmax+1, 2, 2) ndarray, 
-    index as array[l;  0-2 or ij=00, 01, 11]
+    (Nbins, 2, 2) ndarray, 
+    index as array[bin;  0-2 or ij=00, 01, 11]
 
     '''
 
@@ -61,7 +61,7 @@ def ClijA(Acmb, Atsz, Anoise1, Anoise2, inp, Clij00, Clij01, Clij10, Clij11):
     Clij_with_A_01 = Acmb*Clij01[0] + Atsz*Clij01[1] + Anoise1*Clij01[2] + Anoise2*Clij01[3]
     Clij_with_A_10 = Acmb*Clij10[0] + Atsz*Clij10[1] + Anoise1*Clij10[2] + Anoise2*Clij10[3]
     Clij_with_A_11 = Acmb*Clij11[0] + Atsz*Clij11[1] + Anoise1*Clij11[2] + Anoise2*Clij11[3]
-    return np.array([[[Clij_with_A_00[l], Clij_with_A_01[l]],[Clij_with_A_10[l], Clij_with_A_11[l]]] for l in range(inp.ellmax+1)])
+    return np.array([[[Clij_with_A_00[b], Clij_with_A_01[b]],[Clij_with_A_10[b], Clij_with_A_11[b]]] for b in range(inp.Nbins)])
 
 
 def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv): 
@@ -76,8 +76,8 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
     sim: int, simulation number
     inp: Info object containing input parameter specifications
     sim: int, simulation number
-    Clij{i}{j}_all_sims: (Nsims, N_comps=4, ellmax+1) ndarray containing contribution of components to Clij
-    PScov_sim_Inv: (ellmax+1, 3 for Cl00 Cl01 Cl11, ellmax+1, 3 for Cl00 Cl01 Cl11) ndarray containing inverse of power spectrum covariance matrix
+    Clij{i}{j}_all_sims: (Nsims, N_comps=4, Nbins) ndarray containing contribution of components to Clij
+    PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray containing inverse of power spectrum covariance matrix
 
     RETURNS
     -------
@@ -96,7 +96,7 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
      ((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clij11d[l2]) \
     + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clij11d[l2]) \
     + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,2]*(model[l2][1,1]-Clij11d[l2])) \
-    for l1 in range(2, inp.ellmax+1)] for l2 in range(2, inp.ellmax+1)]) 
+    for l1 in range(inp.Nbins)] for l2 in range(inp.Nbins)]) 
 
 def acmb_atsz(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv):
     '''
@@ -106,8 +106,8 @@ def acmb_atsz(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
     ---------
     inp: Info object containing input parameter specifications
     sim: int, simulation number
-    Clij{i}{j}_all_sims: (Nsims, N_comps=4, ellmax+1) ndarray containing contribution of components to Clij
-    PScov_sim_Inv: (ellmax+1, 3 for Cl00 Cl01 Cl11, ellmax+1, 3 for Cl00 Cl01 Cl11) ndarray containing inverse of power spectrum covariance matrix
+    Clij{i}{j}_all_sims: (Nsims, N_comps=4, Nbins) ndarray containing contribution of components to Clij
+    PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray containing inverse of power spectrum covariance matrix
 
     RETURNS
     -------
@@ -141,9 +141,9 @@ def get_all_acmb_atsz(inp, Clij):
 
     PScov_sim = get_PScov_sim(inp, Clij)
     PScov_sim_Inv = np.zeros_like(PScov_sim)
-    for l1 in range(inp.ellmax+1):
-        for l2 in range(inp.ellmax+1):
-            PScov_sim_Inv[l1,l2] = scipy.linalg.inv(PScov_sim[l1,l2])
+    for b1 in range(inp.Nbins):
+        for b2 in range(inp.Nbins):
+            PScov_sim_Inv[b1,b2] = scipy.linalg.inv(PScov_sim[b1,b2])
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 

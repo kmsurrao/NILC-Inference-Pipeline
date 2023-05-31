@@ -32,7 +32,7 @@ def get_PScov_sim(inp, Clpq_unscaled):
                 for j in range(3):
                     for sim in range(inp.Nsims):
                         cov[l1,l2,i,j] += (Clpq_tmp[l1,i,sim]-Clpq_tmp_means[l1,i])*(Clpq_tmp[l2,j,sim]-Clpq_tmp_means[l2,j])
-    cov /= inp.Nsims
+    cov /= (inp.Nsims-1)
     return cov
 
 
