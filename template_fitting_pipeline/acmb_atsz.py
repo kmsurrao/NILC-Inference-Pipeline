@@ -139,10 +139,19 @@ def get_all_acmb_atsz(inp, Clij):
     '''
 
     PScov_sim = get_PScov_sim(inp, Clij)
-    PScov_sim_Inv = np.zeros_like(PScov_sim)
+    PScov_sim_alt = np.zeros((3*inp.Nbins, 3*inp.Nbins))
     for b1 in range(inp.Nbins):
         for b2 in range(inp.Nbins):
-            PScov_sim_Inv[b1,b2] = scipy.linalg.inv(PScov_sim[b1,b2])
+            for i in range(3):
+                for j in range(3):
+                    PScov_sim_alt[i*inp.Nbins+b1, j*inp.Nbins+b2] = PScov_sim[b1,b2,i,j]
+    PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim_alt)
+    PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
+    for b1 in range(inp.Nbins):
+        for b2 in range(inp.Nbins):
+            for i in range(3):
+                for j in range(3):
+                    PScov_sim_Inv[b1, b2, i, j] = PScov_sim_alt_Inv[i*inp.Nbins+b1, j*inp.Nbins+b2]
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 
