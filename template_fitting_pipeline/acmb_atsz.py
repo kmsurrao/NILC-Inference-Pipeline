@@ -26,32 +26,31 @@ def get_PScov_sim(inp, Clij):
 
     if inp.use_Gaussian_cov:
         
-        Clij_mean = np.mean(Clij, axis=0) #dim (Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins)
+        Clij = np.mean(Clij, axis=0) #dim (Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins)
         g1, g2 = tsz_spectral_response(inp.freqs) #tSZ spectral response at 90 and 150 GHz
-        CC = Clij_mean[0,0,0] #CMB
-        T = Clij_mean[0,0,1]/g1**2 #tSZ (in Compton-y)
-        N1 = Clij_mean[0,0,2] #noise 90 GHz
-        N2 = Clij_mean[1,1,3] #noise 150 GHz
+        CC = Clij[0,0,0] #CMB
+        T = Clij[0,0,1]/g1**2 #tSZ (in Compton-y)
+        N1 = Clij[0,0,2] #noise 90 GHz
+        N2 = Clij[1,1,3] #noise 150 GHz
+        Clij = np.sum(Clij, axis=2)
         f = 1. #fraction of sky
+
+        #get mean ell in each bin
+        res = scipy.stats.binned_statistic(np.arange(inp.ellmax+1)[2:], np.arange(inp.ellmax+1)[2:], statistic='mean', bins=inp.Nbins)
+        mean_ells = (res[1][:-1]+res[1][1:])/2
+
         for bin in np.arange(inp.Nbins):
-            Nmodes = f*(2*inp.mean_ells[bin]+1)
+            Nmodes = f*(2*mean_ells[bin]+1)
             cov[bin, bin] = (1/Nmodes)*np.array([
-                        [2*Clij[0, 0]**2,
-                            2*(CC + g1**2*T)*Clij[0, 1] + 2*N1*Clij[0, 1],
-                            2*(CC + g1**2*T)*Clij[0, 1] + 2*N1*Clij[0, 1],
-                            2*Clij[0, 1]**2], 
-                        [2*(CC + g1**2*T)*Clij[0, 1] + 2*N1*Clij[0, 1], 
-                            Clij[0, 0]*Clij[1, 1] + Clij[0, 1]**2,
-                            Clij[0, 0]*Clij[1, 1] + Clij[0, 1]**2,
-                            2*(CC + g2**2*T)*Clij[0, 1] + 2*N2*Clij[0, 1]], 
-                        [2*(CC + g1**2*T)*Clij[0, 1] + 2*N1*Clij[0, 1], 
-                            Clij[0, 0]*Clij[1, 1] + Clij[0, 1]**2,
-                            Clij[0, 0]*Clij[1, 1] + Clij[0, 1]**2,
-                            2*(CC + g2**2*T)*Clij[0, 1] + 2*N2*Clij[0, 1]], 
-                        [2*Clij[0, 1]**2, 
-                            2*(CC + g2**2*T)*Clij[0, 1] + 2*N2*Clij[0, 1],
-                            2*(CC + g2**2*T)*Clij[0, 1] + 2*N2*Clij[0, 1],
-                            2*Clij[1, 1]**2]])
+                        [2*Clij[0, 0, bin]**2,
+                            2*(CC[bin] + g1**2*T[bin])*Clij[0, 1, bin] + 2*N1[bin]*Clij[0, 1, bin],
+                            2*Clij[0, 1, bin]**2], 
+                        [2*(CC[bin] + g1**2*T[bin])*Clij[0, 1, bin] + 2*N1[bin]*Clij[0, 1, bin], 
+                            Clij[0, 0, bin]*Clij[1, 1, bin] + Clij[0, 1, bin]**2,
+                            2*(CC[bin] + g2**2*T[bin])*Clij[0, 1, bin] + 2*N2[bin]*Clij[0, 1, bin]], 
+                        [2*Clij[0, 1, bin]**2, 
+                            2*(CC[bin] + g2**2*T[bin])*Clij[0, 1, bin] + 2*N2[bin]*Clij[0, 1, bin],
+                            2*Clij[1, 1, bin]**2]])
         return cov
 
     Clij_tmp = np.sum(Clij, axis=3) #shape (Nsims, Nfreqs=2, Nfreqs=2, Nbins)
