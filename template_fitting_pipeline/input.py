@@ -30,11 +30,13 @@ class Info(object):
         assert type(self.ellmax) is int and self.ellmax>0, "ellmax"
         self.Nbins = p['Nbins']
         assert type(self.Nbins) is int and self.Nbins>0, "Nbins"
-        self.freqs = p['freqs']
         self.tsz_amp = p['tSZ_amp']
         assert self.tsz_amp >= 0, 'tSZ_amp'
         self.noise = p['noise']
         assert self.noise >= 0, 'noise'
+        self.freqs = p['freqs']
+        self.use_Gaussian_cov = p['use_Gaussian_cov']
+
 
         self.halosky_maps_path = p['halosky_maps_path']
         assert type(self.halosky_maps_path) is str, "TypeError: halosky_maps_path"

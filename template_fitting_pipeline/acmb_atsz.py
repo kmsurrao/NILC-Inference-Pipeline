@@ -3,6 +3,9 @@ import pickle
 import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
+import sys
+sys.path.append('../shared')
+from utils import tsz_spectral_response
 
 
 def get_PScov_sim(inp, Clij):
@@ -20,6 +23,37 @@ def get_PScov_sim(inp, Clij):
         index as cov[b1, b2, 0-2 for Cl00 Cl01 Cl11, 0-2 for Cl00 Cl01 Cl11]
     '''
     cov = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
+
+    if inp.use_Gaussian_cov:
+        
+        Clij_mean = np.mean(Clij, axis=0) #dim (Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins)
+        g1, g2 = tsz_spectral_response(inp.freqs) #tSZ spectral response at 90 and 150 GHz
+        CC = Clij_mean[0,0,0] #CMB
+        T = Clij_mean[0,0,1]/g1**2 #tSZ (in Compton-y)
+        N1 = Clij_mean[0,0,2] #noise 90 GHz
+        N2 = Clij_mean[1,1,3] #noise 150 GHz
+        f = 1. #fraction of sky
+        for bin in np.arange(inp.Nbins):
+            Nmodes = f*(2*inp.mean_ells[bin]+1)
+            cov[bin, bin] = (1/Nmodes)*np.array([
+                        [2*Clij[0, 0]**2,
+                            2*(CC + g1**2*T)*Clij[0, 1] + 2*N1*Clij[0, 1],
+                            2*(CC + g1**2*T)*Clij[0, 1] + 2*N1*Clij[0, 1],
+                            2*Clij[0, 1]**2], 
+                        [2*(CC + g1**2*T)*Clij[0, 1] + 2*N1*Clij[0, 1], 
+                            Clij[0, 0]*Clij[1, 1] + Clij[0, 1]**2,
+                            Clij[0, 0]*Clij[1, 1] + Clij[0, 1]**2,
+                            2*(CC + g2**2*T)*Clij[0, 1] + 2*N2*Clij[0, 1]], 
+                        [2*(CC + g1**2*T)*Clij[0, 1] + 2*N1*Clij[0, 1], 
+                            Clij[0, 0]*Clij[1, 1] + Clij[0, 1]**2,
+                            Clij[0, 0]*Clij[1, 1] + Clij[0, 1]**2,
+                            2*(CC + g2**2*T)*Clij[0, 1] + 2*N2*Clij[0, 1]], 
+                        [2*Clij[0, 1]**2, 
+                            2*(CC + g2**2*T)*Clij[0, 1] + 2*N2*Clij[0, 1],
+                            2*(CC + g2**2*T)*Clij[0, 1] + 2*N2*Clij[0, 1],
+                            2*Clij[1, 1]**2]])
+        return cov
+
     Clij_tmp = np.sum(Clij, axis=3) #shape (Nsims, Nfreqs=2, Nfreqs=2, Nbins)
     Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,1]]) #shape (3, Nsims, Nbins)
     Clij_tmp = np.transpose(Clij_tmp, axes=(2,0,1)) #shape (Nbins, 3 for Cl00 Cl01 and Cl11, Nsims)
@@ -152,6 +186,7 @@ def get_all_acmb_atsz(inp, Clij):
             for i in range(3):
                 for j in range(3):
                     PScov_sim_Inv[b1, b2, i, j] = PScov_sim_alt_Inv[i*inp.Nbins+b1, j*inp.Nbins+b2]
+    PScov_sim_Inv *= (inp.Nsims-(inp.Nbins*3)-2)/(inp.Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 

@@ -9,6 +9,7 @@ import subprocess
 import time
 import argparse
 import healpy as hp
+import scipy
 from generate_maps import generate_freq_maps
 from pyilc_interface import setup_pyilc, weight_maps_exist
 from load_weight_maps import load_wt_maps

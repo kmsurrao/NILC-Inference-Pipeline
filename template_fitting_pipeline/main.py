@@ -41,6 +41,7 @@ def get_data_vectors(sim, inp):
         Dl = ells*(ells+1)/2/np.pi*Cl
         res = scipy.stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
         mean_ells = (res[1][:-1]+res[1][1:])/2
+        inp.mean_ells = mean_ells
         all_spectra.append(res[0]/(mean_ells*(mean_ells+1)/2/np.pi))
 
 
