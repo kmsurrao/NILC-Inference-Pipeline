@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import scipy
 from scipy.optimize import minimize
+from scipy import stats
 import multiprocessing as mp
 import sys
 sys.path.append('../shared')
@@ -36,11 +37,11 @@ def get_PScov_sim(inp, Clij):
         f = 1. #fraction of sky
 
         #get mean ell in each bin
-        res = scipy.stats.binned_statistic(np.arange(inp.ellmax+1)[2:], np.arange(inp.ellmax+1)[2:], statistic='mean', bins=inp.Nbins)
+        res = stats.binned_statistic(np.arange(inp.ellmax+1)[2:], np.arange(inp.ellmax+1)[2:], statistic='mean', bins=inp.Nbins)
         mean_ells = (res[1][:-1]+res[1][1:])/2
 
         for bin in np.arange(inp.Nbins):
-            Nmodes = f*(2*mean_ells[bin]+1)
+            Nmodes = f*(2*mean_ells[bin]+1)*(res[1][bin+1]-res[1][bin])
             cov[bin, bin] = (1/Nmodes)*np.array([
                         [2*Clij[0, 0, bin]**2,
                             2*(CC[bin] + g1**2*T[bin])*Clij[0, 1, bin] + 2*N1[bin]*Clij[0, 1, bin],
@@ -57,12 +58,9 @@ def get_PScov_sim(inp, Clij):
     Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,1]]) #shape (3, Nsims, Nbins)
     Clij_tmp = np.transpose(Clij_tmp, axes=(2,0,1)) #shape (Nbins, 3 for Cl00 Cl01 and Cl11, Nsims)
     Clij_tmp_means = np.mean(Clij_tmp, axis=2)
-    for b1 in range(inp.Nbins):
-        for b2 in range(inp.Nbins):
-            for i in range(3):
-                for j in range(3):
-                    for sim in range(inp.Nsims):
-                        cov[b1,b2,i,j] += (Clij_tmp[b1,i,sim]-Clij_tmp_means[b1,i])*(Clij_tmp[b2,j,sim]-Clij_tmp_means[b2,j])
+    # cov[b1,b2,i,j] is sum over b1,b2,i,j,sim of (Clij_tmp[b1,i,sim]-Clij_tmp_means[b1,i])*(Clij_tmp[b2,j,sim]-Clij_tmp_means[b2,j])
+    cov = np.einsum('bis,cjs->bcij', Clij_tmp, Clij_tmp) - np.einsum('bis,cj->bcij', Clij_tmp, Clij_tmp_means) \
+        - np.einsum('bi,cjs->bcij', Clij_tmp_means, Clij_tmp) + np.einsum('bi,cj->bcij', Clij_tmp_means, Clij_tmp_means)
     cov /= (inp.Nsims-1)
     return cov
 
@@ -185,7 +183,8 @@ def get_all_acmb_atsz(inp, Clij):
             for i in range(3):
                 for j in range(3):
                     PScov_sim_Inv[b1, b2, i, j] = PScov_sim_alt_Inv[i*inp.Nbins+b1, j*inp.Nbins+b2]
-    PScov_sim_Inv *= (inp.Nsims-(inp.Nbins*3)-2)/(inp.Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
+    if not inp.use_Gaussian_cov:
+        PScov_sim_Inv *= (inp.Nsims-(inp.Nbins*3)-2)/(inp.Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 

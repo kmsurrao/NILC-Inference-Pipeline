@@ -60,13 +60,13 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
 
     #run pyilc for preserved CMB and preserved tSZ
     if suppress_printing:
-        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_CMB_preserved.yml"], shell=True, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_CMB_preserved.yml"], shell=True, env=env, stdout=subprocess.DEVNULL)
     else:
         subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_CMB_preserved.yml"], shell=True, env=env)
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component CMB, sim {sim}', flush=True)
     if suppress_printing:
-        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_tSZ_preserved.yml"], shell=True, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_tSZ_preserved.yml"], shell=True, env=env, stdout=subprocess.DEVNULL)
     else:
         subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {inp.output_dir}/pyilc_yaml_files/sim{sim}_tSZ_preserved.yml"], shell=True, env=env)
     if inp.verbose:

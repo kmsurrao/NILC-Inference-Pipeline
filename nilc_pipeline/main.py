@@ -9,7 +9,7 @@ import subprocess
 import time
 import argparse
 import healpy as hp
-import scipy
+from scipy import stats
 from generate_maps import generate_freq_maps
 from pyilc_interface import setup_pyilc, weight_maps_exist
 from load_weight_maps import load_wt_maps
@@ -145,7 +145,7 @@ def get_data_vectors(sim, inp, env):
                 ells = np.arange(inp.ellmax+1)
                 for idx, Cl in enumerate([Clpq_tmp[s,0,0,y,z], Clpq_tmp[s,1,1,y,z], Clpq_tmp[s,0,1,y,z], Clpq_tmp[s,1,0,y,z]]):
                     Dl = ells*(ells+1)/2/np.pi*Cl
-                    res = scipy.stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
+                    res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
                     mean_ells = (res[1][:-1]+res[1][1:])/2
                     if idx==0: Clpq[s,0,0,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
                     elif idx==1: Clpq[s,1,1,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)

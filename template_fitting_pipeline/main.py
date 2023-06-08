@@ -8,7 +8,7 @@ import pickle
 import subprocess
 import time
 import argparse
-import scipy
+from scipy import stats
 import healpy as hp
 from generate_maps import generate_freq_maps
 from utils import setup_output_dir, tsz_spectral_response
@@ -39,7 +39,7 @@ def get_data_vectors(sim, inp):
     ells = np.arange(inp.ellmax+1)
     for Cl in all_spectra_orig:
         Dl = ells*(ells+1)/2/np.pi*Cl
-        res = scipy.stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
+        res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
         mean_ells = (res[1][:-1]+res[1][1:])/2
         all_spectra.append(res[0]/(mean_ells*(mean_ells+1)/2/np.pi))
 

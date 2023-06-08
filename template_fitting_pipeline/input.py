@@ -42,8 +42,6 @@ class Info(object):
         assert type(self.halosky_maps_path) is str, "TypeError: halosky_maps_path"
         self.cmb_map_file = p['cmb_map_file']
         assert type(self.cmb_map_file) is str, "TypeError: cmb_map_file"
-        self.wigner_file = p['wigner_file']
-        assert type(self.wigner_file) is str, "TypeError: wigner_file"
         self.output_dir = p['output_dir']
         assert type(self.output_dir) is str, "TypeError: output_dir"
 

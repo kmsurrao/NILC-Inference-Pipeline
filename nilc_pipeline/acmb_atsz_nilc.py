@@ -26,12 +26,9 @@ def get_PScov_sim(inp, Clpq_unscaled):
     Clpq_tmp = np.array([Clpq_tmp[:,0,0], Clpq_tmp[:,0,1], Clpq_tmp[:,1,1]])
     Clpq_tmp = np.transpose(Clpq_tmp, axes=(2,0,1)) #shape (Nbins, 3 for ClTT, ClTy, Clyy, Nsims)
     Clpq_tmp_means = np.mean(Clpq_tmp, axis=2)
-    for b1 in range(inp.Nbins):
-        for b2 in range(inp.Nbins):
-            for i in range(3):
-                for j in range(3):
-                    for sim in range(inp.Nsims):
-                        cov[b1,b2,i,j] += (Clpq_tmp[b1,i,sim]-Clpq_tmp_means[b1,i])*(Clpq_tmp[b2,j,sim]-Clpq_tmp_means[b2,j])
+    # cov[b1,b2,i,j] is sum over b1,b2,i,j,sim of (Clpq_tmp[b1,i,sim]-Clpq_tmp_means[b1,i])*(Clpq_tmp[b2,j,sim]-Clpq_tmp_means[b2,j])
+    cov = np.einsum('bis,cjs->bcij', Clpq_tmp, Clpq_tmp) - np.einsum('bis,cj->bcij', Clpq_tmp, Clpq_tmp_means) \
+        - np.einsum('bi,cjs->bcij', Clpq_tmp_means, Clpq_tmp) + np.einsum('bi,cj->bcij', Clpq_tmp_means, Clpq_tmp_means)
     cov /= (inp.Nsims-1)
     return cov
 
