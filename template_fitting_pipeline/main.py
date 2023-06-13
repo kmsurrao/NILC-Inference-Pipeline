@@ -91,14 +91,16 @@ def main():
     #set up output directory
     setup_output_dir(inp, my_env)
 
-    pool = mp.Pool(inp.num_parallel)
-    Clij = pool.starmap(get_data_vectors, [(sim, inp) for sim in range(inp.Nsims)])
-    pool.close()
-    Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=3, Nbins)
-    if inp.save_files:
-        pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/Clij.p')
+    # pool = mp.Pool(inp.num_parallel)
+    # Clij = pool.starmap(get_data_vectors, [(sim, inp) for sim in range(inp.Nsims)])
+    # pool.close()
+    # Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=3, Nbins)
+    # if inp.save_files:
+    #     pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
+    #     if inp.verbose:
+    #         print(f'saved {inp.output_dir}/data_vecs/Clij.p')
+
+    Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb')) #remove this line and uncomment above
     
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clij)
     

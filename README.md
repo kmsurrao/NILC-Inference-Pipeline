@@ -26,7 +26,7 @@ The notebooks folder contains example Jupyter notebooks for producing plots afte
 There is a large amount of I/O from running this program. It is highly recommended to run on an HPC cluster and to set the output_dir parameter in the yaml files to be an empty subdirectory in a SCRATCH space. It is also recommended (though not required) to comment out calls to healpy mollview in pyilc/pyilc/wavelets.py.
 
 ## Dependencies
-python >= 3.6   
+python >= 3.7   
 pyyaml  
 pywigxjpf  
 healpy  

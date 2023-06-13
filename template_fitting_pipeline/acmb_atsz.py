@@ -60,7 +60,7 @@ def get_PScov_sim(inp, Clij):
     Clij_tmp_means = np.mean(Clij_tmp, axis=2)
     # cov[b1,b2,i,j] is sum over b1,b2,i,j,sim of (Clij_tmp[b1,i,sim]-Clij_tmp_means[b1,i])*(Clij_tmp[b2,j,sim]-Clij_tmp_means[b2,j])
     cov = np.einsum('bis,cjs->bcij', Clij_tmp, Clij_tmp) - np.einsum('bis,cj->bcij', Clij_tmp, Clij_tmp_means) \
-        - np.einsum('bi,cjs->bcij', Clij_tmp_means, Clij_tmp) + np.einsum('bi,cj->bcij', Clij_tmp_means, Clij_tmp_means)
+        - np.einsum('bi,cjs->bcij', Clij_tmp_means, Clij_tmp) + inp.Nsims*np.einsum('bi,cj->bcij', Clij_tmp_means, Clij_tmp_means)
     cov /= (inp.Nsims-1)
     return cov
 
@@ -143,7 +143,7 @@ def acmb_atsz(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
     -------
     best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
     '''
-    bounds = ((0.001, None), (0.001, None), (0.001, None), (0.001, None))
+    bounds = ((0.001, 1000), (0.001, 1000), (0.001, 1000), (0.001, 1000))
     all_res = []
     for start in [0.5, 1.0, 1.5]:
         start_array = [start, start, start, start] #acmb_start, atsz_start, anoise1_start, anoise2_start

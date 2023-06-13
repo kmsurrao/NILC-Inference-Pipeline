@@ -28,7 +28,7 @@ def get_PScov_sim(inp, Clpq_unscaled):
     Clpq_tmp_means = np.mean(Clpq_tmp, axis=2)
     # cov[b1,b2,i,j] is sum over b1,b2,i,j,sim of (Clpq_tmp[b1,i,sim]-Clpq_tmp_means[b1,i])*(Clpq_tmp[b2,j,sim]-Clpq_tmp_means[b2,j])
     cov = np.einsum('bis,cjs->bcij', Clpq_tmp, Clpq_tmp) - np.einsum('bis,cj->bcij', Clpq_tmp, Clpq_tmp_means) \
-        - np.einsum('bi,cjs->bcij', Clpq_tmp_means, Clpq_tmp) + np.einsum('bi,cj->bcij', Clpq_tmp_means, Clpq_tmp_means)
+        - np.einsum('bi,cjs->bcij', Clpq_tmp_means, Clpq_tmp) + inp.Nsims*np.einsum('bi,cj->bcij', Clpq_tmp_means, Clpq_tmp_means)
     cov /= (inp.Nsims-1)
     return cov
 
