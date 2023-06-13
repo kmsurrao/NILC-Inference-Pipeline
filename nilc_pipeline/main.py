@@ -191,16 +191,16 @@ def main():
     #set up output directory
     setup_output_dir(inp, env, scaling=True)
 
-    pool = mp.Pool(inp.num_parallel)
-    Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
-    pool.close()
-    Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, 2*N_comps+1 for scalings, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins)
-    if inp.save_files:
-        pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
+    # pool = mp.Pool(inp.num_parallel)
+    # Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
+    # pool.close()
+    # Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, 2*N_comps+1 for scalings, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins)
+    # if inp.save_files:
+    #     pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
+    #     if inp.verbose:
+    #         print(f'saved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
 
-    # Clpq = pickle.load(open(f'{inp.output_dir}/data_vecs/Clpq.p', 'rb'))
+    Clpq = pickle.load(open(f'{inp.output_dir}/data_vecs/Clpq.p', 'rb')) #remove this line and uncomment section above
     
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
     print('PROGRAM FINISHED RUNNING')

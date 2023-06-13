@@ -27,5 +27,5 @@ To check the analytic NILC power spectrum result:
 ```python main.py --config=example.yaml```
 
 ## Recommendations
-There is a large amount of I/O from running this program. It is highly recommended to run on an HPC cluster and to set the output_dir parameter in the yaml files to be an empty subdirectory in a SCRATCH space.
+There is a large amount of I/O from running this program. It is highly recommended to run on an HPC cluster and to set the output_dir parameter in the yaml files to be an empty subdirectory in a SCRATCH space. It is also recommended (though not required) to comment out calls to healpy mollview in pyilc/pyilc/wavelets.py.
 

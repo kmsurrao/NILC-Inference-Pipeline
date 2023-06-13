@@ -114,7 +114,7 @@ def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all
          ((model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][0,0]-ClTTd[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clyyd[l2]) \
         + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][0,1]-ClTyd[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clyyd[l2]) \
         + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,2]*(model[l2][1,1]-Clyyd[l2])) \
-    for l1 in range(inp.Nbins)] for l2 in range(inp.Nbins)]) 
+    for l1 in range(1,inp.Nbins)] for l2 in range(1,inp.Nbins)]) 
 
 def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits):
     '''
@@ -133,13 +133,13 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
     -------
     best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
     '''
-    acmb_start = 1.0
-    atsz_start = 1.0
-    anoise1_start = 1.0
-    anoise2_start = 1.0
     bounds = ((0.001, None), (0.001, None), (0.001, None), (0.001, None))
-    res = minimize(lnL, x0 = [acmb_start, atsz_start, anoise1_start, anoise2_start], args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits), method='Nelder-Mead', bounds=bounds) #default method is BFGS
-    return res.x #acmb, atsz, anoise1, anoise2
+    all_res = []
+    for start in [0.5, 1.0, 1.5]:
+        start_array = [start, start, start, start] #acmb_start, atsz_start, anoise1_start, anoise2_start
+        res = minimize(lnL, x0 = start_array, args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits), method='Nelder-Mead', bounds=bounds) #default method is BFGS
+        all_res.append(res)
+    return (min(all_res, key=lambda res:res.fun)).x
 
 
 def get_all_acmb_atsz(inp, Clpq):
