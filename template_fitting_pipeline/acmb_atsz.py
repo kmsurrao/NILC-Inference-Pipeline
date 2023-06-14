@@ -20,12 +20,13 @@ def get_PScov_sim(inp, Clij):
     
     RETURNS
     -------
-    cov: (Nbins, Nbins, 3, 3) ndarray containing covariance matrix Cov_{ij b1, kl b2}
-        index as cov[b1, b2, 0-2 for Cl00 Cl01 Cl11, 0-2 for Cl00 Cl01 Cl11]
+    cov: (3*Nbins, 3*Nbins) ndarray containing covariance matrix Cov_{ij b1, kl b2}
+        index as cov[(0-2 for Cl00 Cl01 Cl11)*Nbins + bin1, (0-2 for Cl00 Cl01 Cl11)*Nbins + bin2]
     '''
-    cov = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
 
     if inp.use_Gaussian_cov:
+
+        cov = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
         
         Clij = np.mean(Clij, axis=0) #dim (Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins)
         g1, g2 = tsz_spectral_response(inp.freqs) #tSZ spectral response at 90 and 150 GHz
@@ -52,16 +53,19 @@ def get_PScov_sim(inp, Clij):
                         [2*Clij[0, 1, bin]**2, 
                             2*(CC[bin] + g2**2*T[bin])*Clij[0, 1, bin] + 2*N2[bin]*Clij[0, 1, bin],
                             2*Clij[1, 1, bin]**2]])
-        return cov
+        PScov_sim_alt = np.zeros((3*inp.Nbins, 3*inp.Nbins))
+        for b1 in range(inp.Nbins):
+            for b2 in range(inp.Nbins):
+                for i in range(3):
+                    for j in range(3):
+                        PScov_sim_alt[i*inp.Nbins+b1, j*inp.Nbins+b2] = cov[b1,b2,i,j]
+        return PScov_sim_alt
 
     Clij_tmp = np.sum(Clij, axis=3) #shape (Nsims, Nfreqs=2, Nfreqs=2, Nbins)
     Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,1]]) #shape (3, Nsims, Nbins)
-    Clij_tmp = np.transpose(Clij_tmp, axes=(2,0,1)) #shape (Nbins, 3 for Cl00 Cl01 and Cl11, Nsims)
-    Clij_tmp_means = np.mean(Clij_tmp, axis=2)
-    # cov[b1,b2,i,j] is sum over b1,b2,i,j,sim of (Clij_tmp[b1,i,sim]-Clij_tmp_means[b1,i])*(Clij_tmp[b2,j,sim]-Clij_tmp_means[b2,j])
-    cov = np.einsum('bis,cjs->bcij', Clij_tmp, Clij_tmp) - np.einsum('bis,cj->bcij', Clij_tmp, Clij_tmp_means) \
-        - np.einsum('bi,cjs->bcij', Clij_tmp_means, Clij_tmp) + inp.Nsims*np.einsum('bi,cj->bcij', Clij_tmp_means, Clij_tmp_means)
-    cov /= (inp.Nsims-1)
+    Clij_tmp = np.transpose(Clij_tmp, axes=(0,2,1)) #shape (3 for Cl00 Cl01 and Cl11, Nbins, Nsims)
+    Clij_tmp = np.reshape(Clij_tmp, (inp.Nbins*3, -1))
+    cov = np.cov(Clij_tmp)
     return cov
 
 
@@ -171,13 +175,7 @@ def get_all_acmb_atsz(inp, Clij):
     '''
 
     PScov_sim = get_PScov_sim(inp, Clij)
-    PScov_sim_alt = np.zeros((3*inp.Nbins, 3*inp.Nbins))
-    for b1 in range(inp.Nbins):
-        for b2 in range(inp.Nbins):
-            for i in range(3):
-                for j in range(3):
-                    PScov_sim_alt[i*inp.Nbins+b1, j*inp.Nbins+b2] = PScov_sim[b1,b2,i,j]
-    PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim_alt)
+    PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim)
     PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
     for b1 in range(inp.Nbins):
         for b2 in range(inp.Nbins):

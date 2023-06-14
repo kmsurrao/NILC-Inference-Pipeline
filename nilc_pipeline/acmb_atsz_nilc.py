@@ -18,18 +18,14 @@ def get_PScov_sim(inp, Clpq_unscaled):
     
     RETURNS
     -------
-    cov: (Nbins,Nbins,3,3) ndarray containing covariance matrix Cov_{pq,rs}
-        index as cov[l1, l2, 0-2 for ClTT ClTy Clyy, 0-2 for ClTT ClTy Clyy]
+    cov: (3*Nbins, 3*Nbins) ndarray containing covariance matrix Cov_{pq,rs}
+        index as cov[(0-2 for ClTT ClTy Clyy)*Nbins + bin1, (0-2 for ClTT ClTy Clyy)*Nbins + bin2]
     '''
-    cov = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
     Clpq_tmp = np.sum(Clpq_unscaled, axis=(3,4))
     Clpq_tmp = np.array([Clpq_tmp[:,0,0], Clpq_tmp[:,0,1], Clpq_tmp[:,1,1]])
-    Clpq_tmp = np.transpose(Clpq_tmp, axes=(2,0,1)) #shape (Nbins, 3 for ClTT, ClTy, Clyy, Nsims)
-    Clpq_tmp_means = np.mean(Clpq_tmp, axis=2)
-    # cov[b1,b2,i,j] is sum over b1,b2,i,j,sim of (Clpq_tmp[b1,i,sim]-Clpq_tmp_means[b1,i])*(Clpq_tmp[b2,j,sim]-Clpq_tmp_means[b2,j])
-    cov = np.einsum('bis,cjs->bcij', Clpq_tmp, Clpq_tmp) - np.einsum('bis,cj->bcij', Clpq_tmp, Clpq_tmp_means) \
-        - np.einsum('bi,cjs->bcij', Clpq_tmp_means, Clpq_tmp) + inp.Nsims*np.einsum('bi,cj->bcij', Clpq_tmp_means, Clpq_tmp_means)
-    cov /= (inp.Nsims-1)
+    Clpq_tmp = np.transpose(Clpq_tmp, axes=(0,2,1)) #shape (3 for ClTT, ClTy, Clyy, Nbins, Nsims)
+    Clpq_tmp = np.reshape(Clpq_tmp, (inp.Nbins*3, -1))
+    cov = np.cov(Clpq_tmp)
     return cov
 
 
@@ -165,13 +161,7 @@ def get_all_acmb_atsz(inp, Clpq):
     Clpq_unscaled = Clpq[:,2*N_comps]
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
-    PScov_sim_alt = np.zeros((3*inp.Nbins, 3*inp.Nbins))
-    for b1 in range(inp.Nbins):
-        for b2 in range(inp.Nbins):
-            for i in range(3):
-                for j in range(3):
-                    PScov_sim_alt[i*inp.Nbins+b1, j*inp.Nbins+b2] = PScov_sim[b1,b2,i,j]
-    PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim_alt)
+    PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim)
     PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
     for b1 in range(inp.Nbins):
         for b2 in range(inp.Nbins):

@@ -1,4 +1,4 @@
-Nsims: 50 #number of simulations to run
+Nsims: 1000 #number of simulations to run
 num_parallel: 20 #number of sims to run in parallel
 
 nside: 128 #nside of NILC maps
