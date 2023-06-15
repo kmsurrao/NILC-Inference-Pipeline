@@ -18,4 +18,4 @@ save_files: 1 #set to nonzero value to save pickle files
 halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' #Path to folder containing tSZ maps, assumed to be in Kelvin
 cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' #File for CMB map in Kelvin, lensed_alm is in uK
 pyilc_path: '/work2/09334/ksurrao/stampede2/GitHub/pyilc' #Path to pyilc code
-output_dir: '/scratch/09334/ksurrao/NILC/outputs_weight_dep' #Path to folder to store temporary outputs
+output_dir: '/scratch/09334/ksurrao/NILC/outputs_pipeline_binned' #Path to folder to store temporary outputs

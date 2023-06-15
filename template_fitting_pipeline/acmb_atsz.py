@@ -130,7 +130,7 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
      ((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clij11d[l2]) \
     + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clij11d[l2]) \
     + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,2]*(model[l2][1,1]-Clij11d[l2])) \
-    for l1 in range(1,inp.Nbins)] for l2 in range(1,inp.Nbins)]) 
+    for l1 in range(inp.Nbins)] for l2 in range(inp.Nbins)]) 
 
 def acmb_atsz(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv):
     '''
@@ -156,6 +156,49 @@ def acmb_atsz(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
     return (min(all_res, key=lambda res:res.fun)).x
 
 
+def semianalytic_result(inp, Clij, PScov_sim_Inv):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications 
+    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins) ndarray 
+        containing contributions of each component to the 
+        auto- and cross- spectra of freq maps at freqs i and j
+    PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray;
+        contains inverse power spectrum covariance matrix in tensor form
+
+    RETURNS
+    -------
+    acmb_std, atsz_std, anoise1_std, anoise2_std: predicted standard deviations of Acmb, etc.
+        found by computing the Fisher matrix and inverting
+    '''
+
+    Ncomps = 4
+    Clij_mean = np.mean(Clij, axis=0)
+    deriv_vec = np.zeros((Ncomps, 3, inp.Nbins))
+    for A in range(Ncomps):
+        for ij in range(3):
+            if ij==0: i,j = 0,0
+            elif ij==1: i,j = 0,1
+            else: i,j = 1,1
+            deriv_vec[A,ij] = Clij_mean[i,j,A]
+    Fisher = np.einsum('Aib,bcij,Bjc->AB', deriv_vec, PScov_sim_Inv, deriv_vec)
+    final_cov = np.linalg.inv(Fisher)
+    acmb_std = np.sqrt(final_cov[0,0])
+    atsz_std = np.sqrt(final_cov[1,1])
+    anoise1_std = np.sqrt(final_cov[2,2])
+    anoise2_std = np.sqrt(final_cov[3,3])
+
+    print('Results from inverting Fisher matrix', flush=True)
+    print('------------------------------------', flush=True)
+    print('Acmb std dev: ', acmb_std, flush=True)
+    print('Atsz std dev: ', atsz_std, flush=True)
+    print('Anoise1 std dev: ', anoise1_std, flush=True)
+    print('Anoise2 std dev: ', anoise2_std, flush=True)
+    return acmb_std, atsz_std, anoise1_std, anoise2_std
+
+
+
 def get_all_acmb_atsz(inp, Clij):
     '''
     ARGUMENTS
@@ -171,7 +214,6 @@ def get_all_acmb_atsz(inp, Clij):
     atsz_array: array of length Nsims containing best fit Atsz for each simulation
     anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
     anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
-
     '''
 
     PScov_sim = get_PScov_sim(inp, Clij)
@@ -187,26 +229,36 @@ def get_all_acmb_atsz(inp, Clij):
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 
-    pool = mp.Pool(inp.num_parallel)
-    param_array = pool.starmap(acmb_atsz, [(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv) for sim in range(inp.Nsims)])
-    pool.close()
-    param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 4 for Acmb Atsz Anoise1 Anoise2)
-    acmb_array = param_array[:,0]
-    atsz_array = param_array[:,1]
-    anoise1_array = param_array[:,2]
-    anoise2_array = param_array[:,3]
+    # pool = mp.Pool(inp.num_parallel)
+    # param_array = pool.starmap(acmb_atsz, [(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv) for sim in range(inp.Nsims)])
+    # pool.close()
+    # param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 4 for Acmb Atsz Anoise1 Anoise2)
+    # acmb_array = param_array[:,0]
+    # atsz_array = param_array[:,1]
+    # anoise1_array = param_array[:,2]
+    # anoise2_array = param_array[:,3]
     
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'wb'))
-    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'wb'))
-    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'wb'))
-    if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz and anoise1 and anoise2', flush=True)
+    # pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'wb'))
+    # pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'wb'))
+    # pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'wb'))
+    # pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'wb'))
+    # if inp.verbose:
+    #     print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz and anoise1 and anoise2', flush=True)
+
+    #remove section below and uncomment section above
+    acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'rb'))
+    atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'rb'))
+    anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'rb'))
+    anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'rb'))
     
+    print('Results from maximum likelihood estimation', flush=True)
+    print('------------------------------------------', flush=True)
     print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
     print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
     print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
     print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
+
+    semianalytic_result(inp, Clij, PScov_sim_Inv)
    
     return acmb_array, atsz_array, anoise1_array, anoise2_array
 
