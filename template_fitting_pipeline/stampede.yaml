@@ -7,7 +7,8 @@ Nbins: 10 #number of ell-space bins
 tSZ_amp: 1000. #amplification factor for tSZ map
 noise: 30000 #noise level in uK arcmin
 freqs: [90., 150.] #frequencies for maps, in GHz
-use_Gaussian_cov: 0 #Set to nonzero value (not recommended, use only for testing) to use Gaussian power spectrum covariance matrix instead of measuring it from sims 
+use_Gaussian_cov: 1 #Set to nonzero value (not recommended, use only for testing) to use Gaussian power spectrum covariance matrix instead of measuring it from sims 
+use_Gaussian_tSZ: 1 #Set to nonzero value (not recommended, use only for testing) to use Gaussian tSZ realizations
 
 verbose: 1 #set to 0 if do not want intermediate printing
 save_files: 1 #set to nonzero value to save pickle files

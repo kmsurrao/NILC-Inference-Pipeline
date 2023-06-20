@@ -56,9 +56,9 @@ def get_PScov_sim(inp, Clij):
         PScov_sim_alt = np.zeros((3*inp.Nbins, 3*inp.Nbins))
         for b1 in range(inp.Nbins):
             for b2 in range(inp.Nbins):
-                for i in range(3):
-                    for j in range(3):
-                        PScov_sim_alt[i*inp.Nbins+b1, j*inp.Nbins+b2] = cov[b1,b2,i,j]
+                for ij in range(3):
+                    for kl in range(3):
+                        PScov_sim_alt[ij*inp.Nbins+b1, kl*inp.Nbins+b2] = cov[b1,b2,ij,kl]
         return PScov_sim_alt
 
     Clij_tmp = np.sum(Clij, axis=3) #shape (Nsims, Nfreqs=2, Nfreqs=2, Nbins)
@@ -258,6 +258,7 @@ def get_all_acmb_atsz(inp, Clij):
     print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
     print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
 
+    print(flush=True)
     semianalytic_result(inp, Clij, PScov_sim_Inv)
    
     return acmb_array, atsz_array, anoise1_array, anoise2_array
