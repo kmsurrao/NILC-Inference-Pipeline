@@ -42,7 +42,7 @@ def get_PScov_sim(inp, Clij):
         mean_ells = (res[1][:-1]+res[1][1:])/2
 
         for bin in np.arange(inp.Nbins):
-            Nmodes = f*(2*mean_ells[bin]+1)*(res[1][bin+1]-res[1][bin])
+            Nmodes = f* ((np.floor(res[1][bin+1]))**2 - (np.ceil(res[1][bin])-1)**2)
             cov[bin, bin] = (1/Nmodes)*np.array([
                         [2*Clij[0, 0, bin]**2,
                             2*(CC[bin] + g1**2*T[bin])*Clij[0, 1, bin] + 2*N1[bin]*Clij[0, 1, bin],

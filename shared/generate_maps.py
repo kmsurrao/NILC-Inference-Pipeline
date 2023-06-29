@@ -36,7 +36,7 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
         tsz_map = hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
     else:
         tsz_map = hp.read_map(f'{inp.halosky_maps_path}/tsz_00000.fits')
-        tsz_cl = hp.anafast(tsz_map)
+        tsz_cl = hp.anafast(tsz_map, lmax=3*inp.nside-1)
         tsz_map = hp.synfast(tsz_cl, nside=inp.nside)
     tsz_map = inp.tsz_amp*tSZ_amp_extra*hp.ud_grade(tsz_map, inp.nside)
     if band_limit:

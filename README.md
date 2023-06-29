@@ -30,6 +30,7 @@ python >= 3.7
 pyyaml  
 pywigxjpf  
 healpy  
+pysr  
 
 ## Acknowledgments
 Portions of this code are adapted from PolyBin (https://github.com/oliverphilcox/PolyBin) and reMASTERed (https://github.com/kmsurrao/reMASTERed).
