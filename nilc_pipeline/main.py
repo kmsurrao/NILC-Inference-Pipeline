@@ -8,6 +8,7 @@ import pickle
 import subprocess
 import time
 import argparse
+import itertools
 import healpy as hp
 from scipy import stats
 from generate_maps import generate_freq_maps
@@ -27,24 +28,22 @@ def get_scaled_maps_and_wts(sim, inp, env):
     RETURNS
     -------
     CMB_map, tSZ_map, noise1_map, noise2_map: unscaled maps of all the components
-    all_wt_maps: 2*N_comps+1 for each scaled low component, followed by each scaled high component, then all unscaled;
-                 N_preserved_comps, Nscales, Nfreqs, Npix) ndarray containing all weight maps
+    all_wt_maps: (2, 2, 2, 2, 2, N_preserved_comps, Nscales, Nfreqs, Npix) ndarray containing all weight maps
+                dim0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
+                dim1: 0 for unscaled CMB, 1 for scaled CMB
+                dim2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+                dim3: 0 for unscaled noise90, 1 for scaled noise90
+                dim4: 0 for unscaled noise150, 1 for scaled noise150
+
     '''
 
-    N_comps = 4 #CMB, tSZ, noise1, noise2
     N_preserved_comps = 2
-    comps = ['CMB', 'tSZ', 'noise1', 'noise2']
 
-    #array for all weight maps, shape (2*N_comps+1, N_preserved_comps, Nscales, Nfreqs, Npix)
-    all_wt_maps = np.zeros((2*N_comps+1, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
+    #array for all weight maps
+    all_wt_maps = np.zeros((2, 2, 2, 2, 2, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
+    scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]
 
-    for y in range(2*N_comps+1):
-
-        if y==2*N_comps: 
-            scaling=None
-        else: 
-            if y < N_comps: scaling = [inp.scaling_factors[0], comps[y%N_comps]]
-            else: scaling = [inp.scaling_factors[1], comps[y%N_comps]]
+    for scaling in scalings:
 
         #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)
         CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, scaling=scaling)
@@ -52,16 +51,16 @@ def get_scaled_maps_and_wts(sim, inp, env):
         #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
         if not weight_maps_exist(sim, inp, scaling=scaling): #check if not all the weight maps already exist
             #remove any existing weight maps for this sim and scaling to prevent pyilc errors
-            if scaling:
-                scaling_type = 'low' if scaling[0] < 1.0 else 'high'                                                     
-                subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/scaled_{scaling_type}_{scaling[1]}/sim{sim}*', shell=True, env=env)
+            if scaling is not None:  
+                scaling_str = ''.join(str(e) for e in scaling)                                                  
+                subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}*', shell=True, env=env)
             else:
-                subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/unscaled/sim{sim}*', shell=True, env=env)
+                subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/sim{sim}*', shell=True, env=env)
             setup_pyilc(sim, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
 
         #load weight maps
         CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, scaling=scaling)
-        all_wt_maps[y] = np.array([CMB_wt_maps, tSZ_wt_maps])
+        all_wt_maps[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4]] = np.array([CMB_wt_maps, tSZ_wt_maps])
     
     return CMB_map, tSZ_map, noise1_map, noise2_map, all_wt_maps
 
@@ -77,14 +76,18 @@ def get_data_vectors(sim, inp, env):
 
     RETURNS
     -------
-    Clpq: (2*N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
+    Clpq: (2, 2, 2, 2, 2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
         containing propagation of each pair of component maps to NILC map auto- and cross-spectra. 
-        Size of dimension 0 is N_comps+1 for each scaled component, then all unscaled.
+        dim0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
+        dim1: 0 for unscaled CMB, 1 for scaled CMB
+        dim2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+        dim3: 0 for unscaled noise90, 1 for scaled noise90
+        dim4: 0 for unscaled noise150, 1 for scaled noise150
         preserved_comps = CMB, ftSZ
         comps = CMB, ftSZ, noise 90 GHz, noise 150 GHz
-        For example, Clpq[3,0,1,1,2] is cross-spectrum of ftSZ propagation to 
+        For example, Clpq[1,0,1,0,1,0,1,1,2] is cross-spectrum of ftSZ propagation to 
         CMB-preserved NILC map and 90 GHz noise propagation to ftSZ-preserved NILC map 
-        when 150 GHz noise is scaled low
+        when ftSZ and 150 GHz noise are scaled up
     '''
     
     N_preserved_comps = 2 #components to create NILC maps for: CMB, ftSZ
@@ -97,60 +100,69 @@ def get_data_vectors(sim, inp, env):
     g_noise1 = [1.,0.]
     g_noise2 = [0.,1.]
 
-    #get maps and weight maps, all_wt_maps is (2*N_comps+1, N_preserved_comps, Nscales, Nfreqs, Npix) ndarray
+    #get maps and weight maps
     CMB_map, tSZ_map, noise1_map, noise2_map, all_wt_maps = get_scaled_maps_and_wts(sim, inp, env)
-
 
     #get map level propagation of components
     Npix = 12*inp.nside**2
-    all_map_level_prop = np.zeros((N_preserved_comps, N_comps, 2*N_comps+1, Npix)) 
+    all_map_level_prop = np.zeros((2,2,2,2,2, N_preserved_comps, N_comps, Npix)) 
+    scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]
     
     for y in range(N_comps):
-        for s in range(2*N_comps+1): #2*N_comps+1 for each scaled low comp, each scaled high comp, then all unscaled
+        for scaling in scalings:
 
             if y==0: compy, g_vecy = np.copy(CMB_map), g_cmb #CMB
             elif y==1: compy, g_vecy = np.copy(tSZ_map), g_tsz #ftSZ
             elif y==2: compy, g_vecy = np.copy(noise1_map), g_noise1 #noise 90 GHz
             elif y==3: compy, g_vecy = np.copy(noise2_map), g_noise2 #noise 150 GHz
-            
-            if s==y: #if component y is the one that's scaled and is scaled down
+
+            if scaling[y+1]==1 and scaling[0]==0: #component y scaled down
                 compy *= inp.scaling_factors[0]
-            elif s==y+N_comps: #if component y is the one that's scaled and is scaled up
+            elif scaling[y+1]==1 and scaling[0]==1: #component y scaled up
                 compy *= inp.scaling_factors[1]
-            CMB_wt_maps, tSZ_wt_maps = all_wt_maps[s]
+            
+            CMB_wt_maps, tSZ_wt_maps = all_wt_maps[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4]]
             compy_freq1, compy_freq2 = g_vecy[0]*compy, g_vecy[1]*compy
 
             y_to_CMB_preserved, y_to_tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[compy_freq1, compy_freq2])
-            all_map_level_prop[0,y,s] = y_to_CMB_preserved
-            all_map_level_prop[1,y,s] = y_to_tSZ_preserved
+            all_map_level_prop[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 0, y] = y_to_CMB_preserved
+            all_map_level_prop[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 1, y] = y_to_tSZ_preserved
 
     #define and fill in array of data vectors (dim 0 has size 2*N_comps+1 for each scaled low component, each scaled high comp, and then all unscaled)
-    Clpq_tmp = np.zeros((2*N_comps+1, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1))
-    Clpq = np.zeros((2*N_comps+1, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins))
+    Clpq_tmp = np.zeros((2,2,2,2,2, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1))
+    Clpq = np.zeros((2,2,2,2,2, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins))
 
     for y in range(N_comps):
         for z in range(N_comps):
-            for s in range(2*N_comps+1): #each scaled low component, each scaled high comp, and then all unscaled
-                
-                y_to_CMB_preserved = all_map_level_prop[0,y,s]
-                y_to_tSZ_preserved = all_map_level_prop[1,y,s]
-                z_to_CMB_preserved = all_map_level_prop[0,z,s]
-                z_to_tSZ_preserved = all_map_level_prop[1,z,s]
+            for scaling in scalings:
+
+                y_to_CMB_preserved = all_map_level_prop[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 0, y]
+                y_to_tSZ_preserved = all_map_level_prop[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 1, y]
+                z_to_CMB_preserved = all_map_level_prop[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 0, z]
+                z_to_tSZ_preserved = all_map_level_prop[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 1, z]
             
-                Clpq_tmp[s,0,0,y,z] = hp.anafast(y_to_CMB_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
-                Clpq_tmp[s,1,1,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
-                Clpq_tmp[s,0,1,y,z] = hp.anafast(y_to_CMB_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
-                Clpq_tmp[s,1,0,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
+                Clpq_tmp[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 0,0,y,z] = hp.anafast(y_to_CMB_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
+                Clpq_tmp[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 1,1,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
+                Clpq_tmp[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 0,1,y,z] = hp.anafast(y_to_CMB_preserved, z_to_tSZ_preserved, lmax=inp.ellmax)
+                Clpq_tmp[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 1,0,y,z] = hp.anafast(y_to_tSZ_preserved, z_to_CMB_preserved, lmax=inp.ellmax)
 
                 ells = np.arange(inp.ellmax+1)
-                for idx, Cl in enumerate([Clpq_tmp[s,0,0,y,z], Clpq_tmp[s,1,1,y,z], Clpq_tmp[s,0,1,y,z], Clpq_tmp[s,1,0,y,z]]):
+                all_spectra = [Clpq_tmp[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4],0,0,y,z], 
+                               Clpq_tmp[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4],1,1,y,z], 
+                               Clpq_tmp[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4],0,1,y,z], 
+                               Clpq_tmp[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4],1,0,y,z]]
+                for idx, Cl in enumerate(all_spectra):
                     Dl = ells*(ells+1)/2/np.pi*Cl
                     res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
                     mean_ells = (res[1][:-1]+res[1][1:])/2
-                    if idx==0: Clpq[s,0,0,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
-                    elif idx==1: Clpq[s,1,1,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
-                    elif idx==2: Clpq[s,0,1,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
-                    elif idx==3: Clpq[s,1,0,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
+                    if idx==0: 
+                        Clpq[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 0,0,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
+                    elif idx==1: 
+                        Clpq[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 1,1,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
+                    elif idx==2: 
+                        Clpq[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 0,1,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
+                    elif idx==3: 
+                        Clpq[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 1,0,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
 
 
     if inp.remove_files:
@@ -191,18 +203,18 @@ def main():
     #set up output directory
     setup_output_dir(inp, env, scaling=True)
 
-    # pool = mp.Pool(inp.num_parallel)
-    # Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
-    # pool.close()
-    # Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, 2*N_comps+1 for scalings, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins)
-    # if inp.save_files:
-    #     pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
-    #     if inp.verbose:
-    #         print(f'saved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
+    pool = mp.Pool(inp.num_parallel)
+    Clpq = pool.starmap(get_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
+    pool.close()
+    Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, 2*N_comps+1 for scalings, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins)
+    if inp.save_files:
+        pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
+        if inp.verbose:
+            print(f'saved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
 
-    Clpq = pickle.load(open(f'{inp.output_dir}/data_vecs/Clpq.p', 'rb')) #remove this line and uncomment section above
+    #Clpq = pickle.load(open(f'{inp.output_dir}/data_vecs/Clpq.p', 'rb')) #remove this line and uncomment section above
     
-    acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
+    acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq, env)
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
     return acmb_array, atsz_array, anoise1_array, anoise2_array

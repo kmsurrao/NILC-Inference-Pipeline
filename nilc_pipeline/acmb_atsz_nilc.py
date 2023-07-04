@@ -45,33 +45,33 @@ def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, best_fits):
     CONSTANT ARGS
     inp: Info object containing input parameter specifications
     Cl{p}{q}: (N_comps=4, N_comps=4, Nbins) ndarray containing contribution of components to Clpq
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, N_comps) ndarray
-        containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins) ndarray
+        containing best fit sympy expressions to Acmb, Atsz, Anoise1, Anoise2
 
     RETURNS
     -------
-    theory_model: (ellmax+1, 2, 2) ndarray for ClTT, ClTy, ClyT, and Clyy in terms of A_y and A_z parameters
+    theory_model: (Nbins, 2, 2) ndarray for ClTT, ClTy, ClyT, and Clyy in terms of A_y and A_z parameters
 
     '''
     theory_model = np.zeros((inp.Nbins, 2, 2))
 
-    for l in range(inp.Nbins):
+    for b in range(inp.Nbins):
         for p,q in [(0,0), (0,1), (1,0), (1,1)]:
 
             if p==0 and q==0: 
-                best_fits_here, Clpq_here = best_fits[0,0], ClTT
+                best_fits_here, Clpq_here = best_fits[0][0], ClTT
             elif p==0 and q==1:
-                best_fits_here, Clpq_here = best_fits[0,1], ClTy
+                best_fits_here, Clpq_here = best_fits[0][1], ClTy
             elif p==1 and q==0:
-                best_fits_here, Clpq_here = best_fits[1,0], ClyT
+                best_fits_here, Clpq_here = best_fits[1][0], ClyT
             elif p==1 and q==1:
-                best_fits_here, Clpq_here = best_fits[1,1], Clyy
+                best_fits_here, Clpq_here = best_fits[1][1], Clyy
             A_vec = [Acmb, Atsz, Anoise1, Anoise2]
-            theory_model[l,p,q] = \
-              call_fit(A_vec, best_fits_here[0,0,l])*Clpq_here[0,0,l]  + call_fit(A_vec, best_fits_here[0,1,l])*Clpq_here[0,1,l]  + call_fit(A_vec, best_fits_here[0,2,l])*Clpq_here[0,2,l]  + call_fit(A_vec, best_fits_here[0,3,l])*Clpq_here[0,3,l]\
-            + call_fit(A_vec, best_fits_here[1,0,l])*Clpq_here[1,0,l]  + call_fit(A_vec, best_fits_here[1,1,l])*Clpq_here[1,1,l]  + call_fit(A_vec, best_fits_here[1,2,l])*Clpq_here[1,2,l]  + call_fit(A_vec, best_fits_here[1,3,l])*Clpq_here[1,3,l] \
-            + call_fit(A_vec, best_fits_here[2,0,l])*Clpq_here[2,0,l]  + call_fit(A_vec, best_fits_here[2,1,l])*Clpq_here[2,1,l]  + call_fit(A_vec, best_fits_here[2,2,l])*Clpq_here[2,2,l]  + call_fit(A_vec, best_fits_here[2,3,l])*Clpq_here[2,3,l] \
-            + call_fit(A_vec, best_fits_here[3,0,l])*Clpq_here[3,0,l]  + call_fit(A_vec, best_fits_here[3,1,l])*Clpq_here[3,1,l]  + call_fit(A_vec, best_fits_here[3,2,l])*Clpq_here[3,2,l]  + call_fit(A_vec, best_fits_here[3,3,l])*Clpq_here[3,3,l]
+            theory_model[b,p,q] = \
+              call_fit(A_vec, best_fits_here[0][0][b])*Clpq_here[0,0,b]  + call_fit(A_vec, best_fits_here[0][1][b])*Clpq_here[0,1,b]  + call_fit(A_vec, best_fits_here[0][2][b])*Clpq_here[0,2,b]  + call_fit(A_vec, best_fits_here[0][3][b])*Clpq_here[0,3,b]\
+            + call_fit(A_vec, best_fits_here[1][0][b])*Clpq_here[1,0,b]  + call_fit(A_vec, best_fits_here[1][1][b])*Clpq_here[1,1,b]  + call_fit(A_vec, best_fits_here[1][2][b])*Clpq_here[1,2,b]  + call_fit(A_vec, best_fits_here[1][3][b])*Clpq_here[1,3,b] \
+            + call_fit(A_vec, best_fits_here[2][0][b])*Clpq_here[2,0,b]  + call_fit(A_vec, best_fits_here[2][1][b])*Clpq_here[2,1,b]  + call_fit(A_vec, best_fits_here[2][2][b])*Clpq_here[2,2,b]  + call_fit(A_vec, best_fits_here[2][3][b])*Clpq_here[2,3,b] \
+            + call_fit(A_vec, best_fits_here[3][0][b])*Clpq_here[3,0,b]  + call_fit(A_vec, best_fits_here[3][1][b])*Clpq_here[3,1,b]  + call_fit(A_vec, best_fits_here[3][2][b])*Clpq_here[3,2,b]  + call_fit(A_vec, best_fits_here[3][3][b])*Clpq_here[3,3,b]
 
     return theory_model
 
@@ -138,14 +138,15 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
     return (min(all_res, key=lambda res:res.fun)).x
 
 
-def get_all_acmb_atsz(inp, Clpq):
+def get_all_acmb_atsz(inp, Clpq, env):
     '''
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clpq: (Nsims, 2*N_comps+1, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
+    Clpq: (Nsims, 2,2,2,2,2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
+    env: environment object
 
     RETURNS
     -------
@@ -156,9 +157,8 @@ def get_all_acmb_atsz(inp, Clpq):
 
     '''
     
-    N_comps = 4
-    best_fits = get_parameter_dependence(inp, Clpq) #(N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, 2*N_comps)
-    Clpq_unscaled = Clpq[:,2*N_comps]
+    best_fits = get_parameter_dependence(inp, Clpq, env)
+    Clpq_unscaled = Clpq[:,0,0,0,0,0]
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
     PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim)

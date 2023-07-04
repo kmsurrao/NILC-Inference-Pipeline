@@ -12,7 +12,12 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     inp: Info object containing input parameter specifications
     save: Bool, whether to save frequency map files
     band_limit: Bool, whether or not to remove all power in weight maps above ellmax
-    scaling: None or list of [scale factor, scaled comp]
+    scaling: None or list of length 5
+            idx0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
+            idx1: 0 for unscaled CMB, 1 for scaled CMB
+            idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+            idx3: 0 for unscaled noise90, 1 for scaled noise90
+            idx4: 0 for unscaled noise150, 1 for scaled noise150
 
     RETURNS
     -------
@@ -23,13 +28,13 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     l_arr, m_arr = hp.Alm.getlm(3*inp.nside-1)
 
     #Determine which components to scale
-    tSZ_amp_extra, CMB_amp, noise1_amp, noise2_amp = 1, 1, 1, 1
+    CMB_amp, tSZ_amp_extra, noise1_amp, noise2_amp = 1, 1, 1, 1
     if scaling:
-        scale_factor, comp = scaling
-        if comp=='CMB': CMB_amp = scale_factor
-        elif comp=='tSZ': tSZ_amp_extra = scale_factor
-        elif comp=='noise1': noise1_amp = scale_factor
-        elif comp=='noise2': noise2_amp = scale_factor
+        scale_factor = inp.scaling_factors[0] if scaling[0]==0 else inp.scaling_factors[1]
+        if scaling[0]: CMB_amp = scale_factor
+        if scaling[1]: tSZ_amp_extra = scale_factor
+        if scaling[2]: noise1_amp = scale_factor
+        if scaling[3]: noise2_amp = scale_factor
 
     #Read tSZ halosky map
     if not inp.use_Gaussian_tSZ:
@@ -89,12 +94,12 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     sim_map_2 = cmb_map + g2*tsz_map + noise2_map #make noise different in both maps
     if save:
         if not scaling:
-            map1_fname = f'{inp.output_dir}/maps/unscaled/sim{sim}_freq1.fits'
-            map2_fname = f'{inp.output_dir}/maps/unscaled/sim{sim}_freq2.fits'
+            map1_fname = f'{inp.output_dir}/maps/sim{sim}_freq1.fits'
+            map2_fname = f'{inp.output_dir}/maps/sim{sim}_freq2.fits'
         else:
-            scaling_type = 'low' if scaling[0] < 1.0 else 'high'
-            map1_fname = f'{inp.output_dir}/maps/scaled_{scaling_type}_{comp}/sim{sim}_freq1.fits'
-            map2_fname = f'{inp.output_dir}/maps/scaled_{scaling_type}_{comp}/sim{sim}_freq2.fits'
+            scaling_str = ''.join(str(e) for e in scaling) 
+            map1_fname = f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq1.fits'
+            map2_fname = f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq2.fits'
         hp.write_map(map1_fname, sim_map_1, overwrite=True, dtype=np.float32)
         hp.write_map(map2_fname, sim_map_2, overwrite=True, dtype=np.float32)
         if inp.verbose:

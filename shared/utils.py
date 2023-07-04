@@ -2,6 +2,7 @@ import numpy as np
 import os
 import subprocess
 import healpy as hp
+import itertools
 
 def setup_output_dir(inp, env, scaling=False):
     '''
@@ -29,22 +30,19 @@ def setup_output_dir(inp, env, scaling=False):
         subprocess.call(f'mkdir {inp.output_dir}/n_point_funcs', shell=True, env=env)
     if not os.path.isdir(f'{inp.output_dir}/data_vecs'):
         subprocess.call(f'mkdir {inp.output_dir}/data_vecs', shell=True, env=env)
-    if not os.path.isdir(f'{inp.output_dir}/pyilc_outputs/unscaled'):
-        subprocess.call(f'mkdir {inp.output_dir}/pyilc_outputs/unscaled', shell=True, env=env)
-    if not os.path.isdir(f'{inp.output_dir}/maps/unscaled'):
-        subprocess.call(f'mkdir {inp.output_dir}/maps/unscaled', shell=True, env=env)
     if scaling:
-        comps = ['CMB', 'tSZ', 'noise1', 'noise2']
-        scaling_types = ['low', 'high']
-        for y in range(len(comps)):
-            for s in scaling_types:
-                scaling_str = f'scaled_{s}_{comps[y]}'
-                new_dir1 = f'{inp.output_dir}/pyilc_outputs/{scaling_str}'
-                if not os.path.isdir(new_dir1):
-                    subprocess.call(f'mkdir {new_dir1}', shell=True, env=env)
-                new_dir2 = f'{inp.output_dir}/maps/{scaling_str}'
-                if not os.path.isdir(new_dir2):
-                    subprocess.call(f'mkdir {new_dir2}', shell=True, env=env)
+        scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]
+        for s in scalings:
+            scaling_str = ''.join(str(e) for e in s) 
+            new_dir_pyilc_inputs = f'{inp.output_dir}/pyilc_yaml_files/{scaling_str}'
+            if not os.path.isdir(new_dir_pyilc_inputs):
+                subprocess.call(f'mkdir {new_dir_pyilc_inputs}', shell=True, env=env)
+            new_dir_pyilc_outputs = f'{inp.output_dir}/pyilc_outputs/{scaling_str}'
+            if not os.path.isdir(new_dir_pyilc_outputs):
+                subprocess.call(f'mkdir {new_dir_pyilc_outputs}', shell=True, env=env)
+            new_dir_maps = f'{inp.output_dir}/maps/{scaling_str}'
+            if not os.path.isdir(new_dir_maps):
+                subprocess.call(f'mkdir {new_dir_maps}', shell=True, env=env)
 
     return 
 
