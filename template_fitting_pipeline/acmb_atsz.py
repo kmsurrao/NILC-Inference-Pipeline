@@ -30,10 +30,10 @@ def get_PScov_sim(inp, Clij):
         
         Clij = np.mean(Clij, axis=0) #dim (Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
         g1, g2 = tsz_spectral_response(inp.freqs) #tSZ spectral response at 90 and 150 GHz
-        CC = Clij[0,0,0] #CMB
-        T = Clij[0,0,1]/g1**2 #tSZ (in Compton-y)
-        N1 = Clij[0,0,2] #noise 90 GHz
-        N2 = Clij[1,1,3] #noise 150 GHz
+        CC = Clij[0,0,1] #CMB
+        T = Clij[0,0,2]/g1**2 #tSZ (in Compton-y)
+        N1 = Clij[0,0,3] #noise 90 GHz
+        N2 = Clij[1,1,4] #noise 150 GHz
         Clij = Clij[:,:,0]
         f = 1. #fraction of sky
 

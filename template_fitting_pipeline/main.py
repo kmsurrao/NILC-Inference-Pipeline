@@ -57,9 +57,9 @@ def get_data_vectors(sim, inp):
     Clij = np.zeros((Nfreqs, Nfreqs, 1+Ncomps, inp.Nbins))
     for i in range(Nfreqs):
       for j in range(Nfreqs):
-        map1 = CMB_map + g_tsz[0]*tSZ_map + noise1_map
-        map2 = CMB_map + g_tsz[1]*tSZ_map + noise2_map
-        spectrum = hp.anafast(map1, map2, lmax=inp.ellmax)
+        map_i = CMB_map + g_tsz[i]*tSZ_map + g_noise1[i]*noise1_map + g_noise2[i]*noise2_map
+        map_j = CMB_map + g_tsz[j]*tSZ_map + g_noise1[j]*noise1_map + g_noise2[j]*noise2_map
+        spectrum = hp.anafast(map_i, map_j, lmax=inp.ellmax)
         Dl = ells*(ells+1)/2/np.pi*spectrum
         res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
         Clij[i,j,0] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
