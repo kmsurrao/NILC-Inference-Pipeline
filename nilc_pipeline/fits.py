@@ -17,6 +17,9 @@ def symbolic_regression(x_vals, y_vals):
     '''
     model = PySRRegressor(
         niterations = 50,  # < Increase me for better results
+        ncyclesperiteration = 750,
+        progress = False, 
+        maxsize = 12,
         binary_operators = ["*", "+", "-", "/"],
         unary_operators = ["exp", "square", "cube", "inv(x) = 1/x"],
         extra_sympy_mappings = {"inv": lambda x: 1 / x},
@@ -67,20 +70,21 @@ def get_parameter_dependence(inp, Clpq, env):
 
     best_fits = np.zeros((N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins)).tolist()
     scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]
-    for p in range(N_preserved_comps):
-        for q in range(N_preserved_comps):
-            for y in range(N_comps):
-                for z in range(N_comps):
-                    for bin in range(inp.Nbins):
-                        x_vals, y_vals = [], []
-                        for s in scalings:
-                            scaling_factor = inp.scaling_factrs[0]**2 if s[0] == 0 else inp.scaling_factrs[1]**2
-                            x = np.ones(N_comps)
-                            x[np.array(s[1:])==1] = scaling_factor
-                            x_vals.append(x)
-                            y_vals.append(Clpq_mean[s[0],s[1],s[2],s[3],s[4],p,q,y,z,bin]/Clpq_mean[0,0,0,0,0,p,q,y,z,bin])
-                            best_fits[p][q][y][z][bin] = symbolic_regression(x_vals, y_vals)
-                            subprocess.call(f'rm -f hall_of_fame*', shell=True, env=env)
+    for p,q in [(0,0), (0,1), (1,1)]:
+        for y in range(N_comps):
+            for z in range(N_comps):
+                for bin in range(inp.Nbins):
+                    x_vals, y_vals = [], []
+                    for s in scalings:
+                        scaling_factor = inp.scaling_factors[0]**2 if s[0] == 0 else inp.scaling_factors[1]**2
+                        x = np.ones(N_comps)
+                        x[np.array(s[1:])==1] = scaling_factor
+                        x_vals.append(x)
+                        y_vals.append(Clpq_mean[s[0],s[1],s[2],s[3],s[4],p,q,y,z,bin]/Clpq_mean[0,0,0,0,0,p,q,y,z,bin])
+                    best_fits[p][q][y][z][bin] = symbolic_regression(x_vals, y_vals)
+                    best_fits[q][p][z][y][bin] = best_fits[p][q][y][z][bin]
+                    subprocess.call(f'rm -f hall_of_fame*', shell=True, env=env)
+                    if inp.verbose: print(f'estimated parameter dependence for p,q,y,z,bin={p},{q},{y},{z},{bin}', flush=True)
 
     
     if inp.save_files:

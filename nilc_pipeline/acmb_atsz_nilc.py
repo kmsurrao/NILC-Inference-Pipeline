@@ -3,7 +3,7 @@ import pickle
 import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
-from fits import fit_func, call_fit, get_parameter_dependence
+from fits import call_fit, get_parameter_dependence
 
 
 

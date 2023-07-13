@@ -5,6 +5,7 @@ nside: 128 #nside of NILC maps
 ellmax: 250 #ellmax for power spectra
 Nbins: 10 #number of ell-space bins
 tSZ_amp: 1000. #amplification factor for tSZ map
+use_Gaussian_tSZ: 0 #Set to nonzero value (not recommended, use only for testing) to use Gaussian tSZ realizations
 noise: 30000 #noise level in uK arcmin
 freqs: [90., 150.] #frequencies for maps, in GHz
 Nscales: 4 #number of needlet filter scales
@@ -19,4 +20,4 @@ halosky_maps_path: '/Users/kristen/Documents/NILC_plots/inputs/halosky_maps' #Pa
 cmb_map_file: '/Users/kristen/Documents/NILC_plots/inputs/cmb_lensed_nside1024_K.fits' #File for CMB map in Kelvin, lensed_alm is in uK
 pyilc_path: '/Users/kristen/Documents/GitHub/pyilc' #Path to pyilc code
 wigner_file: '/Users/kristen/Documents/NILC_plots/inputs/wigner3j_ellmax1000.p' #File containing wigner-3j symbols with zero m values, indexed as wigner3j[l1,l2,l3]. Leave empty if no such file.
-output_dir: '/Users/kristen/Documents/NILC_plots/outputs_1000sims' #Path to folder to store temporary outputs
+output_dir: '/Users/kristen/Documents/NILC_plots/outputs_pysr' #Path to folder to store temporary outputs

@@ -25,9 +25,10 @@ def get_data_vectors(sim, inp):
 
     RETURNS
     -------
-    Clij: (Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins) ndarray 
+    Clij: (Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
+        dim2: index0 is total power in Clij, other indices are power from each component
     '''
     Ncomps = 4 #CMB, tSZ, noise 90 nGHz, noise 150 GHz
     Nfreqs = len(inp.freqs)
@@ -53,11 +54,17 @@ def get_data_vectors(sim, inp):
     all_g_vecs = np.array([g_cmb, g_tsz, g_noise1, g_noise2])
 
     #define and fill in array of data vectors
-    Clij = np.zeros((Nfreqs, Nfreqs, Ncomps, inp.Nbins))
+    Clij = np.zeros((Nfreqs, Nfreqs, 1+Ncomps, inp.Nbins))
     for i in range(Nfreqs):
       for j in range(Nfreqs):
-         for y in range(Ncomps):
-            Clij[i,j,y] = all_g_vecs[y,i]*all_g_vecs[y,j]*all_spectra[y]
+        map1 = CMB_map + g_tsz[0]*tSZ_map + noise1_map
+        map2 = CMB_map + g_tsz[1]*tSZ_map + noise2_map
+        spectrum = hp.anafast(map1, map2, lmax=inp.ellmax)
+        Dl = ells*(ells+1)/2/np.pi*spectrum
+        res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
+        Clij[i,j,0] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
+        for y in range(Ncomps):
+            Clij[i,j,1+y] = all_g_vecs[y,i]*all_g_vecs[y,j]*all_spectra[y]
     
     return Clij
 
@@ -94,7 +101,7 @@ def main():
     pool = mp.Pool(inp.num_parallel)
     Clij = pool.starmap(get_data_vectors, [(sim, inp) for sim in range(inp.Nsims)])
     pool.close()
-    Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=3, Nbins)
+    Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
     if inp.save_files:
         pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
         if inp.verbose:

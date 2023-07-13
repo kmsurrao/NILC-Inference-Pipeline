@@ -14,7 +14,7 @@ def get_PScov_sim(inp, Clij):
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins) ndarray 
+    Clij: (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
     
@@ -28,13 +28,13 @@ def get_PScov_sim(inp, Clij):
 
         cov = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
         
-        Clij = np.mean(Clij, axis=0) #dim (Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins)
+        Clij = np.mean(Clij, axis=0) #dim (Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
         g1, g2 = tsz_spectral_response(inp.freqs) #tSZ spectral response at 90 and 150 GHz
         CC = Clij[0,0,0] #CMB
         T = Clij[0,0,1]/g1**2 #tSZ (in Compton-y)
         N1 = Clij[0,0,2] #noise 90 GHz
         N2 = Clij[1,1,3] #noise 150 GHz
-        Clij = np.sum(Clij, axis=2)
+        Clij = Clij[:,:,0]
         f = 1. #fraction of sky
 
         #get mean ell in each bin
@@ -61,7 +61,7 @@ def get_PScov_sim(inp, Clij):
                         PScov_sim_alt[ij*inp.Nbins+b1, kl*inp.Nbins+b2] = cov[b1,b2,ij,kl]
         return PScov_sim_alt
 
-    Clij_tmp = np.sum(Clij, axis=3) #shape (Nsims, Nfreqs=2, Nfreqs=2, Nbins)
+    Clij_tmp = Clij[:,:,:,0] #shape (Nsims, Nfreqs=2, Nfreqs=2, Nbins)
     Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,1]]) #shape (3, Nsims, Nbins)
     Clij_tmp = np.transpose(Clij_tmp, axes=(0,2,1)) #shape (3 for Cl00 Cl01 and Cl11, Nbins, Nsims)
     Clij_tmp = np.reshape(Clij_tmp, (inp.Nbins*3, -1))
@@ -83,7 +83,7 @@ def ClijA(Acmb, Atsz, Anoise1, Anoise2, inp, Clij00, Clij01, Clij10, Clij11):
 
     CONSTANT ARGS
     inp: Info object containing input parameter specifications
-    Clij{i}{j}: (N_comps=4, Nbins) ndarray containing contribution of components to Clij
+    Clij{i}{j}: (1+Ncomps, Nbins) ndarray containing contribution of components to Clij
 
     RETURNS
     -------
@@ -92,10 +92,10 @@ def ClijA(Acmb, Atsz, Anoise1, Anoise2, inp, Clij00, Clij01, Clij10, Clij11):
 
     '''
 
-    Clij_with_A_00 = Acmb*Clij00[0] + Atsz*Clij00[1] + Anoise1*Clij00[2] + Anoise2*Clij00[3]
-    Clij_with_A_01 = Acmb*Clij01[0] + Atsz*Clij01[1] + Anoise1*Clij01[2] + Anoise2*Clij01[3]
-    Clij_with_A_10 = Acmb*Clij10[0] + Atsz*Clij10[1] + Anoise1*Clij10[2] + Anoise2*Clij10[3]
-    Clij_with_A_11 = Acmb*Clij11[0] + Atsz*Clij11[1] + Anoise1*Clij11[2] + Anoise2*Clij11[3]
+    Clij_with_A_00 = Acmb*Clij00[1] + Atsz*Clij00[2] + Anoise1*Clij00[3] + Anoise2*Clij00[4]
+    Clij_with_A_01 = Acmb*Clij01[1] + Atsz*Clij01[2] + Anoise1*Clij01[3] + Anoise2*Clij01[4]
+    Clij_with_A_10 = Acmb*Clij10[1] + Atsz*Clij10[2] + Anoise1*Clij10[3] + Anoise2*Clij10[4]
+    Clij_with_A_11 = Acmb*Clij11[1] + Atsz*Clij11[2] + Anoise1*Clij11[3] + Anoise2*Clij11[4]
     return np.array([[[Clij_with_A_00[b], Clij_with_A_01[b]],[Clij_with_A_10[b], Clij_with_A_11[b]]] for b in range(inp.Nbins)])
 
 
@@ -111,7 +111,7 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
     sim: int, simulation number
     inp: Info object containing input parameter specifications
     sim: int, simulation number
-    Clij{i}{j}_all_sims: (Nsims, N_comps=4, Nbins) ndarray containing contribution of components to Clij
+    Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
     PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray containing inverse of power spectrum covariance matrix
 
     RETURNS
@@ -123,9 +123,9 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
     Clij10 = Clij10_all_sims[sim]
     Clij11 = Clij11_all_sims[sim]
     model = f(*pars, inp, Clij00, Clij01, Clij10, Clij11)
-    Clij00d = np.mean(np.sum(Clij00_all_sims, axis=1), axis=0)
-    Clij01d = np.mean(np.sum(Clij01_all_sims, axis=1), axis=0)
-    Clij11d = np.mean(np.sum(Clij11_all_sims, axis=1), axis=0)
+    Clij00d = np.mean(Clij00_all_sims[:,0], axis=0)
+    Clij01d = np.mean(Clij01_all_sims[:,0], axis=0)
+    Clij11d = np.mean(Clij11_all_sims[:,0], axis=0)
     return np.sum([[1/2* \
      ((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clij11d[l2]) \
     + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clij11d[l2]) \
@@ -161,7 +161,7 @@ def semianalytic_result(inp, Clij, PScov_sim_Inv):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins) ndarray 
+    Clij: (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
     PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray;
@@ -181,7 +181,7 @@ def semianalytic_result(inp, Clij, PScov_sim_Inv):
             if ij==0: i,j = 0,0
             elif ij==1: i,j = 0,1
             else: i,j = 1,1
-            deriv_vec[A,ij] = Clij_mean[i,j,A]
+            deriv_vec[A,ij] = Clij_mean[i,j,1+A]
     Fisher = np.einsum('Aib,bcij,Bjc->AB', deriv_vec, PScov_sim_Inv, deriv_vec)
     final_cov = np.linalg.inv(Fisher)
     acmb_std = np.sqrt(final_cov[0,0])
@@ -204,7 +204,7 @@ def get_all_acmb_atsz(inp, Clij):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, Nbins) ndarray 
+    Clij: (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
 
@@ -229,27 +229,27 @@ def get_all_acmb_atsz(inp, Clij):
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 
-    # pool = mp.Pool(inp.num_parallel)
-    # param_array = pool.starmap(acmb_atsz, [(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv) for sim in range(inp.Nsims)])
-    # pool.close()
-    # param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 4 for Acmb Atsz Anoise1 Anoise2)
-    # acmb_array = param_array[:,0]
-    # atsz_array = param_array[:,1]
-    # anoise1_array = param_array[:,2]
-    # anoise2_array = param_array[:,3]
+    pool = mp.Pool(inp.num_parallel)
+    param_array = pool.starmap(acmb_atsz, [(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv) for sim in range(inp.Nsims)])
+    pool.close()
+    param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 4 for Acmb Atsz Anoise1 Anoise2)
+    acmb_array = param_array[:,0]
+    atsz_array = param_array[:,1]
+    anoise1_array = param_array[:,2]
+    anoise2_array = param_array[:,3]
     
-    # pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'wb'))
-    # pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'wb'))
-    # pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'wb'))
-    # pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'wb'))
-    # if inp.verbose:
-    #     print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz and anoise1 and anoise2', flush=True)
+    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'wb'))
+    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'wb'))
+    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'wb'))
+    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'wb'))
+    if inp.verbose:
+        print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz and anoise1 and anoise2', flush=True)
 
-    #remove section below and uncomment section above
-    acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'rb'))
-    atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'rb'))
-    anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'rb'))
-    anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'rb'))
+    # #remove section below and uncomment section above
+    # acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'rb'))
+    # atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'rb'))
+    # anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'rb'))
+    # anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'rb'))
     
     print('Results from maximum likelihood estimation', flush=True)
     print('------------------------------------------', flush=True)

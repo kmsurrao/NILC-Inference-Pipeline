@@ -68,10 +68,10 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
 
     #run pyilc for preserved CMB and preserved tSZ
     stdout = subprocess.DEVNULL if suppress_printing else None
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {CMB_yaml}"], shell=True, env=env, stdout=stdout)
+    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {CMB_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component CMB, sim {sim}, scaling {scaling_str}', flush=True)
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {tSZ_yaml}"], shell=True, env=env, stdout=stdout)
+    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {tSZ_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}, scaling {scaling_str}', flush=True)
 
