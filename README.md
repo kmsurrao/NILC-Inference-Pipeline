@@ -31,6 +31,7 @@ pyyaml
 pywigxjpf  
 healpy  
 pysr  
+getdist  
 
 ## Acknowledgments
 Portions of this code are adapted from PolyBin (https://github.com/oliverphilcox/PolyBin), pyilc (https://github.com/jcolinhill/pyilc), and reMASTERed (https://github.com/kmsurrao/reMASTERed).

@@ -39,7 +39,6 @@ def get_PScov_sim(inp, Clij):
 
         #get mean ell in each bin
         res = stats.binned_statistic(np.arange(inp.ellmax+1)[2:], np.arange(inp.ellmax+1)[2:], statistic='mean', bins=inp.Nbins)
-        mean_ells = (res[1][:-1]+res[1][1:])/2
 
         for bin in np.arange(inp.Nbins):
             Nmodes = f* ((np.floor(res[1][bin+1]))**2 - (np.ceil(res[1][bin])-1)**2)
