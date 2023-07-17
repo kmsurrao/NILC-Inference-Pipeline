@@ -83,7 +83,7 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
 
 def weight_maps_exist(sim, inp, scaling=None):
     '''
-    Sets up yaml files for pyilc and runs the code
+    Checks whether all weight maps for a given simulation and scaling already exist
 
     ARGUMENTS
     ---------

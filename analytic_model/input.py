@@ -12,7 +12,7 @@ def read_dict_from_yaml(yaml_file):
 
 ##########################
 """
-class that contains map info (and associated data), ILC specifications, etc., and handles input
+class that contains input info
 """
 class Info(object):
     def __init__(self, input_file):

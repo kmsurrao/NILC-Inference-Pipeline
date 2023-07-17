@@ -12,7 +12,7 @@ def read_dict_from_yaml(yaml_file):
 
 ##########################
 """
-class that contains map info (and associated data), ILC specifications, etc., and handles input
+class that contains input info
 """
 class Info(object):
     def __init__(self, input_file):
@@ -21,6 +21,8 @@ class Info(object):
 
         self.Nsims = p['Nsims'] # number of simulations
         assert type(self.Nsims) is int and self.Nsims>=0, "Nsims"
+        self.Nsims_for_fits = p['Nsims_for_fits'] # number of simulations for fitting f(Acmb, Aftsz, Anoise90, Anoise150)
+        assert type(self.Nsims_for_fits) is int and 0 <= self.Nsims_for_fits <= self.Nsims, "Nsims_for_fits cannot be greater than Nsims"
         self.num_parallel = p['num_parallel']
         assert type(self.num_parallel) is int and self.num_parallel >= 1, "num_parallel"
 

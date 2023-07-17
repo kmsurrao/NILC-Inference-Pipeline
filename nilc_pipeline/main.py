@@ -34,6 +34,7 @@ def get_scaled_maps_and_wts(sim, inp, env):
                 dim2: 0 for unscaled ftSZ, 1 for scaled ftSZ
                 dim3: 0 for unscaled noise90, 1 for scaled noise90
                 dim4: 0 for unscaled noise150, 1 for scaled noise150
+                Note: for sim >= Nsims_for_fits, results are meaningless except for scaling 00000 (all unscaled)
 
     '''
 
@@ -61,6 +62,9 @@ def get_scaled_maps_and_wts(sim, inp, env):
         #load weight maps
         CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, scaling=scaling)
         all_wt_maps[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4]] = np.array([CMB_wt_maps, tSZ_wt_maps])
+
+        if sim >= inp.Nsims_for_fits:
+            break #only need unscaled version after getting Nsims_for_fits scaled maps and weights
     
     return CMB_map, tSZ_map, noise1_map, noise2_map, all_wt_maps
 
@@ -88,6 +92,7 @@ def get_data_vectors(sim, inp, env):
         For example, Clpq[1,0,1,0,1,0,1,1,2] is cross-spectrum of ftSZ propagation to 
         CMB-preserved NILC map and 90 GHz noise propagation to ftSZ-preserved NILC map 
         when ftSZ and 150 GHz noise are scaled up
+        Note: for sim >= Nsims_for_fits, results are meaningless except for scaling 00000 (all unscaled)
     '''
     
     N_preserved_comps = 2 #components to create NILC maps for: CMB, ftSZ
@@ -128,6 +133,9 @@ def get_data_vectors(sim, inp, env):
             all_map_level_prop[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 0, y] = y_to_CMB_preserved
             all_map_level_prop[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 1, y] = y_to_tSZ_preserved
 
+            if sim >= inp.Nsims_for_fits:
+                break #only need unscaled version after getting Nsims_for_fits scaled maps and weights
+
     #define and fill in array of data vectors (dim 0 has size 2*N_comps+1 for each scaled low component, each scaled high comp, and then all unscaled)
     Clpq_tmp = np.zeros((2,2,2,2,2, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1))
     Clpq = np.zeros((2,2,2,2,2, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins))
@@ -163,6 +171,9 @@ def get_data_vectors(sim, inp, env):
                         Clpq[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 0,1,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
                     elif idx==3: 
                         Clpq[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4], 1,0,y,z] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
+                
+                if sim >= inp.Nsims_for_fits:
+                    break #only need unscaled version after getting Nsims_for_fits scaled maps and weights
 
 
     if inp.remove_files:

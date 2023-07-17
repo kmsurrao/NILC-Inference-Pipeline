@@ -56,6 +56,7 @@ def get_parameter_dependence(inp, Clpq, env):
         dim3: 0 for unscaled ftSZ, 1 for scaled ftSZ
         dim4: 0 for unscaled noise90, 1 for scaled noise90
         dim5: 0 for unscaled noise150, 1 for scaled noise150
+        Note: for sim >= Nsims_for_fits, results are meaningless except for scaling 00000 (all unscaled)
     env: environment object
     
     RETURNS
@@ -66,7 +67,7 @@ def get_parameter_dependence(inp, Clpq, env):
     '''
     N_preserved_comps = 2
     N_comps = 4
-    Clpq_mean = np.mean(Clpq, axis=0)
+    Clpq_mean = np.mean(Clpq[:inp.Nsims_for_fits], axis=0)
 
     best_fits = np.zeros((N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins)).tolist()
     scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]

@@ -157,7 +157,7 @@ def get_all_acmb_atsz(inp, Clpq, env):
 
     '''
     
-    best_fits = get_parameter_dependence(inp, Clpq, env)
+    best_fits = get_parameter_dependence(inp, Clpq[:inp.Nsims_for_fits], env)
     Clpq_unscaled = Clpq[:,0,0,0,0,0]
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
