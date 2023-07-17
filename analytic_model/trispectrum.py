@@ -1,4 +1,4 @@
-#Code adapted from PolyBin O. H. E. Philcox (2023), in prep.
+#Code adapted from PolyBin O. H. E. Philcox (2023), https://arxiv.org/pdf/2303.08828.pdf
 
 import healpy as hp
 import numpy as np

@@ -67,7 +67,7 @@ def tsz_spectral_response(freqs): #input frequency in GHz
 
 def GaussianNeedlets(inp, taper_width=0):
     '''
-    Function from pyilc (https://github.com/jcolinhill/pyilc)
+    Function from pyilc (https://github.com/jcolinhill/pyilc, https://arxiv.org/pdf/2307.01043.pdf)
 
     ARGUMENTS
     ---------

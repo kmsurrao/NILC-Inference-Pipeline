@@ -1,7 +1,9 @@
 .DS_Store
 notebooks/.ipynb_checkpoints/*
 .vscode/*
+*/laptop.yaml
 *.fits
+notebooks/gaussian_tsz.ipynb
 <<<<<<< HEAD
 *.p
 =======

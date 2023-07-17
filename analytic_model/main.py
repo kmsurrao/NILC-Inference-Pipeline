@@ -169,7 +169,7 @@ def main():
 
     # main input file containing most specifications 
     parser = argparse.ArgumentParser(description="Analytic NILC power spectrum.")
-    parser.add_argument("--config", default="stampede.yaml")
+    parser.add_argument("--config", default="example.yaml")
     args = parser.parse_args()
     input_file = args.config
 

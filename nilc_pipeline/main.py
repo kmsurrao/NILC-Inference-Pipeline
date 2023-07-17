@@ -187,7 +187,7 @@ def main():
 
     # main input file containing most specifications 
     parser = argparse.ArgumentParser(description="Covariance from NILC approach.")
-    parser.add_argument("--config", default="stampede.yaml")
+    parser.add_argument("--config", default="example.yaml")
     args = parser.parse_args()
     input_file = args.config
 
