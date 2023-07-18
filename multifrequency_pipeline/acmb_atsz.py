@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+import emcee
 import scipy
 from scipy.optimize import minimize
 from scipy import stats
@@ -101,7 +102,6 @@ def ClijA(Acmb, Atsz, Anoise1, Anoise2, inp, Clij00, Clij01, Clij10, Clij11):
 def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv): 
     '''
     Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
-    Let Clpqd be the data spectra obtained by averaging over all the theory spectra from each sim
 
     ARGUMENTS
     ---------
@@ -131,6 +131,28 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
     + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,2]*(model[l2][1,1]-Clij11d[l2])) \
     for l1 in range(inp.Nbins)] for l2 in range(inp.Nbins)]) 
 
+
+def pos_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv): 
+    '''
+    Expression for positive log likelihood for one sim
+
+    ARGUMENTS
+    ---------
+    pars: parameters to function f (not manually inputted but used by minimizer)
+    f: function that returns theory model in terms of Acmb and Atsz
+    sim: int, simulation number
+    inp: Info object containing input parameter specifications
+    sim: int, simulation number
+    Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
+    PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray containing inverse of power spectrum covariance matrix
+
+    RETURNS
+    -------
+    negative log likelihood for one simulation, combined over multipoles 
+    '''
+    return -lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv)
+
+
 def acmb_atsz(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv):
     '''
     Maximize likelihood with respect to Acmb and Atsz for one sim
@@ -139,7 +161,7 @@ def acmb_atsz(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
     ---------
     inp: Info object containing input parameter specifications
     sim: int, simulation number
-    Clij{i}{j}_all_sims: (Nsims, N_comps=4, Nbins) ndarray containing contribution of components to Clij
+    Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
     PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray containing inverse of power spectrum covariance matrix
 
     RETURNS
@@ -189,11 +211,57 @@ def semianalytic_result(inp, Clij, PScov_sim_Inv):
     anoise2_std = np.sqrt(final_cov[3,3])
 
     print('Results from inverting Fisher matrix', flush=True)
+    print('----------------------------------------', flush=True)
+    print('Acmb std dev: ', acmb_std, flush=True)
+    print('Atsz std dev: ', atsz_std, flush=True)
+    print('Anoise1 std dev: ', anoise1_std, flush=True)
+    print('Anoise2 std dev: ', anoise2_std, flush=True)
+    return acmb_std, atsz_std, anoise1_std, anoise2_std
+
+
+def MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, sim=0):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications 
+    Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
+    PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray;
+        contains inverse power spectrum covariance matrix in tensor form
+    sim: int, simulation number to use for MCMC
+
+    RETURNS
+    -------
+    acmb_std, atsz_std, anoise1_std, anoise2_std: predicted standard deviations of Acmb, etc.
+        found by computing the Fisher matrix and inverting
+    '''
+
+    np.random.seed(0)
+    ndim = 4
+    nwalkers = 10
+    p0 = np.ones((nwalkers, ndim))
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, pos_lnL, args=[ClijA, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv])
+    state = sampler.run_mcmc(p0, 100)
+    sampler.reset()
+    sampler.run_mcmc(state, 1000)
+    samples = sampler.get_chain() #dimensions (1000, nwalkers, Ncomps=4)
+
+    if inp.save_files:
+        pickle.dump(samples, open(f'{inp.output_dir}/MCMC_chains.p', 'wb'))
+        if inp.verbose:
+            print(f'saved {inp.output_dir}/MCMC_chains.p', flush=True)
+    
+    acmb_std = np.mean(np.std(sampler[:,walker,0]) for walker in range(nwalkers))
+    atsz_std = np.mean(np.std(sampler[:,walker,1]) for walker in range(nwalkers))
+    anoise1_std = np.mean(np.std(sampler[:,walker,2]) for walker in range(nwalkers))
+    anoise2_std = np.mean(np.std(sampler[:,walker,3]) for walker in range(nwalkers))
+
+    print('Results from MCMC', flush=True)
     print('------------------------------------', flush=True)
     print('Acmb std dev: ', acmb_std, flush=True)
     print('Atsz std dev: ', atsz_std, flush=True)
     print('Anoise1 std dev: ', anoise1_std, flush=True)
     print('Anoise2 std dev: ', anoise2_std, flush=True)
+    print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)), flush=True)
     return acmb_std, atsz_std, anoise1_std, anoise2_std
 
 
@@ -251,7 +319,7 @@ def get_all_acmb_atsz(inp, Clij):
     # anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'rb'))
     
     print('Results from maximum likelihood estimation', flush=True)
-    print('------------------------------------------', flush=True)
+    print('----------------------------------------------', flush=True)
     print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
     print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
     print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
@@ -259,6 +327,9 @@ def get_all_acmb_atsz(inp, Clij):
 
     print(flush=True)
     semianalytic_result(inp, Clij, PScov_sim_Inv)
+
+    print(flush=True)
+    MCMC(inp, Clij, PScov_sim_Inv, sim=0)
    
     return acmb_array, atsz_array, anoise1_array, anoise2_array
 
