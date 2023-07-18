@@ -3,6 +3,7 @@ import pickle
 import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
+import emcee
 from fits import call_fit, get_parameter_dependence
 
 
@@ -80,7 +81,6 @@ def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, best_fits):
 def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits): 
     '''
     Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
-    Let Clpqd be the data spectra obtained by averaging over all the theory spectra from each sim
 
     ARGUMENTS
     ---------
@@ -112,6 +112,30 @@ def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all
         + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,0]*(model[l2][0,0]-ClTTd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,1]*(model[l2][0,1]-ClTyd[l2]) + (model[l1][1,1]-Clyyd[l1])*PScov_sim_Inv[l1,l2,2,2]*(model[l2][1,1]-Clyyd[l2])) \
     for l1 in range(inp.Nbins)] for l2 in range(inp.Nbins)]) 
 
+
+def pos_lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits): 
+    '''
+    Expression for positive log likelihood for one sim
+
+    ARGUMENTS
+    ---------
+    pars: parameters to function f (not manually inputted but used by minimizer)
+    f: function that returns theory model in terms of Acmb, Atsz, Anoise1, and Anoise2
+    inp: Info object containing input parameter specifications
+    sim: int, simulation number
+    Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, Nbins) ndarray containing contribution of components to Clpq
+    PScov_sim_Inv: (Nbins, Nbins, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, N_comps) ndarray
+        containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
+
+
+    RETURNS
+    -------
+    log likelihood for one simulation, combined over multipoles 
+    '''
+    return -lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits)
+
+
 def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits):
     '''
     Maximize likelihood with respect to Acmb and Atsz for one sim
@@ -136,6 +160,53 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
         res = minimize(lnL, x0 = start_array, args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits), method='Nelder-Mead', bounds=bounds) #default method is BFGS
         all_res.append(res)
     return (min(all_res, key=lambda res:res.fun)).x
+
+
+def MCMC(inp, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits, sim=0):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+    Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, Nbins) ndarray containing contribution of components to Clpq
+    PScov_sim_Inv: (Nbins, Nbins, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
+    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, N_comps) ndarray
+        containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
+    sim: int, simulation number to use for MCMC
+
+    RETURNS
+    -------
+    acmb_std, atsz_std, anoise1_std, anoise2_std: predicted standard deviations of Acmb, etc.
+        found by computing the Fisher matrix and inverting
+    '''
+
+    np.random.seed(0)
+    ndim = 4
+    nwalkers = 10
+    p0 = np.random.random((nwalkers, ndim))*(1.2-0.8)+0.8
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, pos_lnL, args=[ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits])
+    state = sampler.run_mcmc(p0, 100)
+    sampler.reset()
+    sampler.run_mcmc(state, 1000)
+    samples = sampler.get_chain() #dimensions (1000, nwalkers, Ncomps=4)
+
+    if inp.save_files:
+        pickle.dump(samples, open(f'{inp.output_dir}/MCMC_chains_NILC.p', 'wb'))
+        if inp.verbose:
+            print(f'saved {inp.output_dir}/MCMC_chains_NILC.p', flush=True)
+    
+    acmb_std = np.mean(np.array([np.std(samples[:,walker,0]) for walker in range(nwalkers)]))
+    atsz_std = np.mean(np.array([np.std(samples[:,walker,1]) for walker in range(nwalkers)]))
+    anoise1_std = np.mean(np.array([np.std(samples[:,walker,2]) for walker in range(nwalkers)]))
+    anoise2_std = np.mean(np.array([np.std(samples[:,walker,3]) for walker in range(nwalkers)]))
+
+    print('Results from MCMC', flush=True)
+    print('------------------------------------', flush=True)
+    print('Acmb std dev: ', acmb_std, flush=True)
+    print('Atsz std dev: ', atsz_std, flush=True)
+    print('Anoise1 std dev: ', anoise1_std, flush=True)
+    print('Anoise2 std dev: ', anoise2_std, flush=True)
+    print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)), flush=True)
+    return acmb_std, atsz_std, anoise1_std, anoise2_std
 
 
 def get_all_acmb_atsz(inp, Clpq, env):
@@ -198,9 +269,14 @@ def get_all_acmb_atsz(inp, Clpq, env):
     # anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_nilc.p', 'rb'))
     # anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_nilc.p', 'rb'))
 
+    print('Results from maximum likelihood estimation', flush=True)
+    print('----------------------------------------------', flush=True)
     print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
     print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
     print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
     print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
+
+    print(flush=True)
+    MCMC(inp, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits, sim=0)
 
     return acmb_array, atsz_array, anoise1_array, anoise2_array

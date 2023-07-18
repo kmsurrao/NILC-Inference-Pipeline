@@ -148,7 +148,7 @@ def pos_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims
 
     RETURNS
     -------
-    negative log likelihood for one simulation, combined over multipoles 
+    log likelihood for one simulation, combined over multipoles 
     '''
     return -lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv)
 
@@ -238,7 +238,7 @@ def MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims
     np.random.seed(0)
     ndim = 4
     nwalkers = 10
-    p0 = np.ones((nwalkers, ndim))
+    p0 = np.random.random((nwalkers, ndim))*(1.2-0.8)+0.8
     sampler = emcee.EnsembleSampler(nwalkers, ndim, pos_lnL, args=[ClijA, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv])
     state = sampler.run_mcmc(p0, 100)
     sampler.reset()
@@ -246,14 +246,14 @@ def MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims
     samples = sampler.get_chain() #dimensions (1000, nwalkers, Ncomps=4)
 
     if inp.save_files:
-        pickle.dump(samples, open(f'{inp.output_dir}/MCMC_chains.p', 'wb'))
+        pickle.dump(samples, open(f'{inp.output_dir}/MCMC_chains_multifrequency.p', 'wb'))
         if inp.verbose:
-            print(f'saved {inp.output_dir}/MCMC_chains.p', flush=True)
+            print(f'saved {inp.output_dir}/MCMC_chains_multifrequency.p', flush=True)
     
-    acmb_std = np.mean(np.std(sampler[:,walker,0]) for walker in range(nwalkers))
-    atsz_std = np.mean(np.std(sampler[:,walker,1]) for walker in range(nwalkers))
-    anoise1_std = np.mean(np.std(sampler[:,walker,2]) for walker in range(nwalkers))
-    anoise2_std = np.mean(np.std(sampler[:,walker,3]) for walker in range(nwalkers))
+    acmb_std = np.mean(np.array([np.std(samples[:,walker,0]) for walker in range(nwalkers)]))
+    atsz_std = np.mean(np.array([np.std(samples[:,walker,1]) for walker in range(nwalkers)]))
+    anoise1_std = np.mean(np.array([np.std(samples[:,walker,2]) for walker in range(nwalkers)]))
+    anoise2_std = np.mean(np.array([np.std(samples[:,walker,3]) for walker in range(nwalkers)]))
 
     print('Results from MCMC', flush=True)
     print('------------------------------------', flush=True)
@@ -329,7 +329,7 @@ def get_all_acmb_atsz(inp, Clij):
     semianalytic_result(inp, Clij, PScov_sim_Inv)
 
     print(flush=True)
-    MCMC(inp, Clij, PScov_sim_Inv, sim=0)
+    MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, sim=0)
    
     return acmb_array, atsz_array, anoise1_array, anoise2_array
 
