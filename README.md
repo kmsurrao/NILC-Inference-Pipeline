@@ -1,5 +1,5 @@
 # NILC-Inference-Pipeline
-Pipelines for calculating parameter covariance matrix elements obtained via needlet internal linear combination (NILC) based likelihoods, harmonic internal linear combination (HILC) based likelihoods, and power spectrum template-fitting. Computation of analytic expressions for NILC power spectra. Currently assumes a sky model comprising only the CMB, tSZ effect (which can be amplified), and noise, at two frequency channels, but the model can be extended easily.
+Pipelines for calculating parameter covariance matrix elements obtained via needlet internal linear combination (NILC) based likelihoods, harmonic internal linear combination (HILC) based likelihoods, and multifrequency power spectrum template-fitting. Computation of analytic expressions for NILC power spectra. Currently assumes a sky model comprising only the CMB, tSZ effect (which can be amplified), and noise, at two frequency channels, but the model can be extended easily.
 
 ## Requirements and Set-up
  - Requires a clone of the pyilc repository (https://github.com/jcolinhill/pyilc). 
@@ -12,15 +12,15 @@ To run the parameter inference pipeline for a NILC-based likelihood:
 ```cd nilc_pipeline```   
 ```python main.py --config=example.yaml```       
 
-To run the parameter inference pipeline for power spectrum template-fitting:  
-```cd template_fitting_pipeline```       
+To run the parameter inference pipeline for multifrequency power spectrum template-fitting:  
+```cd multifrequency_pipeline```       
 ```python main.py --config=example.yaml```    
 
 To check the analytic NILC power spectrum result:  
 ```cd analytic_model```   
 ```python main.py --config=example.yaml```  
 
-The notebooks folder contains example Jupyter notebooks for producing plots after running the above pipelines. The hilc_and_template_fitting contains Mathematica notebooks for analytic demonstrations of equality of the HILC and template-fitting methods, as well as python scripts for numerical demonstrations of equality between the methods when using data-split cross-spectra.
+The notebooks folder contains example Jupyter notebooks for producing plots after running the above pipelines. The hilc_and_multifrequency folder contains Mathematica notebooks for analytic demonstrations of equality of the HILC and multifrequency power spectrum template-fitting methods, as well as python scripts for numerical demonstrations of equality between the methods when using data-split cross-spectra.
 
 ## Recommendations
 There is a large amount of I/O from running this program. It is highly recommended to run on an HPC cluster and to set the output_dir parameter in the yaml files to be an empty subdirectory in a SCRATCH space. It is also recommended (though not required) to comment out calls to healpy mollview in pyilc/pyilc/wavelets.py.

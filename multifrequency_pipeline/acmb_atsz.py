@@ -125,11 +125,13 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
     Clij00d = np.mean(Clij00_all_sims[:,0], axis=0)
     Clij01d = np.mean(Clij01_all_sims[:,0], axis=0)
     Clij11d = np.mean(Clij11_all_sims[:,0], axis=0)
+    #return np.sum([1/2*((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l1,0,0]*(model[l1][0,0]-Clij00d[l1]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l1,1,1]*(model[l1][0,1]-Clij01d[l1]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l1,2,2]*(model[l1][1,1]-Clij11d[l1])) for l1 in range(inp.Nbins)]) #diagonal only
     return np.sum([[1/2* \
      ((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clij11d[l2]) \
     + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clij11d[l2]) \
     + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l2,2,2]*(model[l2][1,1]-Clij11d[l2])) \
     for l1 in range(inp.Nbins)] for l2 in range(inp.Nbins)]) 
+    
 
 
 def pos_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv): 
@@ -177,7 +179,7 @@ def acmb_atsz(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
     return (min(all_res, key=lambda res:res.fun)).x
 
 
-def semianalytic_result(inp, Clij, PScov_sim_Inv):
+def Fisher_inversion(inp, Clij, PScov_sim_Inv):
     '''
     ARGUMENTS
     ---------
@@ -265,6 +267,99 @@ def MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims
     return acmb_std, atsz_std, anoise1_std, anoise2_std
 
 
+def get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, compute_MLE_var=True):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications 
+    Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
+    PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray;
+        contains inverse power spectrum covariance matrix in tensor form
+
+    RETURNS
+    -------
+    acmb_array: array of length Nsims containing best fit Acmb for each simulation
+    atsz_array: array of length Nsims containing best fit Atsz for each simulation
+    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
+    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
+    '''
+
+
+    pool = mp.Pool(inp.num_parallel)
+    param_array = pool.starmap(acmb_atsz, [(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv) for sim in range(inp.Nsims)])
+    pool.close()
+    param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 4 for Acmb Atsz Anoise1 Anoise2)
+    acmb_array = param_array[:,0]
+    atsz_array = param_array[:,1]
+    anoise1_array = param_array[:,2]
+    anoise2_array = param_array[:,3]
+    
+    if compute_MLE_var:
+        pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'wb'))
+        pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'wb'))
+        pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'wb'))
+        pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'wb'))
+        if inp.verbose:
+            print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz and anoise1 and anoise2', flush=True)
+
+    # #remove section below and uncomment section above
+    # acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'rb'))
+    # atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'rb'))
+    # anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'rb'))
+    # anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'rb'))
+
+    if compute_MLE_var:
+        final_cov = np.cov(np.array([acmb_array, atsz_array, anoise1_array, anoise2_array]))
+        print('Results from maximum likelihood estimation', flush=True)
+        print('----------------------------------------------', flush=True)
+        print(f'Acmb = {np.mean(acmb_array)} +/- {np.sqrt(final_cov[0,0])}', flush=True)
+        print(f'Atsz = {np.mean(atsz_array)} +/- {np.sqrt(final_cov[1,1])}', flush=True)
+        print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.sqrt(final_cov[2,2])}', flush=True)
+        print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.sqrt(final_cov[3,3])}', flush=True)
+
+    return acmb_array, atsz_array, anoise1_array, anoise2_array
+
+
+def get_var_of_MLE_means(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, Nsims_per_group=20):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications 
+    Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
+    PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray;
+        contains inverse power spectrum covariance matrix in tensor form
+    Nsims_per_group: int, number of simulations per set for which to compute Acmb, Atsz, Anoise1, and Anoise2 means
+
+    RETURNS
+    -------
+    acmb_means_std: float, standard deviation of means of Acmb parameters obtained from each group
+    atsz_means_std: float, standard deviation of means of Atsz parameters obtained from each group
+    anoise1_means_std: float, standard deviation of means of Anoise1 parameters obtained from each group
+    anoise2_means_std: float, standard deviation of means of Anoise2 parameters obtained from each group
+    '''
+    Ngroups = inp.Nsims//Nsims_per_group
+    acmb_means, atsz_means, anoise1_means, anoise2_means = [], [], [], []
+    for group in range(Ngroups):
+        Clij00 = Clij00_all_sims[group*Nsims_per_group: (group+1)*Nsims_per_group]
+        Clij01 = Clij01_all_sims[group*Nsims_per_group: (group+1)*Nsims_per_group]
+        Clij10 = Clij10_all_sims[group*Nsims_per_group: (group+1)*Nsims_per_group]
+        Clij11 = Clij11_all_sims[group*Nsims_per_group: (group+1)*Nsims_per_group]
+        acmb_arr, atsz_arr, anoise1_arr, anoise2_arr = get_MLE_arrays(inp, Clij00, Clij01, Clij10, Clij11, PScov_sim_Inv, compute_MLE_var=False)
+        acmb_means.append(np.mean(acmb_arr))
+        atsz_means.append(np.mean(atsz_arr))
+        anoise1_means.append(np.mean(anoise1_arr))
+        anoise2_means.append(np.mean(anoise2_arr))
+    acmb_means_std, atsz_means_std, anoise1_means_std, anoise2_means_std = np.std(acmb_means), np.std(atsz_means), np.std(anoise1_means), np.std(anoise2_means)
+    print(f'Standard Deviation of MLE Means for Groups of {Nsims_per_group} Sims Each', flush=True)
+    print('----------------------------------------------------------', flush=True)
+    print('Acmb std dev: ', acmb_means_std, flush=True)
+    print('Atsz std dev: ', atsz_means_std, flush=True)
+    print('Anoise1 std dev: ', anoise1_means_std, flush=True)
+    print('Anoise2 std dev: ', anoise2_means_std, flush=True)
+    return acmb_means_std, atsz_means_std, anoise1_means_std, anoise2_means_std
+
+
+
 
 def get_all_acmb_atsz(inp, Clij):
     '''
@@ -296,40 +391,16 @@ def get_all_acmb_atsz(inp, Clij):
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 
-    pool = mp.Pool(inp.num_parallel)
-    param_array = pool.starmap(acmb_atsz, [(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv) for sim in range(inp.Nsims)])
-    pool.close()
-    param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 4 for Acmb Atsz Anoise1 Anoise2)
-    acmb_array = param_array[:,0]
-    atsz_array = param_array[:,1]
-    anoise1_array = param_array[:,2]
-    anoise2_array = param_array[:,3]
+    acmb_array, atsz_array, anoise1_array, anoise2_array = get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv)
     
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'wb'))
-    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'wb'))
-    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'wb'))
-    if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz and anoise1 and anoise2', flush=True)
-
-    # #remove section below and uncomment section above
-    # acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'rb'))
-    # atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'rb'))
-    # anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'rb'))
-    # anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'rb'))
-    
-    print('Results from maximum likelihood estimation', flush=True)
-    print('----------------------------------------------', flush=True)
-    print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
-    print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
-    print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
-    print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
-
     print(flush=True)
-    semianalytic_result(inp, Clij, PScov_sim_Inv)
+    Fisher_inversion(inp, Clij, PScov_sim_Inv)
 
     print(flush=True)
     MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, sim=0)
+
+    print(flush=True)
+    get_var_of_MLE_means(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, Nsims_per_group=20)
    
     return acmb_array, atsz_array, anoise1_array, anoise2_array
 
