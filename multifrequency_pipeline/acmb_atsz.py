@@ -262,7 +262,7 @@ def get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
 ###################################################
 
 
-def Fisher_inversion(inp, Clij, PScov_sim_Inv, sim=0):
+def Fisher_inversion(inp, Clij, PScov_sim_Inv):
     '''
     ARGUMENTS
     ---------
@@ -272,7 +272,6 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv, sim=0):
         auto- and cross- spectra of freq maps at freqs i and j
     PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray;
         contains inverse power spectrum covariance matrix in tensor form
-    sim: int, simulation number to use for Fisher inversion
 
     RETURNS
     -------
@@ -281,14 +280,14 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv, sim=0):
     '''
 
     Ncomps = 4
-    Clij = Clij[sim]
+    Clij_mean = np.mean(Clij, axis=0)
     deriv_vec = np.zeros((Ncomps, 3, inp.Nbins))
     for A in range(Ncomps):
         for ij in range(3):
             if ij==0: i,j = 0,0
             elif ij==1: i,j = 0,1
             else: i,j = 1,1
-            deriv_vec[A,ij] = Clij[i,j,1+A]
+            deriv_vec[A,ij] = Clij_mean[i,j,1+A]
     Fisher = np.einsum('Aib,bcij,Bjc->AB', deriv_vec, PScov_sim_Inv, deriv_vec)
     final_cov = np.linalg.inv(Fisher)
     acmb_std = np.sqrt(final_cov[0,0])
@@ -395,22 +394,22 @@ def covs_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PSco
 
     INDEX MAPPING IN EINSUM
     -----------------------
-    alpha --> a, beta --> b, ell-->l, ell'-->m, ij-->i, kl-->j, sim-->s
+    alpha --> a, beta --> b, bin1-->l, bin2-->m, ij-->i, kl-->j
 
     '''
-    Clij = np.array([Clij00_all_sims[:,1:], Clij01_all_sims[:,1:], Clij11_all_sims[:,1:]]) #shape (Nsims,3,Ncomps,Nbins)
-    num = np.einsum('isal,lmij,jsbm->sab', Clij, PScov_sim_Inv, Clij)
-    denom1 = np.einsum('isal,lmij,jsam->sa', Clij, PScov_sim_Inv, Clij)
-    denom2 = np.einsum('isbl,lmij,jsbm->sb', Clij, PScov_sim_Inv, Clij)
-    denom = np.einsum('sa,sb->sab', denom1, denom2)
-    covs = num/denom
-    print('Results from Analytic Covariance of MLE, sim 0', flush=True)
-    print('----------------------------------------------', flush=True)
-    print(covs[0])
-    print('Results from Analytic Covariance of MLE, all sims', flush=True)
-    print('----------------------------------------------', flush=True)
-    print(covs)
-    return covs 
+    Clij00_mean = np.mean(Clij00_all_sims, axis=0)
+    Clij01_mean = np.mean(Clij01_all_sims, axis=0)
+    Clij11_mean = np.mean(Clij11_all_sims, axis=0)
+    Clij = np.array([Clij00_mean[1:], Clij01_mean[1:], Clij11_mean[1:]]) #shape (3,Ncomps,Nbins)
+    F = np.einsum('ial,lmij,jbm->ab', Clij, PScov_sim_Inv, Clij)
+    F_inv = np.linalg.inv(F)
+    print('Results from Analytic Covariance of MLEs', flush=True)
+    print('------------------------------------', flush=True)
+    print('Acmb std dev: ', np.sqrt(F_inv[0,0]), flush=True)
+    print('Atsz std dev: ', np.sqrt(F_inv[1,1]), flush=True)
+    print('Anoise1 std dev: ', np.sqrt(F_inv[2,2]), flush=True)
+    print('Anoise2 std dev: ', np.sqrt(F_inv[3,3]), flush=True)
+    return F_inv 
 
 
 ##############################################
