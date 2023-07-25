@@ -194,9 +194,9 @@ def acmb_atsz_analytic(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_si
     Clij01d = (np.mean(Clij01_all_sims, axis=0))[0]
     Clij11d = (np.mean(Clij11_all_sims, axis=0))[0]
     Clijd = np.array([Clij00d, Clij01d, Clij11d]) #shape (3,Nbins)
-    num = np.einsum('ial,lmij,jm->a', Clij, PScov_sim_Inv, Clijd)
-    denom = np.einsum('ial,lmij,jam->a', Clij, PScov_sim_Inv, Clij)
-    return num/denom
+    F = np.einsum('ial,lmij,jbm->ab', Clij, PScov_sim_Inv, Clij)
+    F_inv = np.linalg.inv(F)
+    return np.einsum('ab,ibl,lmij,jm->a', F_inv, Clij, PScov_sim_Inv, Clijd)
 
 
 ##############################################
@@ -237,7 +237,7 @@ def get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
     pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_template_fitting_{string}.p', 'wb'))
     pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_template_fitting_{string}.p', 'wb'))
     if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_template_fitting.p and atsz and anoise1 and anoise2', flush=True)
+        print(f'created {inp.output_dir}/acmb_array_template_fitting_{string}.p and atsz and anoise1 and anoise2', flush=True)
 
     # #remove section below and uncomment section above
     # acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'rb'))
@@ -257,12 +257,12 @@ def get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
 
 
 
-##############################################
-#####   INVERSION OF FISHER MATRIX      ######
-##############################################
+###################################################
+### FISHER MATRIX INVERSION FOR ONE SIMULATION  ###
+###################################################
 
 
-def Fisher_inversion(inp, Clij, PScov_sim_Inv):
+def Fisher_inversion(inp, Clij, PScov_sim_Inv, sim=0):
     '''
     ARGUMENTS
     ---------
@@ -272,6 +272,7 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv):
         auto- and cross- spectra of freq maps at freqs i and j
     PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray;
         contains inverse power spectrum covariance matrix in tensor form
+    sim: int, simulation number to use for Fisher inversion
 
     RETURNS
     -------
@@ -280,14 +281,14 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv):
     '''
 
     Ncomps = 4
-    Clij_mean = np.mean(Clij, axis=0)
+    Clij = Clij[sim]
     deriv_vec = np.zeros((Ncomps, 3, inp.Nbins))
     for A in range(Ncomps):
         for ij in range(3):
             if ij==0: i,j = 0,0
             elif ij==1: i,j = 0,1
             else: i,j = 1,1
-            deriv_vec[A,ij] = Clij_mean[i,j,1+A]
+            deriv_vec[A,ij] = Clij[i,j,1+A]
     Fisher = np.einsum('Aib,bcij,Bjc->AB', deriv_vec, PScov_sim_Inv, deriv_vec)
     final_cov = np.linalg.inv(Fisher)
     acmb_std = np.sqrt(final_cov[0,0])
@@ -376,17 +377,15 @@ def MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims
 
 
 ############################################################
-#######   COVARIANCE OF MLEs FOR EACH SIMULATION   #########
+########   COVARIANCE OF MLEs FOR ONE SIMULATION   #########
 ############################################################
 
-def covs_of_MLE_analytic(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv):
+def covs_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PScov_sim_Inv):
     '''
     Maximize likelihood with respect to Acmb, Atsz, Anoise90, Anoise150 for one sim analytically 
 
     ARGUMENTS
     ---------
-    inp: Info object containing input parameter specifications
-    sim: int, simulation number
     Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
     PScov_sim_Inv: (Nbins, Nbins, 3 for Cl00 Cl01 Cl11, 3 for Cl00 Cl01 Cl11) ndarray containing inverse of power spectrum covariance matrix
 
@@ -400,9 +399,9 @@ def covs_of_MLE_analytic(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_
 
     '''
     Clij = np.array([Clij00_all_sims[:,1:], Clij01_all_sims[:,1:], Clij11_all_sims[:,1:]]) #shape (Nsims,3,Ncomps,Nbins)
-    num = np.einsum('sail,lmij,sbjm->sab', Clij, PScov_sim_Inv, Clij)
-    denom1 = np.einsum('sail,lmij,sajm->sa', Clij, PScov_sim_Inv, Clij)
-    denom2 = np.einsum('sbil,lmij,sbjm->sb', Clij, PScov_sim_Inv, Clij)
+    num = np.einsum('isal,lmij,jsbm->sab', Clij, PScov_sim_Inv, Clij)
+    denom1 = np.einsum('isal,lmij,jsam->sa', Clij, PScov_sim_Inv, Clij)
+    denom2 = np.einsum('isbl,lmij,jsbm->sb', Clij, PScov_sim_Inv, Clij)
     denom = np.einsum('sa,sb->sab', denom1, denom2)
     covs = num/denom
     print('Results from Analytic Covariance of MLE, sim 0', flush=True)
@@ -450,6 +449,7 @@ def get_all_acmb_atsz(inp, Clij):
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, use_analytic=True)
+    print(flush=True)
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, use_analytic=False)
     
     print(flush=True)
@@ -459,6 +459,7 @@ def get_all_acmb_atsz(inp, Clij):
     MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, sim=0)
 
     print(flush=True)
+    covs_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PScov_sim_Inv)
 
 
    
