@@ -106,7 +106,7 @@ def ClijA(Acmb, Atsz, Anoise1, Anoise2, inp, Clij00, Clij01, Clij10, Clij11):
     return np.array([[[Clij_with_A_00[b], Clij_with_A_01[b]],[Clij_with_A_10[b], Clij_with_A_11[b]]] for b in range(inp.Nbins)])
 
 
-def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv): 
+def neg_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv): 
     '''
     Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
 
@@ -114,7 +114,6 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
     ---------
     pars: parameters to function f (not manually inputted but used by minimizer)
     f: function that returns theory model in terms of Acmb and Atsz
-    sim: int, simulation number
     inp: Info object containing input parameter specifications
     sim: int, simulation number
     Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
@@ -132,7 +131,6 @@ def lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Cl
     Clij00d = np.mean(Clij00_all_sims[:,0], axis=0)
     Clij01d = np.mean(Clij01_all_sims[:,0], axis=0)
     Clij11d = np.mean(Clij11_all_sims[:,0], axis=0)
-    #return np.sum([1/2*((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l1,0,0]*(model[l1][0,0]-Clij00d[l1]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l1,1,1]*(model[l1][0,1]-Clij01d[l1]) + (model[l1][1,1]-Clij11d[l1])*PScov_sim_Inv[l1,l1,2,2]*(model[l1][1,1]-Clij11d[l1])) for l1 in range(inp.Nbins)]) #diagonal only
     return np.sum([[1/2* \
      ((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clij11d[l2]) \
     + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clij11d[l2]) \
@@ -156,11 +154,10 @@ def acmb_atsz_numerical(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_s
     -------
     best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
     '''
-    bounds = ((0.001, 1000), (0.001, 1000), (0.001, 1000), (0.001, 1000))
     all_res = []
     for start in [0.5, 1.0, 1.5]:
         start_array = [start, start, start, start] #acmb_start, atsz_start, anoise1_start, anoise2_start
-        res = minimize(lnL, x0 = start_array, args = (ClijA, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv), method='Nelder-Mead', bounds=None) #default method is BFGS
+        res = minimize(neg_lnL, x0 = start_array, args = (ClijA, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv), method='Nelder-Mead', bounds=None) #default method is BFGS
         all_res.append(res)
     return (min(all_res, key=lambda res:res.fun)).x
 
@@ -257,9 +254,9 @@ def get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
 
 
 
-###################################################
-### FISHER MATRIX INVERSION FOR ONE SIMULATION  ###
-###################################################
+###############################
+### FISHER MATRIX INVERSION ###
+###############################
 
 
 def Fisher_inversion(inp, Clij, PScov_sim_Inv):
@@ -303,6 +300,11 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv):
     print('Anoise2 std dev: ', anoise2_std, flush=True)
     return acmb_std, atsz_std, anoise1_std, anoise2_std
 
+
+##############################################
+########   MCMC WITH ONE SIMULATION  #########
+##############################################
+
 def pos_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv): 
     '''
     Expression for positive log likelihood for one sim
@@ -321,12 +323,7 @@ def pos_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims
     -------
     log likelihood for one simulation, combined over multipoles 
     '''
-    return -lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv)
-
-
-##############################################
-########   MCMC WITH ONE SIMULATION  #########
-##############################################
+    return -neg_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv)
 
 
 def MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, sim=0):
@@ -342,7 +339,7 @@ def MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims
     RETURNS
     -------
     acmb_std, atsz_std, anoise1_std, anoise2_std: predicted standard deviations of Acmb, etc.
-        found by computing the Fisher matrix and inverting
+        found from MCMC
     '''
 
     np.random.seed(0)
@@ -375,14 +372,12 @@ def MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims
     return acmb_std, atsz_std, anoise1_std, anoise2_std
 
 
-############################################################
-########   COVARIANCE OF MLEs FOR ONE SIMULATION   #########
-############################################################
+############################################
+######## ANALYTIC COVARIANCE OF MLE   ######
+############################################
 
-def covs_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PScov_sim_Inv):
+def cov_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PScov_sim_Inv):
     '''
-    Maximize likelihood with respect to Acmb, Atsz, Anoise90, Anoise150 for one sim analytically 
-
     ARGUMENTS
     ---------
     Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
@@ -390,7 +385,7 @@ def covs_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PSco
 
     RETURNS
     -------
-    best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
+    inverse of Fisher matrix
 
     INDEX MAPPING IN EINSUM
     -----------------------
@@ -458,7 +453,7 @@ def get_all_acmb_atsz(inp, Clij):
     MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, sim=0)
 
     print(flush=True)
-    covs_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PScov_sim_Inv)
+    cov_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PScov_sim_Inv)
 
 
    
