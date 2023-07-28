@@ -123,14 +123,14 @@ def neg_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims
     -------
     negative log likelihood for one simulation, combined over multipoles 
     '''
-    Clij00 = Clij00_all_sims[sim]
-    Clij01 = Clij01_all_sims[sim]
-    Clij10 = Clij10_all_sims[sim]
-    Clij11 = Clij11_all_sims[sim]
+    Clij00 = np.mean(Clij00_all_sims[:,0], axis=0)
+    Clij01 = np.mean(Clij01_all_sims[:,0], axis=0)
+    Clij10 = np.mean(Clij10_all_sims[:,0], axis=0)
+    Clij11 = np.mean(Clij11_all_sims[:,0], axis=0)
     model = f(*pars, inp, Clij00, Clij01, Clij10, Clij11)
-    Clij00d = np.mean(Clij00_all_sims[:,0], axis=0)
-    Clij01d = np.mean(Clij01_all_sims[:,0], axis=0)
-    Clij11d = np.mean(Clij11_all_sims[:,0], axis=0)
+    Clij00d = Clij00_all_sims[sim]
+    Clij01d = Clij01_all_sims[sim]
+    Clij11d = Clij11_all_sims[sim]
     return np.sum([[1/2* \
      ((model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,0]-Clij00d[l1])*PScov_sim_Inv[l1,l2,0,2]*(model[l2][1,1]-Clij11d[l2]) \
     + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,0]*(model[l2][0,0]-Clij00d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,1]*(model[l2][0,1]-Clij01d[l2]) + (model[l1][0,1]-Clij01d[l1])*PScov_sim_Inv[l1,l2,1,2]*(model[l2][1,1]-Clij11d[l2]) \
@@ -186,11 +186,11 @@ def acmb_atsz_analytic(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_si
     alpha --> a, beta --> b, bin1-->l, bin2-->m, ij-->i, kl-->j
 
     '''
-    Clij = np.array([Clij00_all_sims[sim,1:], Clij01_all_sims[sim,1:], Clij11_all_sims[sim,1:]]) #shape (3,Ncomps,Nbins)
-    Clij00d = (np.mean(Clij00_all_sims, axis=0))[0]
-    Clij01d = (np.mean(Clij01_all_sims, axis=0))[0]
-    Clij11d = (np.mean(Clij11_all_sims, axis=0))[0]
-    Clijd = np.array([Clij00d, Clij01d, Clij11d]) #shape (3,Nbins)
+    Clijd = np.array([Clij00_all_sims[sim,0], Clij01_all_sims[sim,0], Clij11_all_sims[sim,0]]) #shape (3,Ncomps,Nbins)
+    Clij00 = (np.mean(Clij00_all_sims, axis=0))[1:]
+    Clij01 = (np.mean(Clij01_all_sims, axis=0))[1:]
+    Clij11 = (np.mean(Clij11_all_sims, axis=0))[1:]
+    Clij = np.array([Clij00, Clij01, Clij11]) #shape (3, Ncomps, Nbins)
     F = np.einsum('ial,lmij,jbm->ab', Clij, PScov_sim_Inv, Clij)
     F_inv = np.linalg.inv(F)
     return np.einsum('ab,ibl,lmij,jm->a', F_inv, Clij, PScov_sim_Inv, Clijd)

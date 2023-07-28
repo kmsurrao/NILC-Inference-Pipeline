@@ -23,14 +23,13 @@ def get_realizations(Nsims, xvals):
         index as realizations[sim, 0-1, x] with index 1 being 0 for cos(x) contribution or 1 for x contribution
 
     '''
-    cov_matrix = 1.*np.eye(2*len(xvals))
-    samples = np.random.multivariate_normal(np.ones(2*len(xvals)), cov_matrix, size=Nsims)
-    realizations = np.zeros((Nsims, 2, len(xvals)))
+    cov_matrix = np.diag(1.+np.sqrt(xvals))
+    samples = np.random.multivariate_normal(np.zeros(len(xvals)), cov_matrix, size=Nsims)
+    realizations = np.zeros((Nsims, len(xvals)))
     for i, sample in enumerate(samples):
-        A,B = sample[:len(sample)//2], sample[len(sample)//2:]
-        realizations[i,0] = A*np.cos(xvals)
-        realizations[i,1] = B*xvals
+        realizations[i] = 1*np.cos(xvals) + 1*xvals + sample
     return realizations
+
 
 
 ##############################################
@@ -41,14 +40,12 @@ def get_cov_sim(realizations):
     '''
     ARGUMENTS
     ---------
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
     
     RETURNS
     -------
     cov: (len(xvals),len(xvals)) ndarray containing covariance matrix of realizations
     '''
-    realizations = np.sum(realizations, axis=1)
     return np.cov(np.transpose(realizations))
 
 
@@ -56,7 +53,7 @@ def get_cov_sim(realizations):
 #########      NUMERICAL MLE      ############
 ##############################################
 
-def theory_model(A, B, realization):
+def theory_model(A, B, xvals):
     '''
     Theory model for f(x)
 
@@ -66,18 +63,17 @@ def theory_model(A, B, realization):
     A,B: parameters to fit in f(x) = Acos(x) + Bx
 
     CONSTANT ARGS
-    realization: (2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realization[0-1, x] with 0-1 for cos(x) contribution or x contribution
+    xvals: numpy array of x values over which to compute function
     
     RETURNS
     -------
     numpy array with same length as xvals, giving f(x) for a given realization
 
     '''
-    return A*realization[0] + B*realization[1]
+    return A*np.cos(xvals) + B*xvals
 
 
-def neg_lnL(pars, f, sim, realizations, cov_sim_Inv): 
+def neg_lnL(pars, f, sim, realizations, cov_sim_Inv, xvals): 
     '''
     Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
 
@@ -86,30 +82,30 @@ def neg_lnL(pars, f, sim, realizations, cov_sim_Inv):
     pars: parameters to function f (not manually inputted but used by minimizer)
     f: function that returns theory model in terms of Acmb and Atsz
     sim: int, simulation number
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
     cov_sim_Inv: (len(xvals), len(xvals)) ndarray containing inverse of realizations covariance matrix
+    xvals: numpy array of x values over which to compute function
 
     RETURNS
     -------
     negative log likelihood for one simulation
     '''
-    model = f(*pars, realizations[sim])
-    data = np.sum(np.mean(realizations, axis=0), axis=0)
+    model = f(*pars, xvals)
+    data = realizations[sim]
     return np.sum([[1/2*(model[x1]-data[x1])*cov_sim_Inv[x1,x2]*(model[x2]-data[x2]) for x1 in range(len(data))] for x2 in range(len(data))])
     
 
 
-def AB_numerical(sim, realizations, cov_sim_Inv):
+def AB_numerical(sim, realizations, cov_sim_Inv, xvals):
     '''
     Maximize likelihood with respect to A and B for one sim using numerical minimization routine
 
     ARGUMENTS
     ---------
     sim: int, simulation number
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
     cov_sim_Inv: (len(xvals), len(xvals)) ndarray containing inverse of realizations covariance matrix
+    xvals: numpy array of x values over which to compute function
 
     RETURNS
     -------
@@ -118,7 +114,7 @@ def AB_numerical(sim, realizations, cov_sim_Inv):
     all_res = []
     for start in [0.5, 1.0, 1.5]:
         start_array = [start, start] #A_start, B_start
-        res = minimize(neg_lnL, x0 = start_array, args = (theory_model, sim, realizations, cov_sim_Inv), method='Nelder-Mead', bounds=None) #default method is BFGS
+        res = minimize(neg_lnL, x0 = start_array, args = (theory_model, sim, realizations, cov_sim_Inv, xvals), method='Nelder-Mead', bounds=None) #default method is BFGS
         all_res.append(res)
     return (min(all_res, key=lambda res:res.fun)).x
 
@@ -127,16 +123,16 @@ def AB_numerical(sim, realizations, cov_sim_Inv):
 #########       ANALYTIC MLE      ############
 ##############################################
 
-def AB_analytic(sim, realizations, cov_sim_Inv):
+def AB_analytic(sim, realizations, cov_sim_Inv, xvals):
     '''
     Maximize likelihood with respect to A and B for one sim analytically 
 
     ARGUMENTS
     ---------
     sim: int, simulation number
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
     cov_sim_Inv: (len(xvals), len(xvals)) ndarray containing inverse of realizations covariance matrix
+    xvals: numpy array of x values over which to compute function
 
     RETURNS
     -------
@@ -147,24 +143,24 @@ def AB_analytic(sim, realizations, cov_sim_Inv):
     alpha --> a, beta --> b, x1-->l, x2-->m
 
     '''
-    realization = realizations[sim] #shape (2, len(xvals))
-    data = np.sum(np.mean(realizations, axis=0), axis=0) #shape (len(xvals),)
-    F = np.einsum('al,lm,bm->ab', realization, cov_sim_Inv, realization)
+    deriv = [(theory_model(1.001,1.,xvals)-theory_model(0.999,1.,xvals))/(1.001-0.999), (theory_model(1, 1.001,xvals)-theory_model(1, 0.999,xvals))/(1.001-0.999)]
+    # template = np.mean(realizations, axis=0) #shape (len(xvals),)
+    F = np.einsum('al,lm,bm->ab', deriv, cov_sim_Inv, deriv)
     F_inv = np.linalg.inv(F)
-    return np.einsum('ab,bl,lm,m->a', F_inv, realization, cov_sim_Inv, data)
+    return np.einsum('ab,al,lm,m->a', F_inv, deriv, cov_sim_Inv, realizations[sim])
 
 
 ##############################################
 ########  ARRAYS OF MLE ESTIMATES  ###########
 ##############################################
 
-def get_MLE_arrays(realizations, cov_sim_Inv, use_analytic=True):
+def get_MLE_arrays(realizations, cov_sim_Inv, xvals, use_analytic=True):
     '''
     ARGUMENTS
     ---------
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
     cov_sim_Inv: (len(xvals), len(xvals)) ndarray containing inverse of realizations covariance matrix
+    xvals: numpy array of x values over which to compute function
     use_analytic: Bool, whether to use analytic MLEs for parameters. If False, compute them with numerical minimization routine
 
     RETURNS
@@ -175,7 +171,7 @@ def get_MLE_arrays(realizations, cov_sim_Inv, use_analytic=True):
     func = AB_analytic if use_analytic else AB_numerical
     string = 'analytic' if use_analytic else 'numerical'
     pool = mp.Pool(8)
-    param_array = pool.starmap(func, [(sim, realizations, cov_sim_Inv) for sim in range(len(realizations))])
+    param_array = pool.starmap(func, [(sim, realizations, cov_sim_Inv, xvals) for sim in range(len(realizations))])
     pool.close()
     param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 2 for A and B)
     A_array = param_array[:,0]
@@ -194,20 +190,19 @@ def get_MLE_arrays(realizations, cov_sim_Inv, use_analytic=True):
 ###############################
 
 
-def Fisher_inversion(realizations, cov_sim_Inv):
+def Fisher_inversion(cov_sim_Inv, xvals):
     '''
     ARGUMENTS
     ---------
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
     cov_sim_Inv: (len(xvals), len(xvals)) ndarray containing inverse of realizations covariance matrix
+    xvals: numpy array of x values over which to compute function
 
     RETURNS
     -------
     A_std, B_std: predicted standard deviations of A and B, found by computing and inverting Fisher matrix
     '''
-    realizations_mean = np.mean(realizations, axis=0)
-    deriv_vec = realizations_mean
+    deriv_vec = [(theory_model(1.001,1.,xvals)-theory_model(0.999,1.,xvals))/(1.001-0.999), (theory_model(1, 1.001,xvals)-theory_model(1, 0.999,xvals))/(1.001-0.999)]
     Fisher = np.einsum('Ab,bc,Bc->AB', deriv_vec, cov_sim_Inv, deriv_vec)
     final_cov = np.linalg.inv(Fisher)
     A_std = np.sqrt(final_cov[0,0])
@@ -223,7 +218,7 @@ def Fisher_inversion(realizations, cov_sim_Inv):
 ########   MCMC WITH ONE SIMULATION  #########
 ##############################################
 
-def pos_lnL(pars, f, sim, realizations, cov_sim_Inv): 
+def pos_lnL(pars, f, sim, realizations, cov_sim_Inv, xvals): 
     '''
     Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
 
@@ -240,16 +235,16 @@ def pos_lnL(pars, f, sim, realizations, cov_sim_Inv):
     -------
     positive log likelihood for one simulation
     '''
-    return -neg_lnL(pars, f, sim, realizations, cov_sim_Inv)
+    return -neg_lnL(pars, f, sim, realizations, cov_sim_Inv, xvals)
 
 
-def MCMC(realizations, cov_sim_Inv, sim=0):
+def MCMC(realizations, cov_sim_Inv, xvals, sim=0):
     '''
     ARGUMENTS
     ---------
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
     cov_sim_Inv: (len(xvals), len(xvals)) ndarray containing inverse of realizations covariance matrix
+    xvals: numpy array of x values over which to compute function
     sim: int, simulation number to use for MCMC
 
     RETURNS
@@ -261,7 +256,7 @@ def MCMC(realizations, cov_sim_Inv, sim=0):
     ndim = 2
     nwalkers = 10
     p0 = np.random.random((nwalkers, ndim))*(1.3-0.7)+0.7
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, pos_lnL, args=[theory_model, sim, realizations, cov_sim_Inv])
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, pos_lnL, args=[theory_model, sim, realizations, cov_sim_Inv, xvals])
     state = sampler.run_mcmc(p0, 100)
     sampler.reset()
     sampler.run_mcmc(state, 1000)
@@ -282,15 +277,14 @@ def MCMC(realizations, cov_sim_Inv, sim=0):
 ######## ANALYTIC COVARIANCE OF MLE   ######
 ############################################
 
-def cov_of_MLE_analytic(realizations, cov_sim_Inv):
+def cov_of_MLE_analytic(cov_sim_Inv, xvals):
     '''
     Maximize likelihood with respect to Acmb, Atsz, Anoise90, Anoise150 for one sim analytically 
 
     ARGUMENTS
     ---------
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
     cov_sim_Inv: (len(xvals), len(xvals)) ndarray containing inverse of realizations covariance matrix
+    xvals: numpy array of x values over which to compute function
 
     RETURNS
     -------
@@ -301,8 +295,8 @@ def cov_of_MLE_analytic(realizations, cov_sim_Inv):
     alpha --> a, beta --> b, x1-->l, x2-->m
 
     '''
-    realizations_mean = np.mean(realizations, axis=0) 
-    F = np.einsum('al,lm,bm->ab', realizations_mean, cov_sim_Inv, realizations_mean)
+    deriv_vec = [(theory_model(1.001,1.,xvals)-theory_model(0.999,1.,xvals))/(1.001-0.999), (theory_model(1, 1.001,xvals)-theory_model(1, 0.999,xvals))/(1.001-0.999)]
+    F = np.einsum('al,lm,bm->ab', deriv_vec, cov_sim_Inv, deriv_vec)
     F_inv = np.linalg.inv(F)
     print('Results from Analytic Covariance of MLEs', flush=True)
     print('------------------------------------', flush=True)
@@ -316,12 +310,12 @@ def cov_of_MLE_analytic(realizations, cov_sim_Inv):
 ##############################################
 
 
-def get_all_AB(realizations):
+def get_all_AB(realizations, xvals):
     '''
     ARGUMENTS
     ---------
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
+    xvals: numpy array of x values over which to compute function
 
     RETURNS
     -------
@@ -334,18 +328,18 @@ def get_all_AB(realizations):
     cov_sim_Inv = scipy.linalg.inv(cov_sim)
     cov_sim_Inv *= (Nsims-num_xvals-2)/(Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
 
-    A_array, B_array = get_MLE_arrays(realizations, cov_sim_Inv, use_analytic=True)
+    A_array, B_array = get_MLE_arrays(realizations, cov_sim_Inv, xvals, use_analytic=True)
     print(flush=True)
-    A_array, B_array = get_MLE_arrays(realizations, cov_sim_Inv, use_analytic=False)
+    A_array, B_array = get_MLE_arrays(realizations, cov_sim_Inv, xvals, use_analytic=False)
     
     print(flush=True)
-    Fisher_inversion(realizations, cov_sim_Inv)
+    Fisher_inversion(cov_sim_Inv, xvals)
 
     print(flush=True)
-    MCMC(realizations, cov_sim_Inv, sim=1)
+    MCMC(realizations, cov_sim_Inv, xvals, sim=1)
 
     print(flush=True)
-    cov_of_MLE_analytic(realizations, cov_sim_Inv)
+    cov_of_MLE_analytic(cov_sim_Inv, xvals)
    
     return A_array, B_array
 
@@ -354,9 +348,9 @@ def get_all_AB(realizations):
 def main():
     np.random.seed(0)
     Nsims = 500
-    xvals = np.linspace(0, 2*np.pi, 25)
+    xvals = np.arange(30)
     realizations = get_realizations(Nsims, xvals)
-    get_all_AB(realizations)
+    get_all_AB(realizations, xvals)
     return
 
 
