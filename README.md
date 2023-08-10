@@ -1,5 +1,5 @@
 # NILC-Inference-Pipeline
-Pipelines for calculating parameter covariance matrix elements obtained via needlet internal linear combination (NILC) based likelihoods, harmonic internal linear combination (HILC) based likelihoods, and multifrequency power spectrum template-fitting. Computation of analytic expressions for NILC power spectra. Currently assumes a sky model comprising only the CMB, tSZ effect (which can be amplified), and noise, at two frequency channels, but the model can be extended easily.
+Pipelines for calculating parameter covariance matrix elements obtained via needlet internal linear combination (NILC) based likelihoods, harmonic internal linear combination (HILC) based likelihoods, and multifrequency power spectrum template-fitting. Also contains code for the computation of analytic expressions for NILC power spectra. The code currently assumes a sky model comprising only the CMB, tSZ effect (which can be amplified), and noise, at two frequency channels, but the model can be extended easily.
 
 ## Requirements and Set-up
  - Requires a clone of the pyilc repository (https://github.com/jcolinhill/pyilc). 

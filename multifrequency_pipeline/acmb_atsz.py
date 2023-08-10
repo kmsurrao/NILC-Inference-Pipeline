@@ -235,13 +235,6 @@ def get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
     pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_template_fitting_{string}.p', 'wb'))
     if inp.verbose:
         print(f'created {inp.output_dir}/acmb_array_template_fitting_{string}.p and atsz and anoise1 and anoise2', flush=True)
-
-    # #remove section below and uncomment section above
-    # acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_template_fitting.p', 'rb'))
-    # atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_template_fitting.p', 'rb'))
-    # anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_template_fitting.p', 'rb'))
-    # anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_template_fitting.p', 'rb'))
-
     final_cov = np.cov(np.array([acmb_array, atsz_array, anoise1_array, anoise2_array]))
     print(f'Results from maximum likelihood estimation using {string} MLEs', flush=True)
     print('---------------------------------------------------------------', flush=True)

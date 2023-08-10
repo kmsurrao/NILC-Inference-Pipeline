@@ -3,7 +3,6 @@ import pickle
 import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
-import emcee
 from fits import call_fit, get_parameter_dependence
 
 
@@ -78,7 +77,7 @@ def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, best_fits):
 
 
 
-def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits): 
+def neg_lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits): 
     '''
     Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
 
@@ -113,29 +112,6 @@ def lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all
     for l1 in range(inp.Nbins)] for l2 in range(inp.Nbins)]) 
 
 
-def pos_lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits): 
-    '''
-    Expression for positive log likelihood for one sim
-
-    ARGUMENTS
-    ---------
-    pars: parameters to function f (not manually inputted but used by minimizer)
-    f: function that returns theory model in terms of Acmb, Atsz, Anoise1, and Anoise2
-    inp: Info object containing input parameter specifications
-    sim: int, simulation number
-    Cl{p}{q}_all_sims: (Nsims, N_comps=4, N_comps=4, Nbins) ndarray containing contribution of components to Clpq
-    PScov_sim_Inv: (Nbins, Nbins, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins, N_comps) ndarray
-        containing best fits to Acmb, Atsz, Anoise1, Anoise2; N_comps is for exponent params
-
-
-    RETURNS
-    -------
-    log likelihood for one simulation, combined over multipoles 
-    '''
-    return -lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits)
-
-
 def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits):
     '''
     Maximize likelihood with respect to Acmb and Atsz for one sim
@@ -157,7 +133,7 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
     all_res = []
     for start in [0.5, 1.0, 1.5]:
         start_array = [start, start, start, start] #acmb_start, atsz_start, anoise1_start, anoise2_start
-        res = minimize(lnL, x0 = start_array, args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits), method='Nelder-Mead', bounds=bounds) #default method is BFGS
+        res = minimize(neg_lnL, x0 = start_array, args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits), method='Nelder-Mead', bounds=bounds) #default method is BFGS
         all_res.append(res)
     return (min(all_res, key=lambda res:res.fun)).x
 
@@ -212,25 +188,11 @@ def get_all_acmb_atsz(inp, Clpq, env):
     pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_nilc.p', 'wb'))
     if inp.verbose:
         print(f'created {inp.output_dir}/acmb_array_nilc.p, atsz_array_nilc.p, anoise1_array_nilc.p, anoise2_array_nilc.p', flush=True)
-        print('acmb_array: ', acmb_array)
-        print('atsz_array: ', atsz_array)
-        print('anoise1_array: ', anoise1_array)
-        print('anoise2_array: ', anoise2_array)
-   
-    # #remove section below and uncomment above
-    # acmb_array = pickle.load(open(f'{inp.output_dir}/acmb_array_nilc.p', 'rb'))
-    # atsz_array = pickle.load(open(f'{inp.output_dir}/atsz_array_nilc.p', 'rb'))
-    # anoise1_array = pickle.load(open(f'{inp.output_dir}/anoise1_array_nilc.p', 'rb'))
-    # anoise2_array = pickle.load(open(f'{inp.output_dir}/anoise2_array_nilc.p', 'rb'))
-
     print('Results from maximum likelihood estimation', flush=True)
     print('----------------------------------------------', flush=True)
     print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
     print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
     print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
     print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
-
-    print(flush=True)
-    MCMC(inp, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits, sim=0)
 
     return acmb_array, atsz_array, anoise1_array, anoise2_array

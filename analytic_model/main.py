@@ -84,7 +84,6 @@ def get_data_vectors(sim, inp, env):
         print(f'calculated bispectra for map, map, weight map for sim {sim}', flush=True)
     if inp.save_files:
         pickle.dump(bispectrum_zzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_bispectrum_zzw.p', 'wb'))
-    # bispectrum_zzw = pickle.load(open('/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_bispectrum_zzw.p', 'rb')) #remove and uncomment section above
     
     # get bispectrum for two weight maps and one factor of map, index as bispectrum_wzw[p,n,i,z,q,m,j,l1,l2,l3]
     bispectrum_wzw = get_bispectrum_wzw(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps)
@@ -92,7 +91,6 @@ def get_data_vectors(sim, inp, env):
         print(f'calculated bispectra for weight map, map, weight map for sim {sim}', flush=True)
     if inp.save_files:
         pickle.dump(bispectrum_wzw, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_bispectrum_wzw.p', 'wb'))
-    # bispectrum_wzw = pickle.load(open(f'/Users/kristen/Documents/NILC_plots/outputs/n_point_funcs/sim{sim}_bispectrum_wzw.p', 'rb')) #remove and uncomment section above
     
     # get unnormalized trispectrum estimator rho, index as rho[z,p,n,i,q,m,j,l2,l4,l3,l5,l1]
     Rho = get_rho(inp, CMB_map, tSZ_map, CMB_wt_maps, tSZ_wt_maps)
@@ -100,7 +98,6 @@ def get_data_vectors(sim, inp, env):
         print(f'calculated unnormalized trispectrum estimator rho for sim {sim}', flush=True)
     if inp.save_files:
         pickle.dump(Rho, open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Rho.p', 'wb'))
-    # Rho = pickle.load(open(f'{inp.output_dir}/n_point_funcs/sim{sim}_Rho.p', 'rb')) #remove and uncomment section above
         
     #get needlet filters and spectral responses
     h = GaussianNeedlets(inp)[1]

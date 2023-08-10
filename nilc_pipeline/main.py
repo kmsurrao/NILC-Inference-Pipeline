@@ -222,8 +222,6 @@ def main():
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
         if inp.verbose:
             print(f'saved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
-
-    #Clpq = pickle.load(open(f'{inp.output_dir}/data_vecs/Clpq.p', 'rb')) #remove this line and uncomment section above
     
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq, env)
     print('PROGRAM FINISHED RUNNING')

@@ -261,7 +261,7 @@ def get_cov(inp):
 
   #save files if requested
   if inp.save_files:
-    pickle.dump(FinalCovILC, open(f'{inp.output_dir}/data_splits_nilc_cov.p', 'wb'))
+    pickle.dump(FinalCovILC, open(f'{inp.output_dir}/data_splits_hilc_cov.p', 'wb'))
     pickle.dump(FinalCovTemplateFitting, open(f'{inp.output_dir}/data_splits_template_fitting_cov.p', 'wb'))
   
   return FinalCovILC, FinalCovTemplateFitting
