@@ -81,7 +81,8 @@ def main():
     '''
 
     # main input file containing most specifications 
-    parser = argparse.ArgumentParser(description="Covariance from template-fitting approach.")
+    parser = argparse.ArgumentParser(description="Covariance from 
+multifrequency template-fitting approach.")
     parser.add_argument("--config", default="example.yaml")
     args = parser.parse_args()
     input_file = args.config
