@@ -12,7 +12,6 @@ from scipy import stats
 import healpy as hp
 from generate_maps import generate_freq_maps
 from utils import setup_output_dir, tsz_spectral_response
-from wigner3j import *
 from acmb_atsz import get_all_acmb_atsz
 
 def get_data_vectors(sim, inp):
@@ -21,7 +20,6 @@ def get_data_vectors(sim, inp):
     ---------
     sim: int, simulation number
     inp: Info object containing input parameter specifications
-    env: environment object
 
     RETURNS
     -------
@@ -81,8 +79,7 @@ def main():
     '''
 
     # main input file containing most specifications 
-    parser = argparse.ArgumentParser(description="Covariance from 
-multifrequency template-fitting approach.")
+    parser = argparse.ArgumentParser(description="Covariance from multifrequency template-fitting approach.")
     parser.add_argument("--config", default="example.yaml")
     args = parser.parse_args()
     input_file = args.config

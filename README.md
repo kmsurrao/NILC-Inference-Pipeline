@@ -8,19 +8,23 @@ Pipelines for calculating parameter covariance matrix elements obtained via need
  - Modify example.yaml or create a similar yaml file in the appropriate subdirectories, modifying paths to the above requirements and any additional specifications. See the specific files for details.
 
 ## Running
-To run the parameter inference pipeline for a NILC-based likelihood:  
-```cd nilc_pipeline```   
+To run the parameter inference pipeline for a needlet ILC-based likelihood:  
+```cd needlet_ILC_pipeline```   
 ```python main.py --config=example.yaml```       
 
 To run the parameter inference pipeline for multifrequency power spectrum template-fitting:  
 ```cd multifrequency_pipeline```       
-```python main.py --config=example.yaml```    
-
-To check the analytic NILC power spectrum result:  
-```cd analytic_model```   
 ```python main.py --config=example.yaml```  
 
-The notebooks folder contains example Jupyter notebooks for producing plots after running the above pipelines. The hilc_and_multifrequency folder contains Mathematica notebooks for analytic demonstrations of equality of the HILC and multifrequency power spectrum template-fitting methods, as well as python scripts for numerical demonstrations of equality between the methods when using data-split cross-spectra.
+To run the parameter inference pipeline for a harmonic ILC-based likelihood:  
+```cd harmonic_ILC_pipeline```       
+```python main.py --config=example.yaml``` 
+
+To check the analytic NILC power spectrum result:  
+```cd NILC_analytic_model```   
+```python main.py --config=example.yaml```  
+
+The notebooks folder contains example Jupyter notebooks for producing plots after running the above pipelines. The HILC_and_multifrequency folder contains Mathematica notebooks for analytic demonstrations of equality of the HILC and multifrequency power spectrum template-fitting methods, as well as python scripts for numerical demonstrations of equality between the methods when using data-split cross-spectra.
 
 ## Recommendations
 There is a large amount of I/O from running this program. It is highly recommended to run on an HPC cluster and to set the output_dir parameter in the yaml files to be an empty subdirectory in a SCRATCH space. It is also recommended (though not required) to comment out calls to healpy mollview in pyilc/pyilc/wavelets.py.
