@@ -50,8 +50,8 @@ def weights(Rlij_inv, spectral_response, spectral_response2=None):
     w = numerator/denominator #index as w[i][l]
     if spectral_response2 is None:
         return w, w
-    numerator2 = np.einsum('lij,j->il', Rlij_inv, spectral_response)
-    denominator2 = np.einsum('lkm,k,m->l', Rlij_inv, spectral_response, spectral_response)
+    numerator2 = np.einsum('lij,j->il', Rlij_inv, spectral_response2)
+    denominator2 = np.einsum('lkm,k,m->l', Rlij_inv, spectral_response2, spectral_response2)
     w2 = numerator2/denominator2 #index as w[i][l]
     return w, w2
 

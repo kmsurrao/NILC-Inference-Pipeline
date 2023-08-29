@@ -1,6 +1,6 @@
 *copy*
 .DS_Store
-notebooks/.ipynb_checkpoints/*
+*/.ipynb_checkpoints/*
 .vscode/*
 */laptop.yaml
 *.fits
