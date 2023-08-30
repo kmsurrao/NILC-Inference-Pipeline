@@ -27,7 +27,7 @@ def get_scaled_maps_and_wts(sim, inp, env):
 
     RETURNS
     -------
-    CMB_map, tSZ_map, noise1_map, noise2_map: unscaled maps of all the components
+    CMB_map_unscaled, tSZ_map_unscaled, noise1_map_unscaled, noise2_map_unscaled: unscaled maps of all the components
     all_wt_maps: (2, 2, 2, 2, 2, N_preserved_comps, Nscales, Nfreqs, Npix) ndarray containing all weight maps
                 dim0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
                 dim1: 0 for unscaled CMB, 1 for scaled CMB
@@ -44,10 +44,12 @@ def get_scaled_maps_and_wts(sim, inp, env):
     all_wt_maps = np.zeros((2, 2, 2, 2, 2, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
     scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]
 
-    for scaling in scalings:
+    for s, scaling in enumerate(scalings):
 
         #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)
         CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, scaling=scaling)
+        if s==0:
+            CMB_map_unscaled, tSZ_map_unscaled, noise1_map_unscaled, noise2_map_unscaled = CMB_map, tSZ_map, noise1_map, noise2_map
         
         #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
         if not weight_maps_exist(sim, inp, scaling=scaling): #check if not all the weight maps already exist
@@ -66,7 +68,7 @@ def get_scaled_maps_and_wts(sim, inp, env):
         if sim >= inp.Nsims_for_fits:
             break #only need unscaled version after getting Nsims_for_fits scaled maps and weights
     
-    return CMB_map, tSZ_map, noise1_map, noise2_map, all_wt_maps
+    return CMB_map_unscaled, tSZ_map_unscaled, noise1_map_unscaled, noise2_map_unscaled, all_wt_maps
 
 
 

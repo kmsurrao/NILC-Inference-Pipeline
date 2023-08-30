@@ -4,7 +4,7 @@
 .vscode/*
 */laptop.yaml
 *.fits
-notebooks/gaussian_tsz.ipynb
+jupyter_notebooks/gaussian_tsz.ipynb
 <<<<<<< HEAD
 *.p
 =======

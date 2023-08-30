@@ -51,11 +51,11 @@ def get_parameter_dependence(inp, Clpq, env):
     inp: Info object containing input paramter specifications
     Clpq: (Nsims, 2, 2, 2, 2, 2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
         containing propagation of each pair of component maps to NILC map auto- and cross-spectra. 
-        dim1: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
-        dim2: 0 for unscaled CMB, 1 for scaled CMB
-        dim3: 0 for unscaled ftSZ, 1 for scaled ftSZ
-        dim4: 0 for unscaled noise90, 1 for scaled noise90
-        dim5: 0 for unscaled noise150, 1 for scaled noise150
+        dim0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
+        dim1: 0 for unscaled CMB, 1 for scaled CMB
+        dim2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+        dim3: 0 for unscaled noise90, 1 for scaled noise90
+        dim4: 0 for unscaled noise150, 1 for scaled noise150
         Note: for sim >= Nsims_for_fits, results are meaningless except for scaling 00000 (all unscaled)
     env: environment object
     

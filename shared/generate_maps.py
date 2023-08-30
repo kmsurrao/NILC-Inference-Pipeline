@@ -22,6 +22,8 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     RETURNS
     -------
     power spectra of CMB, tSZ, and noise (CC, T, N)
+    cmb_map, tsz_map, noise1_map, noise2_map (amplified depending on scaling)
+
     '''
 
     np.random.seed(sim)
@@ -31,10 +33,10 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     CMB_amp, tSZ_amp_extra, noise1_amp, noise2_amp = 1, 1, 1, 1
     if scaling:
         scale_factor = inp.scaling_factors[0] if scaling[0]==0 else inp.scaling_factors[1]
-        if scaling[0]: CMB_amp = scale_factor
-        if scaling[1]: tSZ_amp_extra = scale_factor
-        if scaling[2]: noise1_amp = scale_factor
-        if scaling[3]: noise2_amp = scale_factor
+        if scaling[1]: CMB_amp = scale_factor
+        if scaling[2]: tSZ_amp_extra = scale_factor
+        if scaling[3]: noise1_amp = scale_factor
+        if scaling[4]: noise2_amp = scale_factor
 
     #Read tSZ halosky map
     if not inp.use_Gaussian_tSZ:
