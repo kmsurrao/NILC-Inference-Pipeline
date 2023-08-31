@@ -3,7 +3,7 @@ import numpy as np
 from utils import tsz_spectral_response
 
 
-def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
+def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same_noise=True):
 
     '''
     ARGUMENTS
@@ -18,6 +18,8 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
             idx3: 0 for unscaled noise90, 1 for scaled noise90
             idx4: 0 for unscaled noise150, 1 for scaled noise150
+    same_noise: Bool, whether to use the same or different noise in the two frequently channels
+            (currently, if False, sets the noise in the higher frequency channel to be slightly higher)
 
     RETURNS
     -------
@@ -67,7 +69,10 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None):
     theta_fwhm = (1.4/60.)*(np.pi/180.)
     sigma = theta_fwhm/np.sqrt(8.*np.log(2.))
     W1 = (inp.noise/60.)*(np.pi/180.)
-    W2 = (inp.noise*np.sqrt(1.5)/60.)*(np.pi/180.)
+    if same_noise:
+        W2 = W1
+    else:
+        W2 = (inp.noise*np.sqrt(1.5)/60.)*(np.pi/180.)
     ells = np.arange(3*inp.nside)
     noise1_cl = W1**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
     noise2_cl = W2**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)

@@ -35,7 +35,7 @@ def get_data_vectors(sim, inp, env):
     '''
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, band_limit=True)
+    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, band_limit=True, same_noise=False)
     
     #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
     setup_pyilc(sim, inp, env)

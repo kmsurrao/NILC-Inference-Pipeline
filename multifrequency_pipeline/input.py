@@ -1,5 +1,6 @@
 import yaml
-import numpy as np
+import os
+import warnings
 
 ##########################
 # simple function for opening the file
@@ -37,13 +38,17 @@ class Info(object):
         self.freqs = p['freqs']
         self.use_Gaussian_tSZ = p['use_Gaussian_tSZ']
 
-
         self.halosky_maps_path = p['halosky_maps_path']
         assert type(self.halosky_maps_path) is str, "TypeError: halosky_maps_path"
+        assert os.path.isdir(self.halosky_maps_path), "halosky maps path does not exist"
         self.cmb_map_file = p['cmb_map_file']
         assert type(self.cmb_map_file) is str, "TypeError: cmb_map_file"
+        assert os.path.isfile(self.cmb_map_file), "CMB map file does not exist"
         self.output_dir = p['output_dir']
         assert type(self.output_dir) is str, "TypeError: output_dir"
+        if os.path.isdir(self.output_dir):
+            if os.listdir(self.output_dir): #output directory not empty
+                warnings.warn("Output directory is not empty! For safety, make sure to use an output directory that only contains outputs from this pipeline (and other pipelines in the repo) since files will be written and deleted.") 
 
         self.verbose = p['verbose']
         self.save_files = p['save_files']
