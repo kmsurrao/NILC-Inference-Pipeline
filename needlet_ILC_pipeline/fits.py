@@ -90,7 +90,6 @@ def get_parameter_dependence(inp, Clpq, env):
     
     if inp.save_files:
         pickle.dump(best_fits, open(f'{inp.output_dir}/data_vecs/best_fits.p', 'wb'), protocol=4)
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/best_fits.p', flush=True)
+        print(f'saved {inp.output_dir}/data_vecs/best_fits.p', flush=True)
     
     return best_fits

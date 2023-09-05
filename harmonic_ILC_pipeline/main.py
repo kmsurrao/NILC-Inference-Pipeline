@@ -84,11 +84,13 @@ def get_data_vecs(inp, Clij):
     g_noise2 = np.array([0.,1.])
     all_g_vecs = np.array([g_cmb, g_tsz, g_noise1, g_noise2])
 
+    #HILC auto- and cross-spectra
     Clpq_orig = np.zeros((N_preserved_comps, N_preserved_comps, 1+Ncomps, inp.ellmax+1))
     for p in range(N_preserved_comps):
         for q in range(N_preserved_comps):
             Clpq_orig[p,q] = HILC_spectrum(inp, Clij, all_g_vecs[p], spectral_response2=all_g_vecs[q])
     
+    #binning
     Clpq = np.zeros((N_preserved_comps, N_preserved_comps, 1+Ncomps, inp.Nbins))
     ells = np.arange(inp.ellmax+1)
     for p in range(N_preserved_comps):
@@ -139,6 +141,7 @@ def main():
         if inp.verbose:
             print(f'saved {inp.output_dir}/data_vecs/Clij_HILC.p')
     
+    inp.Clij_data = np.mean(Clij, axis=0)
     pool = mp.Pool(inp.num_parallel)
     Clpq = pool.starmap(get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
     pool.close()

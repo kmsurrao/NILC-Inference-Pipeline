@@ -46,7 +46,7 @@ def setup_output_dir(inp, env, scaling=False):
 
     return 
 
-def tsz_spectral_response(freqs): #input frequency in GHz
+def tsz_spectral_response(freqs):
     '''
     ARGUMENTS
     ---------
@@ -62,7 +62,7 @@ def tsz_spectral_response(freqs): #input frequency in GHz
     response = []
     for freq in freqs:
         x = h*(freq*10**9)/(kb*T_cmb) #x is v/56.9 GHz
-        response.append(T_cmb*(x*1/np.tanh(x/2)-4)) #was factor of tcmb microkelvin before
+        response.append(T_cmb*(x*1/np.tanh(x/2)-4))
     return np.array(response)
 
 def GaussianNeedlets(inp, taper_width=0):
@@ -143,8 +143,8 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None):
         all_maps = np.zeros((inp.Nscales, 12*inp.nside**2)) #index as all_maps[scale][pixel]
         for i in range(len(inp.freqs)):
             map_ = freq_maps[i]
-            map_ = hp.ud_grade(map_, inp.nside) #changed
-            alm_orig = hp.map2alm(map_) #changed
+            map_ = hp.ud_grade(map_, inp.nside)
+            alm_orig = hp.map2alm(map_)
             for n in range(inp.Nscales):
                 alm = hp.almxfl(alm_orig, h[n]) #initial needlet filtering
                 map_ = hp.alm2map(alm, inp.nside)
@@ -153,7 +153,7 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None):
                 all_maps[n] = np.add(all_maps[n], map_) #add maps at all frequencies for each scale
         T_ILC_n = None
         for n in range(inp.Nscales):
-            T_ILC_alm = hp.map2alm(all_maps[n]) #changed
+            T_ILC_alm = hp.map2alm(all_maps[n])
             tmp = hp.almxfl(T_ILC_alm, h[n]) #final needlet filtering
             if T_ILC_n is None:
                 T_ILC_n = np.zeros((inp.Nscales,len(tmp)),dtype=np.complex128)

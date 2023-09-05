@@ -125,15 +125,17 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
 
     RETURNS
     -------
-    best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
+    MLE_params: best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
     '''
     bounds = ((0.001, None), (0.001, None), (0.001, None), (0.001, None))
     all_res = []
-    for start in [0.5, 1.0, 1.5]:
+    #for start in [0.5, 1.0, 1.5]: #use this if minimizer gets stuck in local minima
+    for start in [1.0]:
         start_array = [start, start, start, start] #acmb_start, atsz_start, anoise1_start, anoise2_start
         res = minimize(neg_lnL, x0 = start_array, args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, best_fits), method='Nelder-Mead', bounds=bounds) #default method is BFGS
         all_res.append(res)
-    return (min(all_res, key=lambda res:res.fun)).x
+    MLE_params = (min(all_res, key=lambda res:res.fun)).x
+    return MLE_params
 
 
 
@@ -184,8 +186,7 @@ def get_all_acmb_atsz(inp, Clpq, env):
     pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_nilc.p', 'wb'))
     pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_nilc.p', 'wb'))
     pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_nilc.p', 'wb'))
-    if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_nilc.p, atsz_array_nilc.p, anoise1_array_nilc.p, anoise2_array_nilc.p', flush=True)
+    print(f'created {inp.output_dir}/acmb_array_nilc.p, atsz_array_nilc.p, anoise1_array_nilc.p, anoise2_array_nilc.p', flush=True)
     print('Results from maximum likelihood estimation', flush=True)
     print('----------------------------------------------', flush=True)
     print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)

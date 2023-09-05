@@ -222,8 +222,7 @@ def main():
     Clpq = np.asarray(Clpq, dtype=np.float32)
     if inp.save_files:
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
+        print(f'saved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
     
     acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq, env)
     print('PROGRAM FINISHED RUNNING')
