@@ -2,7 +2,10 @@ import numpy as np
 import pickle
 import itertools
 import subprocess
+import sys
+sys.path.append('../shared')
 from pysr import PySRRegressor 
+from utils import get_scalings
 
 def symbolic_regression(x_vals, y_vals):
     '''
@@ -49,13 +52,14 @@ def get_parameter_dependence(inp, Clpq, env):
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clpq: (Nsims, 2, 2, 2, 2, 2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
+    Clpq: (Nsims, Nscalings, 2, 2, 2, 2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
         containing propagation of each pair of component maps to NILC map auto- and cross-spectra. 
-        dim0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
-        dim1: 0 for unscaled CMB, 1 for scaled CMB
-        dim2: 0 for unscaled ftSZ, 1 for scaled ftSZ
-        dim3: 0 for unscaled noise90, 1 for scaled noise90
-        dim4: 0 for unscaled noise150, 1 for scaled noise150
+        dim1: idx0 if "scaled" means maps are scaled according to scaling factor 0 from input, 
+            idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
+        dim2: 0 for unscaled CMB, 1 for scaled CMB
+        dim3: 0 for unscaled ftSZ, 1 for scaled ftSZ
+        dim4: 0 for unscaled noise90, 1 for scaled noise90
+        dim5: 0 for unscaled noise150, 1 for scaled noise150
         Note: for sim >= Nsims_for_fits, results are meaningless except for scaling 00000 (all unscaled)
     env: environment object
     
@@ -70,14 +74,14 @@ def get_parameter_dependence(inp, Clpq, env):
     Clpq_mean = np.mean(Clpq[:inp.Nsims_for_fits], axis=0)
 
     best_fits = np.zeros((N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins)).tolist()
-    scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]
+    scalings = get_scalings(inp)
     for p,q in [(0,0), (0,1), (1,1)]:
         for y in range(N_comps):
             for z in range(N_comps):
                 for bin in range(inp.Nbins):
                     x_vals, y_vals = [], []
                     for s in scalings:
-                        scaling_factor = inp.scaling_factors[0]**2 if s[0] == 0 else inp.scaling_factors[1]**2
+                        scaling_factor = (inp.scaling_factors[s[0]])**2
                         x = np.ones(N_comps)
                         x[np.array(s[1:])==1] = scaling_factor
                         x_vals.append(x)

@@ -13,7 +13,8 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same
     save: Bool, whether to save frequency map files
     band_limit: Bool, whether or not to remove all power in weight maps above ellmax
     scaling: None or list of length 5
-            idx0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
+            idx0: takes on values from 0 to len(inp.scaling_factors)-1,
+                indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
             idx3: 0 for unscaled noise90, 1 for scaled noise90
@@ -34,7 +35,7 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same
     #Determine which components to scale
     CMB_amp, tSZ_amp_extra, noise1_amp, noise2_amp = 1, 1, 1, 1
     if scaling:
-        scale_factor = inp.scaling_factors[0] if scaling[0]==0 else inp.scaling_factors[1]
+        scale_factor = inp.scaling_factors[scaling[0]]
         if scaling[1]: CMB_amp = scale_factor
         if scaling[2]: tSZ_amp_extra = scale_factor
         if scaling[3]: noise1_amp = scale_factor

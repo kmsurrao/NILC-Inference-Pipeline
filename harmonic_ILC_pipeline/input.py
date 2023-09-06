@@ -38,7 +38,6 @@ class Info(object):
         self.freqs = p['freqs']
         self.delta_l = p['delta_l']
         self.use_Gaussian_tSZ = p['use_Gaussian_tSZ']
-        self.compute_weights_once = p['compute_weights_once']
 
 
         self.halosky_maps_path = p['halosky_maps_path']

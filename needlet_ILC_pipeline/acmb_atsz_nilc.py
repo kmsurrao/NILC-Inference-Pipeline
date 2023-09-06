@@ -144,7 +144,7 @@ def get_all_acmb_atsz(inp, Clpq, env):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clpq: (Nsims, 2,2,2,2,2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
+    Clpq: (Nsims, Nscalings, 2,2,2,2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
         containing propagation of each pair of component maps
         to NILC map auto- and cross-spectra
     env: environment object

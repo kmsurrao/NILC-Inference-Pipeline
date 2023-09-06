@@ -31,7 +31,7 @@ def setup_output_dir(inp, env, scaling=False):
     if not os.path.isdir(f'{inp.output_dir}/data_vecs'):
         subprocess.call(f'mkdir {inp.output_dir}/data_vecs', shell=True, env=env)
     if scaling:
-        scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]
+        scalings = get_scalings(inp)
         for s in scalings:
             scaling_str = ''.join(str(e) for e in s) 
             new_dir_pyilc_inputs = f'{inp.output_dir}/pyilc_yaml_files/{scaling_str}'
@@ -161,5 +161,29 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None):
         T_ILC = np.sum(np.array([hp.alm2map(T_ILC_n[n], inp.nside) for n in range(len(T_ILC_n))]), axis=0) #adding maps from all scales
         NILC_maps.append(T_ILC)
     return NILC_maps
+
+def get_scalings(inp):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+
+    RETURNS
+    -------
+    scalings: list of lists, each of length 5
+            idx0: takes on values from 0 to len(inp.scaling_factors)-1,
+                  indicating by which scaling factor the input maps are scaled
+            idx1: 0 for unscaled CMB, 1 for scaled CMB
+            idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+            idx3: 0 for unscaled noise90, 1 for scaled noise90
+            idx4: 0 for unscaled noise150, 1 for scaled noise150
+    '''
+    scalings_init = [list(i) for i in itertools.product([0, 1], repeat=4)]
+    scalings = []
+    for i in range(len(inp.scaling_factors)):
+        for s in scalings_init:
+            scalings.append([i]+s)
+    return scalings
+
 
 

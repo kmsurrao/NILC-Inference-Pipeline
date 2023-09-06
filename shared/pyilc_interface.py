@@ -13,7 +13,8 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     env: environment object
     suppress_printing: Bool, whether to suppress outputs and errors from pyilc code itself
     scaling: None or list of length 5
-            idx0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
+            idx0: takes on values from 0 to len(inp.scaling_factors)-1,
+                  indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
             idx3: 0 for unscaled noise90, 1 for scaled noise90
@@ -90,7 +91,8 @@ def weight_maps_exist(sim, inp, scaling=None):
     sim: int, simulation number
     inp: Info object containing input parameter specifications
     scaling: None or list of length 5
-            idx0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
+            idx0: takes on values from 0 to len(inp.scaling_factors)-1,
+                  indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
             idx3: 0 for unscaled noise90, 1 for scaled noise90

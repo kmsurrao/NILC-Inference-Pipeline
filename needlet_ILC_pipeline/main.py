@@ -8,13 +8,12 @@ import pickle
 import subprocess
 import time
 import argparse
-import itertools
 import healpy as hp
 from scipy import stats
 from generate_maps import generate_freq_maps
 from pyilc_interface import setup_pyilc, weight_maps_exist
 from load_weight_maps import load_wt_maps
-from utils import setup_output_dir, tsz_spectral_response, GaussianNeedlets, build_NILC_maps
+from utils import setup_output_dir, tsz_spectral_response, GaussianNeedlets, build_NILC_maps, get_scalings
 from acmb_atsz_nilc import *
 
 def get_scaled_maps_and_wts(sim, inp, env):
@@ -28,12 +27,13 @@ def get_scaled_maps_and_wts(sim, inp, env):
     RETURNS
     -------
     CMB_map_unscaled, tSZ_map_unscaled, noise1_map_unscaled, noise2_map_unscaled: unscaled maps of all the components
-    all_wt_maps: (2, 2, 2, 2, 2, N_preserved_comps, Nscales, Nfreqs, Npix) ndarray containing all weight maps
-                dim0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
-                dim1: 0 for unscaled CMB, 1 for scaled CMB
-                dim2: 0 for unscaled ftSZ, 1 for scaled ftSZ
-                dim3: 0 for unscaled noise90, 1 for scaled noise90
-                dim4: 0 for unscaled noise150, 1 for scaled noise150
+    all_wt_maps: (Nscalings, 2, 2, 2, 2, N_preserved_comps, Nscales, Nfreqs, Npix) ndarray containing all weight maps
+                dim0: idx0 if "scaled" means maps are scaled according to scaling factor 0 from input, 
+                      idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
+                dim1: idx0 for unscaled CMB, idx1 for scaled CMB
+                dim2: idx0 for unscaled ftSZ, idx1 for scaled ftSZ
+                dim3: idx0 for unscaled noise90, idx1 for scaled noise90
+                dim4: idx0 for unscaled noise150, idx1 for scaled noise150
                 Note: for sim >= Nsims_for_fits, results are meaningless except for scaling 00000 (all unscaled)
 
     '''
@@ -41,8 +41,9 @@ def get_scaled_maps_and_wts(sim, inp, env):
     N_preserved_comps = 2
 
     #array for all weight maps
-    all_wt_maps = np.zeros((2, 2, 2, 2, 2, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
-    scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]
+    Nscalings = len(inp.scaling_factors)
+    all_wt_maps = np.zeros((Nscalings, 2, 2, 2, 2, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
+    scalings = get_scalings(inp)
 
     for s, scaling in enumerate(scalings):
 
@@ -82,18 +83,19 @@ def get_data_vectors(sim, inp, env):
 
     RETURNS
     -------
-    Clpq: (2, 2, 2, 2, 2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
+    Clpq: (Nscalings, 2, 2, 2, 2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
         containing propagation of each pair of component maps to NILC map auto- and cross-spectra. 
-        dim0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
-        dim1: 0 for unscaled CMB, 1 for scaled CMB
-        dim2: 0 for unscaled ftSZ, 1 for scaled ftSZ
-        dim3: 0 for unscaled noise90, 1 for scaled noise90
-        dim4: 0 for unscaled noise150, 1 for scaled noise150
+        dim0: idx0 if "scaled" means maps are scaled according to scaling factor 0 from input, 
+            idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
+        dim1: idx0 for unscaled CMB, idx1 for scaled CMB
+        dim2: idx0 for unscaled ftSZ, idx1 for scaled ftSZ
+        dim3: idx0 for unscaled noise90, idx1 for scaled noise90
+        dim4: idx0 for unscaled noise150, idx1 for scaled noise150
         preserved_comps = CMB, ftSZ
         comps = CMB, ftSZ, noise 90 GHz, noise 150 GHz
         For example, Clpq[1,0,1,0,1,0,1,1,2] is cross-spectrum of ftSZ propagation to 
         CMB-preserved NILC map and 90 GHz noise propagation to ftSZ-preserved NILC map 
-        when ftSZ and 150 GHz noise are scaled up
+        when ftSZ and 150 GHz noise are scaled according to inp.scaling_factors[1]
         Note: for sim >= Nsims_for_fits, results are meaningless except for scaling 00000 (all unscaled)
     '''
     
@@ -112,8 +114,9 @@ def get_data_vectors(sim, inp, env):
 
     #get map level propagation of components
     Npix = 12*inp.nside**2
-    all_map_level_prop = np.zeros((2,2,2,2,2, N_preserved_comps, N_comps, Npix)) 
-    scalings = [list(i) for i in itertools.product([0, 1], repeat=5)]
+    Nscalings = len(inp.scaling_factors)
+    all_map_level_prop = np.zeros((Nscalings,2,2,2,2, N_preserved_comps, N_comps, Npix)) 
+    scalings = get_scalings(inp)
     
     for y in range(N_comps):
         for scaling in scalings:
@@ -123,10 +126,8 @@ def get_data_vectors(sim, inp, env):
             elif y==2: compy, g_vecy = np.copy(noise1_map), g_noise1 #noise 90 GHz
             elif y==3: compy, g_vecy = np.copy(noise2_map), g_noise2 #noise 150 GHz
 
-            if scaling[y+1]==1 and scaling[0]==0: #component y scaled down
-                compy *= inp.scaling_factors[0]
-            elif scaling[y+1]==1 and scaling[0]==1: #component y scaled up
-                compy *= inp.scaling_factors[1]
+            if scaling[y+1]==1: #component y scaled
+                compy *= inp.scaling_factors[scaling[0]]
             
             CMB_wt_maps, tSZ_wt_maps = all_wt_maps[scaling[0], scaling[1], scaling[2], scaling[3], scaling[4]]
             compy_freq1, compy_freq2 = g_vecy[0]*compy, g_vecy[1]*compy
@@ -138,9 +139,9 @@ def get_data_vectors(sim, inp, env):
             if sim >= inp.Nsims_for_fits:
                 break #only need unscaled version after getting Nsims_for_fits scaled maps and weights
 
-    #define and fill in array of data vectors (dim 0 has size 2*N_comps+1 for each scaled low component, each scaled high comp, and then all unscaled)
-    Clpq_tmp = np.zeros((2,2,2,2,2, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1))
-    Clpq = np.zeros((2,2,2,2,2, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins))
+    #define and fill in array of data vectors (dim 0 has size Nscalings for which scaling in inp.scaling_factors is used)
+    Clpq_tmp = np.zeros((Nscalings,2,2,2,2, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.ellmax+1)) #unbinned
+    Clpq = np.zeros((Nscalings,2,2,2,2, N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins)) #binned
 
     for y in range(N_comps):
         for z in range(N_comps):
