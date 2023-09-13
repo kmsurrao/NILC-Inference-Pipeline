@@ -57,7 +57,7 @@ def get_freq_power_spec(sim, inp):
     return Clij
 
 
-def get_data_vecs(inp, Clij):
+def get_data_vecs(inp, Clij, pars=None):
     '''
     ARGUMENTS
     ---------
@@ -66,6 +66,8 @@ def get_data_vecs(inp, Clij):
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
         dim2: index0 is total power in Clij, other indices are power from each component
+    pars: array of [Acmb, Atsz, Anoise1, Anoise2]
+        only needed if computing weights individually for each realization 
 
     RETURNS
     -------
@@ -88,7 +90,7 @@ def get_data_vecs(inp, Clij):
     Clpq_orig = np.zeros((N_preserved_comps, N_preserved_comps, 1+Ncomps, inp.ellmax+1))
     for p in range(N_preserved_comps):
         for q in range(N_preserved_comps):
-            Clpq_orig[p,q] = HILC_spectrum(inp, Clij, all_g_vecs[p], spectral_response2=all_g_vecs[q])
+            Clpq_orig[p,q] = HILC_spectrum(inp, Clij, all_g_vecs[p], spectral_response2=all_g_vecs[q], pars=pars)
     
     #binning
     Clpq = np.zeros((N_preserved_comps, N_preserved_comps, 1+Ncomps, inp.Nbins))
@@ -151,7 +153,10 @@ def main():
         if inp.verbose:
             print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
     
-    acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
+    if inp.compute_weights_once:
+        acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
+    else:
+        acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq, Clij=Clij)
     
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)

@@ -1,6 +1,6 @@
 import numpy as np
 
-def get_Rlij_inv(inp, Clij):
+def get_Rlij_inv(inp, Clij, pars=None):
     '''
     ARGUMENTS
     ---------
@@ -9,6 +9,7 @@ def get_Rlij_inv(inp, Clij):
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
         dim2: index0 is total power in Clij, other indices are power from each component
+    pars: array of [Acmb, Atsz, Anoise1, Anoise2]
     
     RETURNS
     -------
@@ -16,11 +17,14 @@ def get_Rlij_inv(inp, Clij):
     '''
     ells = np.arange(inp.ellmax+1)
     prefactor = (2*ells+1)/(4*np.pi)
-    Rlij_no_binning = np.einsum('l,ijl->ijl', prefactor, Clij[:,:,0,:])
+    if pars:
+        Rlij_no_binning = np.einsum('l,ijal,a->ijl', prefactor, Clij[:,:,1:,:], pars)
+    else:
+        Rlij_no_binning = np.einsum('l,ijl->ijl', prefactor, Clij[:,:,0,:])
     if not inp.delta_l:
         Rlij = Rlij_no_binning
     else:
-        Rlij = np.zeros((len(inp.freqs), len(inp.freqs), inp.ellmax+1)) 
+        Rlij = np.zeros((len(inp.freqs), len(inp.freqs), len(pars), inp.ellmax+1)) 
         for i in range(len(inp.freqs)):
             for j in range(len(inp.freqs)):
                 Rlij[i][j] = (np.convolve(Rlij_no_binning[i][j], np.ones(2*inp.delta_l+1)))[inp.delta_l:inp.ellmax+1+inp.delta_l]
@@ -56,7 +60,7 @@ def weights(Rlij_inv, spectral_response, spectral_response2=None):
     return w, w2
 
 
-def HILC_spectrum(inp, Clij, spectral_response, spectral_response2=None):
+def HILC_spectrum(inp, Clij, spectral_response, spectral_response2=None, pars=None):
     '''
     ARGUMENTS
     ---------
@@ -70,6 +74,7 @@ def HILC_spectrum(inp, Clij, spectral_response, spectral_response2=None):
     spectral_response2: array-like of length Nfreqs containing spectral response
         of component of interest at each frequency for second component if producing
         ILC cross-spectrum of two different components
+    pars: array of [Acmb, Atsz, Anoise1, Anoise2]
 
     RETURNS
     -------
@@ -78,7 +83,10 @@ def HILC_spectrum(inp, Clij, spectral_response, spectral_response2=None):
         dim0: index0 is total power spectrum of HILC map p and HILC map q
 
     '''
-    Rlij_inv = get_Rlij_inv(inp, inp.Clij_data)
+    Rlij_inv = get_Rlij_inv(inp, Clij, pars=pars)
     w1, w2 = weights(Rlij_inv, spectral_response, spectral_response2=spectral_response2)
-    Clpq = np.einsum('il,jl,ijal->al', w1, w2, Clij) 
+    if pars:
+        Clpq = np.einsum('il,jl,ijal,a->al', w1, w2, Clij, pars)
+    else:
+        Clpq = np.einsum('il,jl,ijal->al', w1, w2, Clij)   
     return Clpq

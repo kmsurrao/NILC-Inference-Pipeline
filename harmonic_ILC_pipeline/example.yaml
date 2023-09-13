@@ -9,6 +9,7 @@ use_Gaussian_tSZ: 0 #Set to nonzero value (not recommended, use only for testing
 noise: 3500 #noise level in uK arcmin
 freqs: [90., 150.] #frequencies for maps, in GHz
 delta_l: 10 #bin width for harmonic ILC frequency-frequency covariance matrix computation, set to 0 for no binning
+compute_weights_once: 0 #Set to nonzero value to compute weights once from "data" and apply to every realization, set to zero to compute weights separately for each realization (and include parameter dependence in the weights)
 
 verbose: 1 #set to 0 if do not want intermediate printing
 save_files: 1 #set to nonzero value to save pickle files

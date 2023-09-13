@@ -45,9 +45,8 @@ class Info(object):
         self.noise = p['noise']
         assert self.noise >= 0, 'noise'
         self.scaling_factors = p['scaling_factors']
-        assert len(self.scaling_factors) == 2, "wrong number of scaling factors"
-        assert self.scaling_factors[0] < 1.0 and self.scaling_factors[1] > 1.0, \
-            "first scaling factor should be less than 1.0 and second scaling factor should be greater than 1.0"
+        assert len(self.scaling_factors) >= 1, "Need at least one scaling factor"
+        assert 1 not in self.scaling_factors, "Cannot use 1.0 as a scaling factor"
 
         self.pyilc_path = p['pyilc_path']
         assert type(self.pyilc_path) is str, "TypeError: pyilc_path"
