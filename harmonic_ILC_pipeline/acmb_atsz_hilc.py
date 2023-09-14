@@ -3,7 +3,7 @@ import pickle
 import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
-from main import get_data_vecs
+from harmonic_ILC import get_data_vecs
 
 
 
@@ -30,7 +30,7 @@ def get_PScov_sim(inp, Clpq):
 
 
 
-def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, Clij=None):
+def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy):
     '''
     Model for theoretical spectra Clpq including Acmb, Atsz, and Anoise parameters
 
@@ -45,11 +45,6 @@ def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, Clij=None):
     CONSTANT ARGS
     inp: Info object containing input parameter specifications
     Cl{p}{q}: (1+Ncomps, Nbins) ndarray containing contribution of components to Clpq
-    Clij: (Nfreqs=2, Nfreqs=2, 1+Ncomps, ellmax+1) ndarray 
-        containing contributions of each component to the 
-        auto- and cross- spectra of freq maps at freqs i and j
-        dim2: index0 is total power in Clij, other indices are power from each component
-        Only needs to be defined if computing weights separately for every realization
 
     RETURNS
     -------
@@ -72,14 +67,14 @@ def ClpqA(Acmb, Atsz, Anoise1, Anoise2, inp, ClTT, ClTy, ClyT, Clyy, Clij=None):
             for y in range(1, len(A_vec)+1):
                 theory_model[p,q] += A_vec[y-1]*Clpq_here[y]
     else:
-        theory_model = (get_data_vecs(inp, Clij, pars=A_vec))[:,:,0,:]
+        theory_model = np.sum((get_data_vecs(inp, inp.Clij_theory, pars=A_vec))[:,:,1:,:], axis=2)
 
     theory_model = np.transpose(theory_model, axes=(2,0,1))
     return theory_model
 
 
 
-def neg_lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, Clij=None): 
+def neg_lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv): 
     '''
     Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
 
@@ -91,12 +86,6 @@ def neg_lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy
     sim: int, simulation number
     Cl{p}{q}_all_sims: (Nsims, 1+Ncomps, Nbins) ndarray containing contribution of components to Clpq
     PScov_sim_Inv: (Nbins, Nbins, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
-    Clij: (Nfreqs=2, Nfreqs=2, 1+Ncomps, ellmax+1) ndarray 
-        containing contributions of each component to the 
-        auto- and cross- spectra of freq maps at freqs i and j
-        dim2: index0 is total power in Clij, other indices are power from each component
-        Only needs to be defined if computing weights separately for every realization
-
 
     RETURNS
     -------
@@ -106,7 +95,7 @@ def neg_lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy
     ClTy = np.mean(ClTy_all_sims, axis=0)
     ClyT = np.mean(ClyT_all_sims, axis=0)
     Clyy = np.mean(Clyy_all_sims, axis=0)
-    model = f(*pars, inp, ClTT, ClTy, ClyT, Clyy, Clij=Clij)
+    model = f(*pars, inp, ClTT, ClTy, ClyT, Clyy)
     ClTTd = ClTT_all_sims[sim,0]
     ClTyd = ClTy_all_sims[sim,0]
     Clyyd = Clyy_all_sims[sim,0]
@@ -117,7 +106,7 @@ def neg_lnL(pars, f, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy
     for l1 in range(inp.Nbins)] for l2 in range(inp.Nbins)]) 
 
 
-def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, Clij=None):
+def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv):
     '''
     Maximize likelihood with respect to Acmb and Atsz for one sim
 
@@ -127,11 +116,6 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
     sim: int, simulation number
     Cl{p}{q}_all_sims: (Nsims, 1+Ncomps, Nbins) ndarray containing contribution of components to Clpq
     PScov_sim_Inv: (Nbins, Nbins, 3 for ClTT ClTy Clyy, 3 for ClTT ClTy Clyy) ndarray containing inverse of power spectrum covariance matrix
-    Clij: (Nfreqs=2, Nfreqs=2, 1+Ncomps, ellmax+1) ndarray 
-        containing contributions of each component to the 
-        auto- and cross- spectra of freq maps at freqs i and j
-        dim2: index0 is total power in Clij, other indices are power from each component
-        Only needs to be defined if computing weights separately for every realization
 
     RETURNS
     -------
@@ -140,13 +124,13 @@ def acmb_atsz(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_si
     all_res = []
     for start in [0.5, 1.0, 1.5]:
         start_array = [start, start, start, start] #acmb_start, atsz_start, anoise1_start, anoise2_start
-        res = minimize(neg_lnL, x0 = start_array, args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, Clij), method='Nelder-Mead') #default method is BFGS
+        res = minimize(neg_lnL, x0 = start_array, args = (ClpqA, inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv), method='Nelder-Mead') #default method is BFGS
         all_res.append(res)
     return (min(all_res, key=lambda res:res.fun)).x
 
 
 
-def get_all_acmb_atsz(inp, Clpq, Clij=None):
+def get_all_acmb_atsz(inp, Clpq):
     '''
     ARGUMENTS
     ---------
@@ -154,11 +138,6 @@ def get_all_acmb_atsz(inp, Clpq, Clij=None):
     Clpq: (Nsims, N_preserved_comps=2, N_preserved_comps=2, 1+Ncomps, Nbins) ndarray 
         containing binned auto- and cross-spectra of harmonic ILC maps p and q
         dim2: index0 is total power in Clpq, other indices are power from each component
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, ellmax+1) ndarray 
-        containing contributions of each component to the 
-        auto- and cross- spectra of freq maps at freqs i and j
-        dim2: index0 is total power in Clij, other indices are power from each component
-        Only needs to be defined if computing weights separately for every realization
 
     RETURNS
     -------
@@ -183,10 +162,7 @@ def get_all_acmb_atsz(inp, Clpq, Clij=None):
     ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims = Clpq[:,0,0], Clpq[:,0,1], Clpq[:,1,0], Clpq[:,1,1]
 
     pool = mp.Pool(inp.num_parallel)
-    if Clij is not None:
-        param_array = pool.starmap(acmb_atsz, [(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv, Clij[sim]) for sim in range(inp.Nsims)])
-    else:
-        param_array = pool.starmap(acmb_atsz, [(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv) for sim in range(inp.Nsims)])
+    param_array = pool.starmap(acmb_atsz, [(inp, sim, ClTT_all_sims, ClTy_all_sims, ClyT_all_sims, Clyy_all_sims, PScov_sim_Inv) for sim in range(inp.Nsims)])
     pool.close()
     param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 4 for Acmb Atsz Anoise1 Anoise2)
     acmb_array = param_array[:,0]

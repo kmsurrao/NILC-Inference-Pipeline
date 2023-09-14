@@ -1,7 +1,7 @@
 Nsims: 1000 #number of simulations to run
 num_parallel: 20 #number of sims to run in parallel
 
-nside: 128 #nside of NILC maps
+nside: 128 #nside resolution parameter for generated maps
 ellmax: 250 #ellmax for power spectra
 Nbins: 10 #number of ell-space bins
 tSZ_amp: 1000. #amplification factor for tSZ map

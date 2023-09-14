@@ -8,9 +8,8 @@ import pickle
 import subprocess
 import time
 import argparse
-from scipy import stats
 import healpy as hp
-from harmonic_ILC import HILC_spectrum
+from harmonic_ILC import get_data_vecs
 from generate_maps import generate_freq_maps
 from utils import setup_output_dir, tsz_spectral_response
 from acmb_atsz_hilc import get_all_acmb_atsz
@@ -57,55 +56,6 @@ def get_freq_power_spec(sim, inp):
     return Clij
 
 
-def get_data_vecs(inp, Clij, pars=None):
-    '''
-    ARGUMENTS
-    ---------
-    inp: Info object containing input parameter specifications
-    Clij: (Nfreqs=2, Nfreqs=2, 1+Ncomps, ellmax+1) ndarray 
-        containing contributions of each component to the 
-        auto- and cross- spectra of freq maps at freqs i and j
-        dim2: index0 is total power in Clij, other indices are power from each component
-    pars: array of [Acmb, Atsz, Anoise1, Anoise2]
-        only needed if computing weights individually for each realization 
-
-    RETURNS
-    -------
-    Clpq: (N_preserved_comps=2, N_preserved_comps=2, 1+Ncomps, Nbins) ndarray 
-        containing binned auto- and cross-spectra of harmonic ILC maps p and q
-        dim2: index0 is total power in Clpq, other indices are power from each component
-    '''
-
-    N_preserved_comps = 2
-    Ncomps = 4
-    
-    #get spectral responses
-    g_cmb = np.ones(len(inp.freqs))
-    g_tsz = tsz_spectral_response(inp.freqs)
-    g_noise1 = np.array([1.,0.])
-    g_noise2 = np.array([0.,1.])
-    all_g_vecs = np.array([g_cmb, g_tsz, g_noise1, g_noise2])
-
-    #HILC auto- and cross-spectra
-    Clpq_orig = np.zeros((N_preserved_comps, N_preserved_comps, 1+Ncomps, inp.ellmax+1))
-    for p in range(N_preserved_comps):
-        for q in range(N_preserved_comps):
-            Clpq_orig[p,q] = HILC_spectrum(inp, Clij, all_g_vecs[p], spectral_response2=all_g_vecs[q], pars=pars)
-    
-    #binning
-    Clpq = np.zeros((N_preserved_comps, N_preserved_comps, 1+Ncomps, inp.Nbins))
-    ells = np.arange(inp.ellmax+1)
-    for p in range(N_preserved_comps):
-        for q in range(N_preserved_comps):
-            for y in range(1+Ncomps):
-                Dl = ells*(ells+1)/2/np.pi*Clpq_orig[p,q,y]
-                res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
-                mean_ells = (res[1][:-1]+res[1][1:])/2
-                Clpq[p,q,y] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
-    
-    return Clpq
-
-
 def main():
     '''
     RETURNS
@@ -143,7 +93,7 @@ def main():
         if inp.verbose:
             print(f'saved {inp.output_dir}/data_vecs/Clij_HILC.p')
     
-    inp.Clij_data = np.mean(Clij, axis=0)
+    inp.Clij_theory = np.mean(Clij, axis=0)
     pool = mp.Pool(inp.num_parallel)
     Clpq = pool.starmap(get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
     pool.close()
