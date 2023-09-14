@@ -103,10 +103,7 @@ def main():
         if inp.verbose:
             print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
     
-    if inp.compute_weights_once:
-        acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
-    else:
-        acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq, Clij=Clij)
+    acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
     
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)

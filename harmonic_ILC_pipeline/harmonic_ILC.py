@@ -85,7 +85,10 @@ def HILC_spectrum(inp, Clij, spectral_response, spectral_response2=None, pars=No
         dim0: index0 is total power spectrum of HILC map p and HILC map q
 
     '''
-    Rlij_inv = get_Rlij_inv(inp, Clij, pars=pars)
+    if inp.compute_weights_once:
+        Rlij_inv = get_Rlij_inv(inp, inp.Clij_theory, pars=pars)
+    else:
+        Rlij_inv = get_Rlij_inv(inp, Clij, pars=pars)
     w1, w2 = weights(Rlij_inv, spectral_response, spectral_response2=spectral_response2)
     if pars:
         Clpq = np.einsum('il,jl,ijal,a->al', w1, w2, Clij, [1]+[par for par in pars])

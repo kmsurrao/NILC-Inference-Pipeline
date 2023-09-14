@@ -48,18 +48,21 @@ def get_scaled_maps_and_wts(sim, inp, env):
     for s, scaling in enumerate(scalings):
 
         #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)
-        CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, scaling=scaling)
         if s==0:
-            CMB_map_unscaled, tSZ_map_unscaled, noise1_map_unscaled, noise2_map_unscaled = CMB_map, tSZ_map, noise1_map, noise2_map
+            CC, T, N1, N2, CMB_map_unscaled, tSZ_map_unscaled, noise1_map_unscaled, noise2_map_unscaled = generate_freq_maps(sim, inp, scaling=scaling)
         
         #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
         if not weight_maps_exist(sim, inp, scaling=scaling): #check if not all the weight maps already exist
+            
             #remove any existing weight maps for this sim and scaling to prevent pyilc errors
             if scaling is not None:  
                 scaling_str = ''.join(str(e) for e in scaling)                                                  
                 subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}*', shell=True, env=env)
             else:
                 subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/sim{sim}*', shell=True, env=env)
+            
+            #generate and save files containing frequency maps and then run pyilc
+            generate_freq_maps(sim, inp, scaling=scaling)
             setup_pyilc(sim, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
 
         #load weight maps
