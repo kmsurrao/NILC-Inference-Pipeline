@@ -5,55 +5,11 @@ import os
 import multiprocessing as mp
 from input import Info
 import pickle
-import subprocess
 import time
 import argparse
-import healpy as hp
-from harmonic_ILC import get_data_vecs
-from generate_maps import generate_freq_maps
-from utils import setup_output_dir, tsz_spectral_response
+from harmonic_ILC import get_freq_power_spec, get_data_vecs
+from utils import setup_output_dir
 from acmb_atsz_hilc import get_all_acmb_atsz
-
-def get_freq_power_spec(sim, inp):
-    '''
-    ARGUMENTS
-    ---------
-    sim: int, simulation number
-    inp: Info object containing input parameter specifications
-
-    RETURNS
-    -------
-    Clij: (Nfreqs=2, Nfreqs=2, 1+Ncomps, ellmax+1) ndarray 
-        containing contributions of each component to the 
-        auto- and cross- spectra of freq maps at freqs i and j
-        dim2: index0 is total power in Clij, other indices are power from each component
-    '''
-    Ncomps = 4 #CMB, tSZ, noise 90 nGHz, noise 150 GHz
-    Nfreqs = len(inp.freqs)
-
-    #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, save=False)
-    all_spectra = [CC, T, N1, N2]
-
-    #get spectral responses
-    g_cmb = np.ones(len(inp.freqs))
-    g_tsz = tsz_spectral_response(inp.freqs)
-    g_noise1 = np.array([1.,0.])
-    g_noise2 = np.array([0.,1.])
-    all_g_vecs = np.array([g_cmb, g_tsz, g_noise1, g_noise2])
-
-    #define and fill in array of data vectors
-    Clij = np.zeros((Nfreqs, Nfreqs, 1+Ncomps, inp.ellmax+1))
-    for i in range(Nfreqs):
-      for j in range(Nfreqs):
-        map_i = CMB_map + g_tsz[i]*tSZ_map + g_noise1[i]*noise1_map + g_noise2[i]*noise2_map
-        map_j = CMB_map + g_tsz[j]*tSZ_map + g_noise1[j]*noise1_map + g_noise2[j]*noise2_map
-        spectrum = hp.anafast(map_i, map_j, lmax=inp.ellmax)
-        Clij[i,j,0] = spectrum
-        for y in range(Ncomps):
-            Clij[i,j,1+y] = all_g_vecs[y,i]*all_g_vecs[y,j]*all_spectra[y]
-    
-    return Clij
 
 
 def main():
