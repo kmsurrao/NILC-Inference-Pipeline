@@ -6,11 +6,12 @@ import multiprocessing as mp
 import pickle
 import subprocess 
 import sys
+sys.path.append('../../shared')
+from utils import setup_output_dir
 sys.path.append('..')
 from input import Info
 import harmonic_ILC
-sys.path.append('../../shared')
-from utils import setup_output_dir
+
 
 
 def main():
@@ -24,7 +25,7 @@ def main():
 
     # main input file containing most specifications 
     parser = argparse.ArgumentParser(description="Covariance from harmonic ILC power spectrum template-fitting approach.")
-    parser.add_argument("--config", default="example.yaml")
+    parser.add_argument("--config", default="../example.yaml")
     args = parser.parse_args()
     input_file = args.config
 

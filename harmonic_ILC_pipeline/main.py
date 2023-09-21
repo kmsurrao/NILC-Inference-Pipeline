@@ -53,7 +53,7 @@ def main():
     pool = mp.Pool(inp.num_parallel)
     Clpq = pool.starmap(get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
     pool.close()
-    Clpq = np.asarray(Clpq, dtype=np.float32) #shape (N_preserved_comps=2, N_preserved_comps=2, 1+Ncomps, Nbins)
+    Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, 1+Ncomps, Nbins)
     if inp.save_files:
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_HILC.p', 'wb'), protocol=4)
         if inp.verbose:

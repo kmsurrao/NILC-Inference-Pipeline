@@ -168,7 +168,7 @@ def HILC_spectrum(inp, Clij, spectral_response, spectral_response2=None, pars=No
         HILC_alm = np.zeros(int(hp.sphtfunc.Alm.getsize(inp.ellmax)),dtype=np.complex_)
         for i in range(Nfreqs):
             freq_map_alm = hp.map2alm(freq_maps[i], lmax=inp.ellmax)
-            HILC_alm += hp.almfxl(freq_map_alm, w)
+            HILC_alm += hp.almxfl(freq_map_alm, w[i])
         HILC_maps.append(hp.alm2map(HILC_alm, nside=inp.nside))
     Clpq = hp.anafast(HILC_maps[0], HILC_maps[1], lmax=inp.ellmax)
     return Clpq 
@@ -262,7 +262,7 @@ def get_data_vecs_from_sims(inp, Clij, freq_maps):
     ells = np.arange(inp.ellmax+1)
     for p in range(N_preserved_comps):
         for q in range(N_preserved_comps):
-            Dl = ells*(ells+1)/2/np.pi*Clpq_orig[p,q,y]
+            Dl = ells*(ells+1)/2/np.pi*Clpq_orig[p,q]
             res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
             mean_ells = (res[1][:-1]+res[1][1:])/2
             Clpq[p,q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
