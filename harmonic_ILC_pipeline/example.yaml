@@ -1,19 +1,89 @@
-Nsims: 1000 #number of simulations to run
-num_parallel: 20 #number of sims to run in parallel
+###################################################################################
+###################################################################################
 
-nside: 128 #nside resolution parameter for generated maps
-ellmax: 250 #ellmax for power spectra
-Nbins: 10 #number of ell-space bins
-tSZ_amp: 1000. #amplification factor for tSZ map
-use_Gaussian_tSZ: 0 #Set to nonzero value (not recommended, use only for testing) to use Gaussian tSZ realizations
-noise: 3500 #noise level in uK arcmin
-freqs: [90., 150.] #frequencies for maps, in GHz
-delta_l: 10 #bin width for harmonic ILC frequency-frequency covariance matrix computation, set to 0 for no binning
-compute_weights_once: 0 #Set to nonzero value to compute weights once from "data" and apply to every realization, set to zero to compute weights separately for each realization (and include parameter dependence in the weights)
+# number of simulations to run
+Nsims: 1000 
 
-verbose: 1 #set to 0 if do not want intermediate printing
-save_files: 1 #set to nonzero value to save pickle files
+# number of sims to run in parallel
+num_parallel: 20 
 
-halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' #Path to folder containing tSZ maps, assumed to be in Kelvin
-cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' #File for CMB map in Kelvin, lensed_alm is in uK
-output_dir: '/scratch/09334/ksurrao/NILC/outputs' #Path to folder to store outputs, NOTE: Recommended to be a directory ONLY used for the outputs of this pipeline (and other pipelines in the repo) since files will be written and deleted!
+###################################################################################
+###################################################################################
+
+# nside resolution parameter for generated maps
+nside: 128 
+
+# ellmax for power spectra
+ellmax: 250 
+
+# number of ell-space bins
+Nbins: 10 
+
+# amplification factor for tSZ map
+tSZ_amp: 1000. 
+
+# Set to True to use Gaussian tSZ realizations (not recommended, use only for testing) 
+# Set to False to use regular non-Gaussian tSZ realizations
+use_Gaussian_tSZ: False 
+
+# white noise level in uK arcmin
+noise: 3500 
+
+# frequencies for maps, in GHz
+freqs: [90., 150.] 
+
+###################################################################################
+###################################################################################
+
+# bin width for harmonic ILC frequency-frequency covariance matrix computation, 
+# set to 0 for no binning
+delta_l: 10 
+
+# Set to True to omit central ell in bin when computing empirical covariance matrix
+# for producing harmonic ILC maps (mitigates ILC bias) 
+# Set to False to keep central ell in bin
+omit_central_ell: True 
+
+# Set to True to compute weights once from "data" and apply to every realization, 
+# set to False to compute weights separately for each realization (and include parameter dependence in the weights)
+compute_weights_once: False
+
+# Whether or not to use symbolic regression to estimate parameter dependence.
+# Note that if compute_weights_once is False, use_symbolic_regression must be set to True.
+# If compute_weights_once is True, use_symbolic_regression can optionally be set to False
+# to use analytic parameter dependence, which is faster.
+use_symbolic_regression: True
+
+# number of simulations to average over for fitting overall 
+# parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
+# If use_symbolic_regression is True, this number must be provided with 0 <= Nsims_for_fits <= Nsims
+# If use_symbolic_regression is False, this input is not necessary and will be ignored if provided.
+Nsims_for_fits: 50 
+
+# scaling factors for components to fit parameter dependence (given in a list)
+# If use_symbolic_regression is True, there must be at least one scaling_factor given that is not equal to 1.
+# If use_symbolic_regression is False, this input is not necessary and will be ignored if provided.
+scaling_factors: [0.95, 1.05] 
+
+###################################################################################
+###################################################################################
+
+# Set to False to suppress intermediate printing
+verbose: True 
+
+# Set to True to save pickle files
+save_files: True 
+
+# Path to folder containing tSZ maps, assumed to be in Kelvin
+halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' 
+
+# File for CMB map in Kelvin, lensed_alm from Websky is in uK
+cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' 
+
+# Path to folder to store outputs, 
+# NOTE: Recommended to be a directory ONLY used for the outputs of this
+# pipeline (and other pipelines in the repo) since files will be written and deleted!
+output_dir: '/scratch/09334/ksurrao/NILC/outputs' 
+
+###################################################################################
+###################################################################################

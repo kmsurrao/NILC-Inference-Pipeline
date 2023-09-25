@@ -1,23 +1,65 @@
-Nsims: 1000 #number of simulations to run
-Nsims_for_fits: 50 #number of simulations to average over for fitting overall parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
-num_parallel: 20 #number of sims to run in parallel
+# number of simulations to run
+Nsims: 1000 
 
-nside: 128 #nside of NILC maps
-ellmax: 250 #ellmax for power spectra
-Nbins: 10 #number of ell-space bins
-tSZ_amp: 1000. #amplification factor for tSZ map
-use_Gaussian_tSZ: 0 #Set to nonzero value (not recommended, use only for testing) to use Gaussian tSZ realizations
-noise: 3500 #noise level in uK arcmin
-freqs: [90., 150.] #frequencies for maps, in GHz
-Nscales: 4 #number of needlet filter scales
-GN_FWHM_arcmin: [300., 120., 60.] #array of FWHM used for constrution of Gaussians (needlet filters are differences of two Gaussians). FWHM need to be in strictly decreasing order.
-scaling_factors: [0.9, 0.95, 1.05, 1.1] #scaling factors for components to fit parameter dependence
+# number of simulations to average over for fitting overall 
+# parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
+Nsims_for_fits: 50 
 
-verbose: 1 #set to 0 if do not want intermediate printing
-remove_files: 0 #set to 0 if do not want to remove intermediate files between each sim
-save_files: 1 #set to nonzero value to save pickle files
+#number of sims to run in parallel
+num_parallel: 20 
 
-halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' #Path to folder containing tSZ maps, assumed to be in Kelvin
-cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' #File for CMB map in Kelvin, lensed_alm is in uK
-pyilc_path: '/work2/09334/ksurrao/stampede2/GitHub/pyilc' #Path to pyilc code
-output_dir: '/scratch/09334/ksurrao/NILC/outputs' #Path to folder to store outputs, NOTE: Recommended to be a directory ONLY used for the outputs of this pipeline (and other pipelines in the repo) since files will be written and deleted!
+# nside of NILC maps
+nside: 128 
+
+# maximum ell for power spectra
+ellmax: 250 
+
+# number of ell-space bins
+Nbins: 10 
+
+# amplification factor for tSZ map
+tSZ_amp: 1000. 
+
+# Set to nonzero value to use Gaussian tSZ realizations
+# (not recommended, use only for testing)
+use_Gaussian_tSZ: 0 
+
+# noise level in uK arcmin
+noise: 3500 
+
+# frequencies for maps, in GHz
+freqs: [90., 150.] 
+
+# number of needlet filter scales
+Nscales: 4 
+
+# array of FWHM used for constrution of Gaussians 
+# (needlet filters are differences of two Gaussians). 
+# FWHM need to be in strictly decreasing order.
+GN_FWHM_arcmin: [300., 120., 60.] 
+
+# scaling factors for components to fit parameter dependence
+scaling_factors: [0.9, 0.95, 1.05, 1.1] 
+
+# set to 0 to suppress intermediate printing
+verbose: 1 
+
+# set to 0 if do not want to remove intermediate files between each sim
+remove_files: 0 
+
+# set to nonzero value to save pickle files
+save_files: 1 
+
+# Path to folder containing tSZ maps, assumed to be in Kelvin
+halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' 
+
+# File for CMB map in Kelvin, lensed_alm from Websky is in uK
+cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' 
+
+# Path to pyilc code
+pyilc_path: '/work2/09334/ksurrao/stampede2/GitHub/pyilc' 
+
+#Path to folder to store outputs, NOTE: Recommended to be a directory ONLY 
+# used for the outputs of this pipeline (and other pipelines in the repo) 
+# since files will be written and deleted!
+output_dir: '/scratch/09334/ksurrao/NILC/outputs' 

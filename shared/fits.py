@@ -1,9 +1,6 @@
 import numpy as np
 import pickle
-import itertools
 import subprocess
-import sys
-sys.path.append('../shared')
 from pysr import PySRRegressor 
 from utils import get_scalings
 
@@ -47,25 +44,25 @@ def call_fit(A_vec, expr):
     return expr.subs('x0', A_vec[0]).subs('x1', A_vec[1]).subs('x2', A_vec[2]).subs('x3', A_vec[3])
 
 
-def get_parameter_dependence(inp, Clpq, env):
+def get_parameter_dependence(inp, Clpq, env, HILC=False):
     '''
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clpq: (Nsims, Nscalings, 2, 2, 2, 2, N_preserved_comps=2, N_preserved_comps=2, N_comps=4, N_comps=4, Nbins) ndarray 
-        containing propagation of each pair of component maps to NILC map auto- and cross-spectra. 
+    Clpq: (Nsims_for_fits, Nscalings, 2, 2, 2, 2, N_preserved_comps=2, N_preserved_comps=2, Nbins) ndarray 
+        containing HILC/NILC map auto- and cross-spectra with different component scalings. 
         dim1: idx0 if "scaled" means maps are scaled according to scaling factor 0 from input, 
             idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
         dim2: 0 for unscaled CMB, 1 for scaled CMB
         dim3: 0 for unscaled ftSZ, 1 for scaled ftSZ
         dim4: 0 for unscaled noise90, 1 for scaled noise90
         dim5: 0 for unscaled noise150, 1 for scaled noise150
-        Note: for sim >= Nsims_for_fits, results are meaningless except for scaling 00000 (all unscaled)
     env: environment object
+    HILC: Bool, set to True if computing paramter dependence for harmonic ILC, False if for needlet ILC
     
     RETURNS
     -------
-    best_fits: (N_preserved_comps, N_preserved_comps, N_comps, N_comps, Nbins) list
+    best_fits: (N_preserved_comps, N_preserved_comps, Nbins) list
         containing sympy expressions with best fits to Acmb, Atsz, Anoise1, Anoise2
 
     '''
@@ -73,27 +70,29 @@ def get_parameter_dependence(inp, Clpq, env):
     N_comps = 4
     Clpq_mean = np.mean(Clpq[:inp.Nsims_for_fits], axis=0)
 
-    best_fits = np.zeros((N_preserved_comps, N_preserved_comps, N_comps, N_comps, inp.Nbins)).tolist()
+    best_fits = np.zeros((N_preserved_comps, N_preserved_comps, inp.Nbins)).tolist() #need list to store sympy expressions
     scalings = get_scalings(inp)
     for p,q in [(0,0), (0,1), (1,1)]:
-        for y in range(N_comps):
-            for z in range(N_comps):
-                for bin in range(inp.Nbins):
-                    x_vals, y_vals = [], []
-                    for s in scalings:
-                        scaling_factor = (inp.scaling_factors[s[0]])**2
-                        x = np.ones(N_comps)
-                        x[np.array(s[1:])==1] = scaling_factor
-                        x_vals.append(x)
-                        y_vals.append(Clpq_mean[s[0],s[1],s[2],s[3],s[4],p,q,y,z,bin]/Clpq_mean[0,0,0,0,0,p,q,y,z,bin])
-                    best_fits[p][q][y][z][bin] = symbolic_regression(x_vals, y_vals)
-                    best_fits[q][p][z][y][bin] = best_fits[p][q][y][z][bin]
-                    subprocess.call(f'rm -f hall_of_fame*', shell=True, env=env)
-                    if inp.verbose: print(f'estimated parameter dependence for p,q,y,z,bin={p},{q},{y},{z},{bin}', flush=True)
+        for bin in range(inp.Nbins):
+            x_vals, y_vals = [], []
+            for s in scalings:
+                scaling_factor = (inp.scaling_factors[s[0]])**2
+                x = np.ones(N_comps)
+                x[np.array(s[1:])==1] = scaling_factor
+                x_vals.append(x)
+                y_vals.append(Clpq_mean[s[0],s[1],s[2],s[3],s[4],p,q,bin]/Clpq_mean[0,0,0,0,0,p,q,bin])
+            best_fits[p][q][bin] = symbolic_regression(x_vals, y_vals)
+            best_fits[q][p][bin] = best_fits[p][q][bin]
+            subprocess.call(f'rm -f hall_of_fame*', shell=True, env=env)
+            if inp.verbose: print(f'estimated parameter dependence for p,q,y,z,bin={p},{q},{bin}', flush=True)
 
     
     if inp.save_files:
-        pickle.dump(best_fits, open(f'{inp.output_dir}/data_vecs/best_fits.p', 'wb'), protocol=4)
-        print(f'saved {inp.output_dir}/data_vecs/best_fits.p', flush=True)
+        if HILC:
+            filename = f'{inp.output_dir}/data_vecs/best_fits_HILC.p'
+        else:
+            filename = f'{inp.output_dir}/data_vecs/best_fits_NILC.p'
+        pickle.dump(best_fits, open(filename, 'wb'), protocol=4)
+        print(f'saved {filename}', flush=True)
     
     return best_fits

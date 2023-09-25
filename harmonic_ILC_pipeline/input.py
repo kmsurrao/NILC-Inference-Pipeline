@@ -20,7 +20,7 @@ class Info(object):
         self.input_file = input_file
         p = read_dict_from_yaml(self.input_file)
 
-        self.Nsims = p['Nsims'] # number of simulations
+        self.Nsims = p['Nsims']
         assert type(self.Nsims) is int and self.Nsims>=0, "Nsims"
         self.num_parallel = p['num_parallel']
         assert type(self.num_parallel) is int and self.num_parallel>=1, "num_parallel"
@@ -37,10 +37,26 @@ class Info(object):
         assert self.noise >= 0, 'noise'
         self.freqs = p['freqs']
         self.delta_l = p['delta_l']
+        self.omit_central_ell = p['omit_central_ell']
         self.use_Gaussian_tSZ = p['use_Gaussian_tSZ']
+
         self.compute_weights_once = p['compute_weights_once']
-
-
+        if not self.compute_weights_once:
+            assert ('use_symbolic_regression' in p) and (p['use_symbolic_regression'] is True), "use_symbolic_regression must be True if compute_weights_once is False"
+        if 'use_symbolic_regression' in p:
+            self.use_symbolic_regression = p['use_symbolic_regression']
+        if self.use_symbolic_regression:
+            assert 'Nsims_for_fits' in p, "Nsims_for_fits must be defined if use_symbolic_regression is True"
+        if 'Nsims_for_fits' in p:
+            self.Nsims_for_fits = p['Nsims_for_fits']
+            assert type(self.Nsims_for_fits) is int and 0 <= self.Nsims_for_fits <= self.Nsims, "Nsims_for_fits cannot be greater than Nsims"
+        if self.use_symbolic_regression:
+            assert 'scaling_factors' in p, "scaling_factors must be defined if use_symbolic_regression is True"
+        if 'scaling_factors' in p:
+            self.scaling_factors = p['scaling_factors']
+            assert len(self.scaling_factors) >= 1, "Need at least one scaling factor"
+            assert 1 not in self.scaling_factors, "Cannot use 1.0 as a scaling factor"
+        
         self.halosky_maps_path = p['halosky_maps_path']
         assert type(self.halosky_maps_path) is str, "TypeError: halosky_maps_path"
         assert os.path.isdir(self.halosky_maps_path), "halosky maps path does not exist"

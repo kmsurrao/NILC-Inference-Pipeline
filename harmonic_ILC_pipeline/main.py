@@ -7,9 +7,11 @@ from input import Info
 import pickle
 import time
 import argparse
-from harmonic_ILC import get_freq_power_spec, get_data_vecs
 from utils import setup_output_dir
-from acmb_atsz_hilc import get_all_acmb_atsz
+import hilc_SR
+import hilc_analytic
+import param_cov_SR
+import param_cov_analytic
 
 
 def main():
@@ -41,25 +43,35 @@ def main():
     setup_output_dir(inp, my_env)
 
     pool = mp.Pool(inp.num_parallel)
-    Clij = pool.starmap(get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
+    if inp.use_symbolic_regression:
+        Clij = pool.starmap(hilc_SR.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
+    else:
+        Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
     pool.close()
-    Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, ellmax+1)
+    Clij = np.asarray(Clij, dtype=np.float32)
     if inp.save_files:
         pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij_HILC.p', 'wb'), protocol=4)
         if inp.verbose:
             print(f'saved {inp.output_dir}/data_vecs/Clij_HILC.p')
-    
-    inp.Clij_theory = np.mean(Clij, axis=0)
+       
     pool = mp.Pool(inp.num_parallel)
-    Clpq = pool.starmap(get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
+    if inp.use_symbolic_regression:
+        inp.Clij_theory = np.mean(Clij[:,0,0,0,0,0], axis=0)
+        Clpq = pool.starmap(hilc_SR.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
+    else:
+        inp.Clij_theory = np.mean(Clij, axis=0)
+        Clpq = pool.starmap(hilc_analytic.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
     pool.close()
-    Clpq = np.asarray(Clpq, dtype=np.float32) #shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, 1+Ncomps, Nbins)
+    Clpq = np.asarray(Clpq, dtype=np.float32)
     if inp.save_files:
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_HILC.p', 'wb'), protocol=4)
         if inp.verbose:
             print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
     
-    acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clpq)
+    if inp.use_symbolic_regression:
+        acmb_array, atsz_array, anoise1_array, anoise2_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, my_env, HILC=True)
+    else:
+        acmb_array, atsz_array, anoise1_array, anoise2_array = param_cov_analytic.get_all_acmb_atsz(inp, Clpq)
     
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)

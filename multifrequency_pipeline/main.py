@@ -12,7 +12,7 @@ from scipy import stats
 import healpy as hp
 from generate_maps import generate_freq_maps
 from utils import setup_output_dir, tsz_spectral_response
-from acmb_atsz import get_all_acmb_atsz
+from param_cov import get_all_acmb_atsz
 
 def get_data_vectors(sim, inp):
     '''
