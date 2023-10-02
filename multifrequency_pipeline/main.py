@@ -5,67 +5,13 @@ import os
 import multiprocessing as mp
 from input import Info
 import pickle
-import subprocess
 import time
 import argparse
-from scipy import stats
 import healpy as hp
-from generate_maps import generate_freq_maps
-from utils import setup_output_dir, tsz_spectral_response
+from utils import setup_output_dir
 from param_cov import get_all_acmb_atsz
-
-def get_data_vectors(sim, inp):
-    '''
-    ARGUMENTS
-    ---------
-    sim: int, simulation number
-    inp: Info object containing input parameter specifications
-
-    RETURNS
-    -------
-    Clij: (Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
-        containing contributions of each component to the 
-        auto- and cross- spectra of freq maps at freqs i and j
-        dim2: index0 is total power in Clij, other indices are power from each component
-    '''
-    Ncomps = 4 #CMB, tSZ, noise 90 nGHz, noise 150 GHz
-    Nfreqs = len(inp.freqs)
-
-    #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, save=False)
-    all_spectra_orig = [CC, T, N1, N2]
-    all_spectra = []
-    ells = np.arange(inp.ellmax+1)
-    for Cl in all_spectra_orig:
-        Dl = ells*(ells+1)/2/np.pi*Cl
-        res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
-        mean_ells = (res[1][:-1]+res[1][1:])/2
-        all_spectra.append(res[0]/(mean_ells*(mean_ells+1)/2/np.pi))
-
-
-
-    #get spectral responses
-    g_cmb = np.ones(len(inp.freqs))
-    g_tsz = tsz_spectral_response(inp.freqs)
-    g_noise1 = np.array([1.,0.])
-    g_noise2 = np.array([0.,1.])
-    all_g_vecs = np.array([g_cmb, g_tsz, g_noise1, g_noise2])
-
-    #define and fill in array of data vectors
-    Clij = np.zeros((Nfreqs, Nfreqs, 1+Ncomps, inp.Nbins))
-    for i in range(Nfreqs):
-      for j in range(Nfreqs):
-        map_i = CMB_map + g_tsz[i]*tSZ_map + g_noise1[i]*noise1_map + g_noise2[i]*noise2_map
-        map_j = CMB_map + g_tsz[j]*tSZ_map + g_noise1[j]*noise1_map + g_noise2[j]*noise2_map
-        spectrum = hp.anafast(map_i, map_j, lmax=inp.ellmax)
-        Dl = ells*(ells+1)/2/np.pi*spectrum
-        res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
-        Clij[i,j,0] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
-        for y in range(Ncomps):
-            Clij[i,j,1+y] = all_g_vecs[y,i]*all_g_vecs[y,j]*all_spectra[y]
-    
-    return Clij
-
+from multifrequency_data_vecs import get_data_vectors
+from likelihood_free_inference import get_posterior
 
 
 def main():
@@ -96,16 +42,26 @@ def main():
     #set up output directory
     setup_output_dir(inp, my_env)
 
-    pool = mp.Pool(inp.num_parallel)
-    Clij = pool.starmap(get_data_vectors, [(sim, inp) for sim in range(inp.Nsims)])
-    pool.close()
-    Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
-    if inp.save_files:
-        pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/Clij.p')
+    if not inp.use_lfi:
+        pool = mp.Pool(inp.num_parallel)
+        Clij = pool.starmap(get_data_vectors, [(sim, inp) for sim in range(inp.Nsims)])
+        pool.close()
+        Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
+        if inp.save_files:
+            pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
+            if inp.verbose:
+                print(f'saved {inp.output_dir}/data_vecs/Clij.p')
+        acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clij)
     
-    acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clij)
+    else:
+        samples = get_posterior(inp, 'multifrequency', my_env)
+        acmb_array, atsz_array, anoise1_array, anoise2_array = samples
+        print('Results from Likelihood-Free Inference', flush=True)
+        print('----------------------------------------------', flush=True)
+        print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
+        print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
+        print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
+        print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
     
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)

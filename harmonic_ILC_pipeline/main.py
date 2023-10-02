@@ -12,6 +12,7 @@ import hilc_SR
 import hilc_analytic
 import param_cov_SR
 import param_cov_analytic
+from likelihood_free_inference import get_posterior
 
 
 def main():
@@ -42,37 +43,50 @@ def main():
     #set up output directory
     setup_output_dir(inp, my_env)
 
-    pool = mp.Pool(inp.num_parallel)
-    if inp.use_symbolic_regression:
-        Clij = pool.starmap(hilc_SR.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
-    else:
-        Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
-    pool.close()
-    Clij = np.asarray(Clij, dtype=np.float32)
-    if inp.save_files:
-        pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij_HILC.p', 'wb'), protocol=4)
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/Clij_HILC.p')
-       
-    pool = mp.Pool(inp.num_parallel)
-    if inp.use_symbolic_regression:
-        inp.Clij_theory = np.mean(Clij[:,0,0,0,0,0], axis=0)
-        Clpq = pool.starmap(hilc_SR.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
-    else:
-        inp.Clij_theory = np.mean(Clij, axis=0)
-        Clpq = pool.starmap(hilc_analytic.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
-    pool.close()
-    Clpq = np.asarray(Clpq, dtype=np.float32)
-    if inp.save_files:
-        pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_HILC.p', 'wb'), protocol=4)
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
+    if not inp.use_lfi:
+        
+        pool = mp.Pool(inp.num_parallel)
+        if inp.use_symbolic_regression:
+            Clij = pool.starmap(hilc_SR.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
+        else:
+            Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
+        pool.close()
+        Clij = np.asarray(Clij, dtype=np.float32)
+        if inp.save_files:
+            pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij_HILC.p', 'wb'), protocol=4)
+            if inp.verbose:
+                print(f'saved {inp.output_dir}/data_vecs/Clij_HILC.p')
+        
+        pool = mp.Pool(inp.num_parallel)
+        if inp.use_symbolic_regression:
+            inp.Clij_theory = np.mean(Clij[:,0,0,0,0,0], axis=0)
+            Clpq = pool.starmap(hilc_SR.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
+        else:
+            inp.Clij_theory = np.mean(Clij, axis=0)
+            Clpq = pool.starmap(hilc_analytic.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
+        pool.close()
+        Clpq = np.asarray(Clpq, dtype=np.float32)
+        if inp.save_files:
+            pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_HILC.p', 'wb'), protocol=4)
+            if inp.verbose:
+                print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
+        
+        if inp.use_symbolic_regression:
+            acmb_array, atsz_array, anoise1_array, anoise2_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, my_env, HILC=True)
+        else:
+            acmb_array, atsz_array, anoise1_array, anoise2_array = param_cov_analytic.get_all_acmb_atsz(inp, Clpq)
     
-    if inp.use_symbolic_regression:
-        acmb_array, atsz_array, anoise1_array, anoise2_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, my_env, HILC=True)
     else:
-        acmb_array, atsz_array, anoise1_array, anoise2_array = param_cov_analytic.get_all_acmb_atsz(inp, Clpq)
-    
+        samples = get_posterior(inp, 'HILC', my_env)
+        acmb_array, atsz_array, anoise1_array, anoise2_array = samples
+        print('Results from Likelihood-Free Inference', flush=True)
+        print('----------------------------------------------', flush=True)
+        print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
+        print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
+        print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
+        print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
+
+        
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
     return acmb_array, atsz_array, anoise1_array, anoise2_array

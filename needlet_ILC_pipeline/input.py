@@ -22,8 +22,6 @@ class Info(object):
 
         self.Nsims = p['Nsims'] # number of simulations
         assert type(self.Nsims) is int and self.Nsims>=0, "Nsims"
-        self.Nsims_for_fits = p['Nsims_for_fits'] # number of simulations for fitting f(Acmb, Aftsz, Anoise90, Anoise150)
-        assert type(self.Nsims_for_fits) is int and 0 <= self.Nsims_for_fits <= self.Nsims, "Nsims_for_fits cannot be greater than Nsims"
         self.num_parallel = p['num_parallel']
         assert type(self.num_parallel) is int and self.num_parallel >= 1, "num_parallel"
 
@@ -44,9 +42,15 @@ class Info(object):
         self.use_Gaussian_tSZ = p['use_Gaussian_tSZ']
         self.noise = p['noise']
         assert self.noise >= 0, 'noise'
-        self.scaling_factors = p['scaling_factors']
-        assert len(self.scaling_factors) >= 1, "Need at least one scaling factor"
-        assert 1 not in self.scaling_factors, "Cannot use 1.0 as a scaling factor"
+
+        self.use_lfi = p['use_lfi']
+        if 'Nsims_for_fits' in p and not self.use_lfi:
+            self.Nsims_for_fits = p['Nsims_for_fits'] # number of simulations for fitting f(Acmb, Aftsz, Anoise90, Anoise150)
+            assert type(self.Nsims_for_fits) is int and 0 <= self.Nsims_for_fits <= self.Nsims, "Nsims_for_fits cannot be greater than Nsims"
+        if 'scaling_factors' in p and not self.use_lfi:
+            self.scaling_factors = p['scaling_factors']
+            assert len(self.scaling_factors) >= 1, "Need at least one scaling factor"
+            assert 1 not in self.scaling_factors, "Cannot use 1.0 as a scaling factor"
 
         self.pyilc_path = p['pyilc_path']
         assert type(self.pyilc_path) is str, "TypeError: pyilc_path"

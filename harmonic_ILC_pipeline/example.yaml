@@ -48,7 +48,13 @@ omit_central_ell: True
 # set to False to compute weights separately for each realization (and include parameter dependence in the weights)
 compute_weights_once: False
 
+# Set to True to use likelihood-free inference (recommended)
+# If set to False, will use analytic Gaussian likelihood, which is only accurate if 
+# use_Gaussian_tSZ is True
+use_lfi: True
+
 # Whether or not to use symbolic regression to estimate parameter dependence.
+# If provided, this input is ignored if use_lfi is True.
 # Note that if compute_weights_once is False, use_symbolic_regression must be set to True.
 # If compute_weights_once is True, use_symbolic_regression can optionally be set to False
 # to use analytic parameter dependence, which is faster.
@@ -56,11 +62,13 @@ use_symbolic_regression: True
 
 # number of simulations to average over for fitting overall 
 # parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
+# If provided, this input is ignored if use_lfi is True.
 # If use_symbolic_regression is True, this number must be provided with 0 <= Nsims_for_fits <= Nsims
 # If use_symbolic_regression is False, this input is not necessary and will be ignored if provided.
 Nsims_for_fits: 50 
 
 # scaling factors for components to fit parameter dependence (given in a list)
+# If provided, this input is ignored if use_lfi is True.
 # If use_symbolic_regression is True, there must be at least one scaling_factor given that is not equal to 1.
 # If use_symbolic_regression is False, this input is not necessary and will be ignored if provided.
 scaling_factors: [0.95, 1.05] 

@@ -41,17 +41,17 @@ class Info(object):
         self.use_Gaussian_tSZ = p['use_Gaussian_tSZ']
 
         self.compute_weights_once = p['compute_weights_once']
+        self.use_lfi = p['use_lfi']
         if not self.compute_weights_once:
-            assert ('use_symbolic_regression' in p) and (p['use_symbolic_regression'] is True), "use_symbolic_regression must be True if compute_weights_once is False"
-        if 'use_symbolic_regression' in p:
+            assert self.use_lfi or (('use_symbolic_regression' in p) and (p['use_symbolic_regression'] is True)), "use_symbolic_regression must be True if compute_weights_once is False"
+        if 'use_symbolic_regression' in p and not self.use_lfi:
             self.use_symbolic_regression = p['use_symbolic_regression']
-        if self.use_symbolic_regression:
-            assert 'Nsims_for_fits' in p, "Nsims_for_fits must be defined if use_symbolic_regression is True"
+            if self.use_symbolic_regression:
+                assert 'Nsims_for_fits' in p, "Nsims_for_fits must be defined if use_symbolic_regression is True"
+                assert 'scaling_factors' in p, "scaling_factors must be defined if use_symbolic_regression is True"
         if 'Nsims_for_fits' in p:
             self.Nsims_for_fits = p['Nsims_for_fits']
             assert type(self.Nsims_for_fits) is int and 0 <= self.Nsims_for_fits <= self.Nsims, "Nsims_for_fits cannot be greater than Nsims"
-        if self.use_symbolic_regression:
-            assert 'scaling_factors' in p, "scaling_factors must be defined if use_symbolic_regression is True"
         if 'scaling_factors' in p:
             self.scaling_factors = p['scaling_factors']
             assert len(self.scaling_factors) >= 1, "Need at least one scaling factor"

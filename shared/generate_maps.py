@@ -3,7 +3,7 @@ import numpy as np
 from utils import tsz_spectral_response
 
 
-def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same_noise=True):
+def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same_noise=True, pars=None):
 
     '''
     ARGUMENTS
@@ -21,6 +21,7 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same
             idx4: 0 for unscaled noise150, 1 for scaled noise150
     same_noise: Bool, whether to use the same or different noise in the two frequently channels
             (currently, if False, sets the noise in the higher frequency channel to be slightly higher)
+    pars: array of floats [Acmb, Atsz, Anoise1, Anoise2] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
@@ -34,12 +35,17 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same
 
     #Determine which components to scale
     CMB_amp, tSZ_amp_extra, noise1_amp, noise2_amp = 1, 1, 1, 1
-    if scaling:
+    if scaling is not None:
         scale_factor = inp.scaling_factors[scaling[0]]
         if scaling[1]: CMB_amp = scale_factor
         if scaling[2]: tSZ_amp_extra = scale_factor
         if scaling[3]: noise1_amp = scale_factor
         if scaling[4]: noise2_amp = scale_factor
+    if pars is not None:
+        CMB_amp *= pars[0]
+        tSZ_amp_extra *= pars[1]
+        noise1_amp *= pars[2]
+        noise2_amp *= pars[3]
 
     #Read tSZ halosky map
     if not inp.use_Gaussian_tSZ:

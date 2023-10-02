@@ -157,12 +157,12 @@ def get_MLE_arrays(inp, Clpq, PScov_sim_Inv):
     anoise1_array = param_array[:,2]
     anoise2_array = param_array[:,3]
     
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_hilc.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_hilc.p', 'wb'))
-    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_hilc.p', 'wb'))
-    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_hilc.p', 'wb'))
+    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_HILC.p', 'wb'))
+    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_HILC.p', 'wb'))
+    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_HILC.p', 'wb'))
+    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_HILC.p', 'wb'))
     if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_hilc.p, atsz_array_hilc.p, anoise1_array_hilc.p, anoise2_array_hilc.p', flush=True)
+        print(f'created {inp.output_dir}/acmb_array_HILC.p, atsz_array_HILC.p, anoise1_array_HILC.p, anoise2_array_HILC.p', flush=True)
     print('Results from maximum likelihood estimation', flush=True)
     print('----------------------------------------------', flush=True)
     print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)

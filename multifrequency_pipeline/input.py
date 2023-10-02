@@ -36,7 +36,9 @@ class Info(object):
         self.noise = p['noise']
         assert self.noise >= 0, 'noise'
         self.freqs = p['freqs']
-        self.use_Gaussian_cov = p['use_Gaussian_cov']
+        self.use_lfi = p['use_lfi']
+        if 'use_Gaussian_cov' in p:
+            self.use_Gaussian_cov = p['use_Gaussian_cov']
         self.use_Gaussian_tSZ = p['use_Gaussian_tSZ']
 
         self.halosky_maps_path = p['halosky_maps_path']

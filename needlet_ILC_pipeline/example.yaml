@@ -1,12 +1,14 @@
+###################################################################################
+###################################################################################
+
 # number of simulations to run
 Nsims: 1000 
 
-# number of simulations to average over for fitting overall 
-# parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
-Nsims_for_fits: 50 
-
 #number of sims to run in parallel
 num_parallel: 20 
+
+###################################################################################
+###################################################################################
 
 # nside of NILC maps
 nside: 128 
@@ -38,8 +40,26 @@ Nscales: 4
 # FWHM need to be in strictly decreasing order.
 GN_FWHM_arcmin: [300., 120., 60.] 
 
+
+###################################################################################
+###################################################################################
+
+# Set to True to use likelihood-free inference (recommended)
+# If set to False, will use analytic Gaussian likelihood, which is only accurate if 
+# use_Gaussian_tSZ is True
+use_lfi: True
+
+# number of simulations to average over for fitting overall 
+# parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
+# If provided, this input is ignored if use_lfi is True
+Nsims_for_fits: 50 
+
 # scaling factors for components to fit parameter dependence
+# If provided, this input is ignored if use_lfi is True
 scaling_factors: [0.9, 0.95, 1.05, 1.1] 
+
+###################################################################################
+###################################################################################
 
 # set to 0 to suppress intermediate printing
 verbose: 1 
@@ -63,3 +83,6 @@ pyilc_path: '/work2/09334/ksurrao/stampede2/GitHub/pyilc'
 # used for the outputs of this pipeline (and other pipelines in the repo) 
 # since files will be written and deleted!
 output_dir: '/scratch/09334/ksurrao/NILC/outputs' 
+
+###################################################################################
+###################################################################################

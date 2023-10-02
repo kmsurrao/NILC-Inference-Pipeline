@@ -9,12 +9,13 @@ import healpy as hp
 from utils import tsz_spectral_response
 from generate_maps import generate_freq_maps
 
-def get_freq_power_spec(sim, inp):
+def get_freq_power_spec(sim, inp, pars=None):
     '''
     ARGUMENTS
     ---------
     sim: int, simulation number
     inp: Info object containing input parameter specifications
+    pars: array of floats [Acmb, Atsz, Anoise1, Anoise2] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
@@ -27,7 +28,7 @@ def get_freq_power_spec(sim, inp):
     Nfreqs = len(inp.freqs)
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, save=False)
+    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, save=False, pars=pars)
     all_spectra = [CC, T, N1, N2]
 
     #get spectral responses

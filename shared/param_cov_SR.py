@@ -164,7 +164,7 @@ def get_MLE_arrays(inp, Clpq, PScov_sim_Inv, best_fits, HILC=False):
     anoise1_array = param_array[:,2]
     anoise2_array = param_array[:,3]
     
-    string = 'hilc' if HILC else 'nilc'
+    string = 'HILC' if HILC else 'NILC'
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{string}.p', 'wb'))
     pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{string}.p', 'wb'))
     pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_{string}.p', 'wb'))

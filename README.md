@@ -31,6 +31,8 @@ There is a large amount of I/O from running this program. It is highly recommend
 
 ## Dependencies
 python >= 3.7   
+pytorch  
+sbi  
 pyyaml  
 pywigxjpf  
 healpy  

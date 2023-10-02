@@ -1,8 +1,14 @@
+###################################################################################
+###################################################################################
+
 # number of simulations to run
 Nsims: 1000 
 
 # number of sims to run in parallel
 num_parallel: 20 
+
+###################################################################################
+###################################################################################
 
 # nside of NILC maps
 nside: 128 
@@ -22,19 +28,28 @@ noise: 3500
 # frequencies for maps, in GHz
 freqs: [90., 150.] 
 
-#Set to nonzero value (not recommended, use only for testing) to use Gaussian 
+# Set to True to use likelihood-free inference (recommended)
+# If set to False, will use analytic Gaussian likelihood, which is only accurate if 
+# use_Gaussian_tSZ is True
+use_lfi: True
+
+# Set to True (not recommended, use only for testing) to use Gaussian 
 # power spectrum covariance matrix instead of measuring it from sims 
-use_Gaussian_cov: 0 
+# If provided, this input is ignored if use_lfi is True
+use_Gaussian_cov: False 
 
-# Set to nonzero value (not recommended, use only for testing) 
+# Set to True (not recommended, use only for testing) 
 # to use Gaussian tSZ realizations
-use_Gaussian_tSZ: 0 
+use_Gaussian_tSZ: False 
 
-# set to 0 to suppress intermediate printing
-verbose: 1 
+###################################################################################
+###################################################################################
 
-# set to nonzero value to save pickle files
-save_files: 1 
+# set to False to suppress intermediate printing
+verbose: True 
+
+# set to True to save pickle files
+save_files: True 
 
 # Path to folder containing tSZ maps, assumed to be in Kelvin
 halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' 
@@ -46,3 +61,6 @@ cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits'
 # sed for the outputs of this pipeline (and other pipelines in the repo) 
 # since files will be written and deleted!
 output_dir: '/scratch/09334/ksurrao/NILC/outputs' 
+
+###################################################################################
+###################################################################################
