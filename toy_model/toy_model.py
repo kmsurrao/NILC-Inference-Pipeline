@@ -4,30 +4,45 @@ import emcee
 import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
+import torch
+from sbi import utils as utils
+from sbi import analysis as analysis
+from sbi.inference.base import infer
 
-'''
-Create realizations of 
-f(x) = Acos(x) + Bx for 0 <= x <= 2pi with Gaussian noise added to each realization
-'''
+#########################################################################################
+##############               Create realizations of               #######################
+##############                f(x) = Acos(x) + Bx                 #######################  
+##############    with Gaussian noise added to each realization   ####################### 
+##############          A and B have fiducial values of 1         #######################   
+#########################################################################################
 
-def get_realizations(Nsims, xvals):
+def get_realizations(Nsims, xvals, pars=None):
     '''
     ARGUMENTS
     ---------
     Nsims: int, number of realizations to generate
     xvals: numpy array of x values over which to compute function
+    pars: array-like of floats A and B, defaults to None
+
 
     RETURNS
     -------
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with index 1 being 0 for cos(x) contribution or 1 for x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x) + noise
 
     '''
-    cov_matrix = np.diag(1.+np.sqrt(xvals))
-    samples = np.random.multivariate_normal(np.zeros(len(xvals)), cov_matrix, size=Nsims)
+    if pars is not None:
+        A,B = pars
+    else:
+        A,B = 1., 1.
+
+    # Add noise
+    cov_matrix_noise = np.diag(1.+1./np.sqrt(2*xvals+1))
+    samples = np.random.multivariate_normal(np.zeros(len(xvals)), cov_matrix_noise, size=Nsims)
+    
+    # Generate the realizations
     realizations = np.zeros((Nsims, len(xvals)))
     for i, sample in enumerate(samples):
-        realizations[i] = 1*np.cos(xvals) + 1*xvals + sample
+        realizations[i] = A*np.cos(xvals) + B*xvals  + sample
     return realizations
 
 
@@ -46,6 +61,9 @@ def get_cov_sim(realizations):
     -------
     cov: (len(xvals),len(xvals)) ndarray containing covariance matrix of realizations
     '''
+    if realizations.shape[-1] == 1: #only one x value
+        print(np.array([[np.var(realizations[:,0])]]))
+        return np.array([[np.var(realizations[:,0])]])
     return np.cov(np.transpose(realizations))
 
 
@@ -112,7 +130,7 @@ def AB_numerical(sim, realizations, cov_sim_Inv, xvals):
     best fit A and B (floats)
     '''
     all_res = []
-    for start in [0.5, 1.0, 1.5]:
+    for start in [0.5, 1.0]:
         start_array = [start, start] #A_start, B_start
         res = minimize(neg_lnL, x0 = start_array, args = (theory_model, sim, realizations, cov_sim_Inv, xvals), method='Nelder-Mead', bounds=None) #default method is BFGS
         all_res.append(res)
@@ -143,8 +161,9 @@ def AB_analytic(sim, realizations, cov_sim_Inv, xvals):
     alpha --> a, beta --> b, x1-->l, x2-->m
 
     '''
-    deriv = [(theory_model(1.001,1.,xvals)-theory_model(0.999,1.,xvals))/(1.001-0.999), (theory_model(1, 1.001,xvals)-theory_model(1, 0.999,xvals))/(1.001-0.999)]
-    # template = np.mean(realizations, axis=0) #shape (len(xvals),)
+    step = 0.001
+    mean_A, mean_B = 1., 1.
+    deriv = [(theory_model(mean_A+step,mean_B,xvals)-theory_model(mean_A-step,mean_B,xvals))/(2*step), (theory_model(mean_A, mean_B+step,xvals)-theory_model(mean_A, mean_B-step,xvals))/(2*step)]
     F = np.einsum('al,lm,bm->ab', deriv, cov_sim_Inv, deriv)
     F_inv = np.linalg.inv(F)
     return np.einsum('ab,al,lm,m->a', F_inv, deriv, cov_sim_Inv, realizations[sim])
@@ -202,7 +221,9 @@ def Fisher_inversion(cov_sim_Inv, xvals):
     -------
     A_std, B_std: predicted standard deviations of A and B, found by computing and inverting Fisher matrix
     '''
-    deriv_vec = [(theory_model(1.001,1.,xvals)-theory_model(0.999,1.,xvals))/(1.001-0.999), (theory_model(1, 1.001,xvals)-theory_model(1, 0.999,xvals))/(1.001-0.999)]
+    step = 0.001
+    mean_A, mean_B = 1., 1.
+    deriv_vec = [(theory_model(mean_A+step,mean_B,xvals)-theory_model(mean_A-step,mean_B,xvals))/(2*step), (theory_model(mean_A, mean_B+step,xvals)-theory_model(mean_A, mean_B-step,xvals))/(2*step)]
     Fisher = np.einsum('Ab,bc,Bc->AB', deriv_vec, cov_sim_Inv, deriv_vec)
     final_cov = np.linalg.inv(Fisher)
     A_std = np.sqrt(final_cov[0,0])
@@ -274,35 +295,61 @@ def MCMC(realizations, cov_sim_Inv, xvals, sim=0):
 
 
 ############################################
-######## ANALYTIC COVARIANCE OF MLE   ######
+######## LIKELIHOOD-FREE INFERENCE   #######
 ############################################
 
-def cov_of_MLE_analytic(cov_sim_Inv, xvals):
+def get_prior():
     '''
-    Maximize likelihood with respect to Acmb, Atsz, Anoise90, Anoise150 for one sim analytically 
+    RETURNS
+    -------
+    prior on A and B to use for likelihood-free inference
+    '''
+    mean = 1.0
+    step = 1.0
+    prior = utils.BoxUniform(low= torch.tensor([mean-step, mean-step]), high= torch.tensor([mean+step, mean+step]))
+    return prior
 
+
+
+def get_posterior_LFI(realizations, Nsims, xvals, method):
+    '''
     ARGUMENTS
     ---------
-    cov_sim_Inv: (len(xvals), len(xvals)) ndarray containing inverse of realizations covariance matrix
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
+    Nsims: int, number of realizations to generate
     xvals: numpy array of x values over which to compute function
+    method: str, either 'SNPE', 'SNLE', or 'SNRE'
 
     RETURNS
     -------
-    inverse of Fisher matrix
-
-    INDEX MAPPING IN EINSUM
-    -----------------------
-    alpha --> a, beta --> b, x1-->l, x2-->m
-
+    samples: torch tensor of shape (4, Nsims) containing Acmb, Atsz, Anoise1, Anoise2 posteriors
     '''
-    deriv_vec = [(theory_model(1.001,1.,xvals)-theory_model(0.999,1.,xvals))/(1.001-0.999), (theory_model(1, 1.001,xvals)-theory_model(1, 0.999,xvals))/(1.001-0.999)]
-    F = np.einsum('al,lm,bm->ab', deriv_vec, cov_sim_Inv, deriv_vec)
-    F_inv = np.linalg.inv(F)
-    print('Results from Analytic Covariance of MLEs', flush=True)
-    print('------------------------------------', flush=True)
-    print('A std dev: ', np.sqrt(F_inv[0,0]), flush=True)
-    print('B std dev: ', np.sqrt(F_inv[1,1]), flush=True)
-    return F_inv
+    def simulator(pars):
+        '''
+        ARGUMENTS
+        ---------
+        pars: [A, B] parameters (floats)
+
+        RETURNS
+        -------
+        realizations: (len(xvals),) torch tensor containing a random realization of f(x) = Acos(x) + B(x)
+        
+        '''
+        realization = torch.tensor(get_realizations(1, xvals, pars=pars)[0])
+        return realization
+
+
+    prior = get_prior()
+    observation = np.mean(realizations, axis=0)
+    posterior = infer(simulator, prior, method=method, num_simulations=Nsims)
+    samples = posterior.sample((Nsims,), x=observation)
+    A_array, B_array = np.array(samples, dtype=np.float32).T
+    print(f'Results from likelihood-free inference, method={method}', flush=True)
+    print('---------------------------------------------------------------', flush=True)
+    print(f'A = {np.mean(A_array)} +/- {np.std(A_array)}', flush=True)
+    print(f'B = {np.mean(B_array)} +/- {np.std(B_array)}', flush=True)
+    return samples
+
 
 
 ##############################################
@@ -310,12 +357,14 @@ def cov_of_MLE_analytic(cov_sim_Inv, xvals):
 ##############################################
 
 
-def get_all_AB(realizations, xvals):
+def get_all_AB(realizations, xvals, method='SNPE'):
     '''
     ARGUMENTS
     ---------
     realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
     xvals: numpy array of x values over which to compute function
+    method: str, method to use for likelihood-free inference, either 'SNPE', 'SNLE', or 'SNRE'
+
 
     RETURNS
     -------
@@ -339,7 +388,7 @@ def get_all_AB(realizations, xvals):
     MCMC(realizations, cov_sim_Inv, xvals, sim=1)
 
     print(flush=True)
-    cov_of_MLE_analytic(cov_sim_Inv, xvals)
+    get_posterior_LFI(realizations, Nsims, xvals, method=method)
    
     return A_array, B_array
 
@@ -347,10 +396,12 @@ def get_all_AB(realizations, xvals):
 
 def main():
     np.random.seed(0)
-    Nsims = 500
+    Nsims = 1000
     xvals = np.arange(30)
     realizations = get_realizations(Nsims, xvals)
-    get_all_AB(realizations, xvals)
+    print(flush=True)
+    method = 'SNPE'
+    get_all_AB(realizations, xvals, method=method)
     return
 
 

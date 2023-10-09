@@ -1,5 +1,7 @@
+*/sbi_logs
 *copy*
 .DS_Store
+*/.ipynb_checkpoints
 */.ipynb_checkpoints/*
 .vscode/*
 */laptop.yaml

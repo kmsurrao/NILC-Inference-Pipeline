@@ -20,7 +20,9 @@ def get_prior():
     prior on Acmb, Atsz, Anoise1, Anoise2 to use for likelihood-free inference
     '''
     num_dim = 4
-    prior = utils.BoxUniform(low=0.001 * torch.ones(num_dim), high=2 * torch.ones(num_dim))
+    mean = 1.0
+    step = 2.0
+    prior = utils.BoxUniform(low= (mean-step) * torch.ones(num_dim), high= (mean+step) * torch.ones(num_dim))
     return prior
 
 
@@ -34,16 +36,20 @@ def get_observation(inp, pipeline, env):
 
     RETURNS
     -------
-    data_vec: torch tensor containing outputs from simulation
+    data_vec: ndarray containing outputs from simulation
             Clpq of shape (Nsims, N_preserved_comps, N_preserved_comps, Nbins) if HILC or NILC
             Clij of shape (Nsims, Nfreqs, Nfreqs, Nbins) if multifrequency
     
     '''
     if pipeline == 'HILC':
+
+        fname = 'Clpq_HILC.p'
+
         pool = mp.Pool(inp.num_parallel)
         Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
         pool.close()
         Clij = np.asarray(Clij, dtype=np.float32)
+
         pool = mp.Pool(inp.num_parallel)
         inp.Clij_theory = np.mean(Clij, axis=0)
         Clpq = pool.starmap(hilc_analytic.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
@@ -55,17 +61,22 @@ def get_observation(inp, pipeline, env):
         if pipeline == 'multifrequency':
             func = multifrequency_data_vecs.get_data_vectors
             args = [(sim, inp) for sim in range(inp.Nsims)]
+
         elif pipeline == 'NILC':
             func = nilc_data_vecs.get_data_vectors
             args = [(sim, inp, env) for sim in range(inp.Nsims)]
+        
         data_vec = pool.starmap(func, args)
         pool.close()
+
         if pipeline == 'NILC':
+            fname = 'Clpq_NILC.p'
             data_vec = np.asarray(data_vec, dtype=np.float32) # shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins)
         else:
+            fname = 'Clij.p'
             data_vec = np.asarray(data_vec, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, Nfreqs, Nfreqs, Nbins)
     
-    data_vec = torch.tensor(data_vec)
+    pickle.dump(data_vec, open(f'{inp.output_dir}/{fname}', 'wb'), protocol=4)
     return data_vec
 
 
@@ -97,8 +108,8 @@ def get_posterior(inp, pipeline, env):
         RETURNS
         -------
         data_vec: torch tensor containing outputs from simulation
-            Clpq of shape (N_preserved_comps, N_preserved_comps, Nbins) if HILC or NILC
-            Clij of shape (Nfreqs, Nfreqs, Nbins) if multifrequency
+            Clpq of shape (N_preserved_comps*N_preserved_comps*Nbins,) if HILC or NILC
+            Clij of shape (Nfreqs*Nfreqs*Nbins, ) if multifrequency
         
         '''
         nonlocal sim
@@ -110,13 +121,14 @@ def get_posterior(inp, pipeline, env):
         elif pipeline == 'NILC':
             data_vec = nilc_data_vecs.get_data_vectors(sim, inp, env, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
         sim += 1
-        data_vec = torch.tensor(data_vec)
+        data_vec = torch.tensor(data_vec.flatten())
         return data_vec
     
-    posterior = infer(simulator, prior, method="SNLE", num_simulations=inp.Nsims)
-    observation = get_observation(inp, pipeline, env)
+    posterior = infer(simulator, prior, method="SNPE", num_simulations=inp.Nsims)
+    observation_all_sims = get_observation(inp, pipeline, env)
+    observation = torch.tensor((np.mean(observation_all_sims, axis=0)).flatten())
     samples = posterior.sample((inp.Nsims,), x=observation)
-    acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32)
+    acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32).T
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{pipeline}.p', 'wb'))
     pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{pipeline}.p', 'wb'))
     pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_{pipeline}.p', 'wb'))

@@ -117,6 +117,6 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same
         hp.write_map(map1_fname, sim_map_1, overwrite=True, dtype=np.float32)
         hp.write_map(map2_fname, sim_map_2, overwrite=True, dtype=np.float32)
         if inp.verbose:
-            print(f'created {map1_fname} and sim{sim}_freq2.fits', flush=True)
+            print(f'created {map1_fname} and {map2_fname}', flush=True)
 
     return cmb_cl, tsz_cl, noise1_cl, noise2_cl, cmb_map, tsz_map, noise1_map, noise2_map
