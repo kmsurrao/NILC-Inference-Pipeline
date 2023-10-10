@@ -33,6 +33,13 @@ freqs: [90., 150.]
 # use_Gaussian_tSZ is True
 use_lfi: True
 
+# Half widths of prior to use for LFI
+# The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
+# Only need to be provided if use_lfi is True; otherwise this input is ignored
+# Should be list of 4 elements (prior half-widths for Acmb, Atsz, Anoise1, Anoise2)
+prior_half_widths: [0.4, 0.2, 1.0, 0.4]
+
+
 # Set to True (not recommended, use only for testing) to use Gaussian 
 # power spectrum covariance matrix instead of measuring it from sims 
 # If provided, this input is ignored if use_lfi is True
@@ -40,7 +47,7 @@ use_Gaussian_cov: False
 
 # Set to True (not recommended, use only for testing) 
 # to use Gaussian tSZ realizations
-use_Gaussian_tSZ: False 
+use_Gaussian_tSZ: True 
 
 ###################################################################################
 ###################################################################################

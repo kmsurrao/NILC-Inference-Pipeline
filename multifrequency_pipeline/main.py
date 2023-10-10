@@ -55,7 +55,7 @@ def main():
     
     else:
         samples = get_posterior(inp, 'multifrequency', my_env)
-        acmb_array, atsz_array, anoise1_array, anoise2_array = samples.T
+        acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32).T
         print('Results from Likelihood-Free Inference', flush=True)
         print('----------------------------------------------', flush=True)
         print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)

@@ -13,16 +13,19 @@ import multifrequency_data_vecs
 import hilc_analytic
 import nilc_data_vecs
 
-def get_prior():
+def get_prior(inp):
     '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+
     RETURNS
     -------
     prior on Acmb, Atsz, Anoise1, Anoise2 to use for likelihood-free inference
     '''
     num_dim = 4
-    mean = 1.0
-    step = 2.0
-    prior = utils.BoxUniform(low= (mean-step) * torch.ones(num_dim), high= (mean+step) * torch.ones(num_dim))
+    mean_tensor = torch.ones(num_dim)
+    prior = utils.BoxUniform(low=mean_tensor-torch.tensor(inp.prior_half_widths) , high=mean_tensor+torch.tensor(inp.prior_half_widths))
     return prior
 
 
@@ -76,7 +79,7 @@ def get_observation(inp, pipeline, env):
             fname = 'Clij.p'
             data_vec = np.asarray(data_vec, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, Nfreqs, Nfreqs, Nbins)
     
-    pickle.dump(data_vec, open(f'{inp.output_dir}/{fname}', 'wb'), protocol=4)
+    pickle.dump(data_vec, open(f'{inp.output_dir}/data_vecs/{fname}', 'wb'), protocol=4)
     return data_vec
 
 
@@ -91,12 +94,12 @@ def get_posterior(inp, pipeline, env):
 
     RETURNS
     -------
-    samples: torch tensor of shape (4, Nsims) containing Acmb, Atsz, Anoise1, Anoise2 posteriors
+    samples: torch tensor of shape (Nsims, 4) containing Acmb, Atsz, Anoise1, Anoise2 posteriors
     
     '''
 
     assert pipeline in {'multifrequency', 'HILC', 'NILC'}, "pipeline must be either 'multifrequency', 'HILC', or 'NILC'"
-    prior = get_prior()
+    prior = get_prior(inp)
     sim = 0
 
     def simulator(pars):
@@ -121,12 +124,14 @@ def get_posterior(inp, pipeline, env):
         elif pipeline == 'NILC':
             data_vec = nilc_data_vecs.get_data_vectors(sim, inp, env, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
         sim += 1
-        data_vec = torch.tensor(data_vec.flatten())
+        data_vec = torch.tensor(np.array([data_vec[0,0], data_vec[0,1], data_vec[1,1]]).flatten())
         return data_vec
     
     posterior = infer(simulator, prior, method="SNPE", num_simulations=inp.Nsims)
     observation_all_sims = get_observation(inp, pipeline, env)
-    observation = torch.tensor((np.mean(observation_all_sims, axis=0)).flatten())
+    #observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
+    mean_observation = np.mean(observation_all_sims, axis=0)
+    observation = torch.tensor(np.array([mean_observation[0,0], mean_observation[0,1], mean_observation[1,1]]).flatten())
     samples = posterior.sample((inp.Nsims,), x=observation)
     acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32).T
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{pipeline}.p', 'wb'))

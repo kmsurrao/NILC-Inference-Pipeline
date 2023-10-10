@@ -44,6 +44,10 @@ class Info(object):
         assert self.noise >= 0, 'noise'
 
         self.use_lfi = p['use_lfi']
+        if self.use_lfi:
+            assert 'prior_half_widths' in p, "prior_half_widths must be defined if use_lfi is True"
+            self.prior_half_widths = p['prior_half_widths']
+            assert len(self.prior_half_widths)==4, "prior_half_widths must have length 4 for Acmb, Atsz, Anoise1, Anoise2"
         if 'Nsims_for_fits' in p and not self.use_lfi:
             self.Nsims_for_fits = p['Nsims_for_fits'] # number of simulations for fitting f(Acmb, Aftsz, Anoise90, Anoise150)
             assert type(self.Nsims_for_fits) is int and 0 <= self.Nsims_for_fits <= self.Nsims, "Nsims_for_fits cannot be greater than Nsims"

@@ -37,6 +37,10 @@ class Info(object):
         assert self.noise >= 0, 'noise'
         self.freqs = p['freqs']
         self.use_lfi = p['use_lfi']
+        if self.use_lfi:
+            assert 'prior_half_widths' in p, "prior_half_widths must be defined if use_lfi is True"
+            self.prior_half_widths = p['prior_half_widths']
+            assert len(self.prior_half_widths)==4, "prior_half_widths must have length 4 for Acmb, Atsz, Anoise1, Anoise2"
         if 'use_Gaussian_cov' in p:
             self.use_Gaussian_cov = p['use_Gaussian_cov']
         self.use_Gaussian_tSZ = p['use_Gaussian_tSZ']

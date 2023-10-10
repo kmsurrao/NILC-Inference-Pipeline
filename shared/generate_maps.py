@@ -42,6 +42,7 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same
         if scaling[3]: noise1_amp = scale_factor
         if scaling[4]: noise2_amp = scale_factor
     if pars is not None:
+        pars = np.array(pars)
         CMB_amp *= pars[0]
         tSZ_amp_extra *= pars[1]
         noise1_amp *= pars[2]
