@@ -1,5 +1,4 @@
 import numpy as np
-import pickle
 import emcee
 import scipy
 from scipy.optimize import minimize
@@ -399,7 +398,6 @@ def main():
     Nsims = 1000
     xvals = np.arange(30)
     realizations = get_realizations(Nsims, xvals)
-    print(flush=True)
     method = 'SNPE'
     get_all_AB(realizations, xvals, method=method)
     return

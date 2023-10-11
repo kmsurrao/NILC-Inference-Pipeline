@@ -20,7 +20,7 @@ To run the parameter inference pipeline for a harmonic ILC-based likelihood:
 ```cd harmonic_ILC_pipeline```       
 ```python main.py --config=example.yaml```  
 
-The [jupyter_notebooks](jupyter_notebooks) folder contains example Jupyter notebooks for producing plots after running the above pipelines. The [mathematica_notebooks](mathematica_notebooks) folder contains Mathematica notebooks for analytic demonstrations of equality of the HILC and multifrequency power spectrum template-fitting methods, as well as python scripts for numerical demonstrations of equality between the methods when using data-split cross-spectra.
+The [jupyter_notebooks](jupyter_notebooks) folder contains example Jupyter notebooks for producing plots after running the above pipelines. The [toy_model](toy_model) folder runs inference using various methods (numerical and analytic MLE, Fisher matrix, MCMC, and likelihood-free inference) to verify that the results are the same on a simple toy model $A \cos(x) + Bx$, where $A$ and $B$ are free parameters to fit, and Gaussian noise is added to each realization.
 
 ## Recommendations
 There is a large amount of I/O from running this program. It is highly recommended to run on an HPC cluster and to set the output_dir parameter in the yaml files to be an empty subdirectory in a SCRATCH space.

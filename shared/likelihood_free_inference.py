@@ -127,7 +127,7 @@ def get_posterior(inp, pipeline, env):
         data_vec = torch.tensor(np.array([data_vec[0,0], data_vec[0,1], data_vec[1,1]]).flatten())
         return data_vec
     
-    posterior = infer(simulator, prior, method="SNPE", num_simulations=inp.Nsims)
+    posterior = infer(simulator, prior, method="SNPE", num_simulations=inp.Nsims, num_workers=inp.num_parallel)
     observation_all_sims = get_observation(inp, pipeline, env)
     #observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
     mean_observation = np.mean(observation_all_sims, axis=0)
