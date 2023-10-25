@@ -3,13 +3,13 @@ import numpy as np
 from utils import tsz_spectral_response
 
 
-def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same_noise=True, pars=None):
+def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None, same_noise=True, pars=None):
 
     '''
     ARGUMENTS
     ---------
-    sim: int, simulation number
     inp: Info object containing input parameter specifications
+    sim: int, simulation number (if None, will generate a random simulation number)
     save: Bool, whether to save frequency map files
     band_limit: Bool, whether or not to remove all power in weight maps above ellmax
     scaling: None or list of length 5
@@ -29,6 +29,8 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same
     cmb_map, tsz_map, noise1_map, noise2_map (amplified depending on scaling)
 
     '''
+    if sim is None:
+        sim = np.random.randint(0, high=inp.Nsims, size=None, dtype=int)
 
     np.random.seed(sim)
     l_arr, m_arr = hp.Alm.getlm(3*inp.nside-1)
@@ -42,64 +44,78 @@ def generate_freq_maps(sim, inp, save=True, band_limit=False, scaling=None, same
         if scaling[3]: noise1_amp = scale_factor
         if scaling[4]: noise2_amp = scale_factor
     if pars is not None:
-        pars = np.array(pars)
+        pars = np.sqrt(np.array(pars))
         CMB_amp *= pars[0]
         tSZ_amp_extra *= pars[1]
         noise1_amp *= pars[2]
         noise2_amp *= pars[3]
 
     #Read tSZ halosky map
-    if not inp.use_Gaussian_tSZ:
-        tsz_map = hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
+    if tSZ_amp_extra == 0:
+        tsz_map = np.zeros(12*inp.nside**2)
+        tsz_cl = np.zeros(inp.ell_sum_max+1)
     else:
-        tsz_map = hp.read_map(f'{inp.halosky_maps_path}/tsz_00000.fits')
-        tsz_cl = hp.anafast(tsz_map, lmax=3*inp.nside-1)
-        tsz_map = hp.synfast(tsz_cl, nside=inp.nside)
-    tsz_map = inp.tsz_amp*tSZ_amp_extra*hp.ud_grade(tsz_map, inp.nside)
-    if band_limit:
-        tsz_alm = hp.map2alm(tsz_map)
-        tsz_alm = tsz_alm*(l_arr<=inp.ellmax)
-        tsz_map = hp.alm2map(tsz_alm, nside=inp.nside)
-    tsz_cl = hp.anafast(tsz_map, lmax=inp.ell_sum_max)
+        if not inp.use_Gaussian_tSZ:
+            tsz_map = hp.read_map(f'{inp.halosky_maps_path}/tsz_{sim:05d}.fits')
+        else:
+            tsz_map = hp.read_map(f'{inp.halosky_maps_path}/tsz_00000.fits')
+            tsz_cl = hp.anafast(tsz_map, lmax=3*inp.nside-1)
+            tsz_map = hp.synfast(tsz_cl, nside=inp.nside)
+        tsz_map = inp.tsz_amp*tSZ_amp_extra*hp.ud_grade(tsz_map, inp.nside)
+        if band_limit:
+            tsz_alm = hp.map2alm(tsz_map)
+            tsz_alm = tsz_alm*(l_arr<=inp.ellmax)
+            tsz_map = hp.alm2map(tsz_alm, nside=inp.nside)
+        tsz_cl = hp.anafast(tsz_map, lmax=inp.ell_sum_max)
 
     #realization of CMB from lensed alm
-    cmb_map = hp.read_map(inp.cmb_map_file)
-    cmb_map = CMB_amp*hp.ud_grade(cmb_map, inp.nside)
-    if band_limit:
-        cmb_alm = hp.map2alm(cmb_map)
-        cmb_alm = cmb_alm*(l_arr<=inp.ellmax)
-        cmb_map = hp.alm2map(cmb_alm, nside=inp.nside)
-    cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
-    cmb_map = hp.synfast(cmb_cl, inp.nside)
-    cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
+    if CMB_amp == 0:
+        cmb_map = np.zeros(12*inp.nside**2)
+        cmb_cl = np.zeros(inp.ell_sum_max+1)
+    else:
+        cmb_map = hp.read_map(inp.cmb_map_file)
+        cmb_map = CMB_amp*hp.ud_grade(cmb_map, inp.nside)
+        if band_limit:
+            cmb_alm = hp.map2alm(cmb_map)
+            cmb_alm = cmb_alm*(l_arr<=inp.ellmax)
+            cmb_map = hp.alm2map(cmb_alm, nside=inp.nside)
+        cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
+        cmb_map = hp.synfast(cmb_cl, inp.nside)
+        cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
 
     #noise map realizations
-    theta_fwhm = (1.4/60.)*(np.pi/180.)
-    sigma = theta_fwhm/np.sqrt(8.*np.log(2.))
-    W1 = (inp.noise/60.)*(np.pi/180.)
-    if same_noise:
-        W2 = W1
+    if noise1_amp == noise2_amp == 0:
+        noise1_map = np.zeros(12*inp.nside**2)
+        noise2_map = np.zeros(12*inp.nside**2)
+        noise1_cl = np.zeros(inp.ell_sum_max+1)
+        noise2_cl = np.zeros(inp.ell_sum_max+1)
     else:
-        W2 = (inp.noise*np.sqrt(1.5)/60.)*(np.pi/180.)
-    ells = np.arange(3*inp.nside)
-    noise1_cl = W1**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
-    noise2_cl = W2**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
-    noise1_map = noise1_amp*hp.synfast(noise1_cl, inp.nside)
-    if sim==0:
-        np.random.seed(1)
-    else:
-        np.random.seed(inp.Nsims+sim)
-    noise2_map = noise2_amp*hp.synfast(noise2_cl, inp.nside)
-    np.random.seed(sim)
-    if band_limit:
-        noise1_alm = hp.map2alm(noise1_map)
-        noise1_alm = noise1_alm*(l_arr<=inp.ellmax)
-        noise1_map = hp.alm2map(noise1_alm, nside=inp.nside)
-        noise2_alm = hp.map2alm(noise2_map)
-        noise2_alm = noise2_alm*(l_arr<=inp.ellmax)
-        noise2_map = hp.alm2map(noise2_alm, nside=inp.nside)
-    noise1_cl = hp.anafast(noise1_map, lmax=inp.ell_sum_max)
-    noise2_cl = hp.anafast(noise2_map, lmax=inp.ell_sum_max)
+        theta_fwhm = (1.4/60.)*(np.pi/180.)
+        sigma = theta_fwhm/np.sqrt(8.*np.log(2.))
+        W1 = (inp.noise/60.)*(np.pi/180.)
+        if same_noise:
+            W2 = W1
+        else:
+            W2 = (inp.noise*np.sqrt(1.5)/60.)*(np.pi/180.)
+        ells = np.arange(3*inp.nside)
+        noise1_cl = W1**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
+        noise2_cl = W2**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
+        noise1_map = noise1_amp*hp.synfast(noise1_cl, inp.nside)
+        if sim==0:
+            np.random.seed(1)
+        else:
+            np.random.seed(inp.Nsims+sim)
+        noise2_map = noise2_amp*hp.synfast(noise2_cl, inp.nside)
+        np.random.seed(sim)
+        if band_limit:
+            noise1_alm = hp.map2alm(noise1_map)
+            noise1_alm = noise1_alm*(l_arr<=inp.ellmax)
+            noise1_map = hp.alm2map(noise1_alm, nside=inp.nside)
+            noise2_alm = hp.map2alm(noise2_map)
+            noise2_alm = noise2_alm*(l_arr<=inp.ellmax)
+            noise2_map = hp.alm2map(noise2_alm, nside=inp.nside)
+        noise1_cl = hp.anafast(noise1_map, lmax=inp.ell_sum_max)
+        noise2_cl = hp.anafast(noise2_map, lmax=inp.ell_sum_max)
 
     #tSZ spectral response
     g1, g2 = tsz_spectral_response(inp.freqs)

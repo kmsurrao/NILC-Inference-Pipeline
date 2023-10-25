@@ -1,13 +1,12 @@
+import sys
+sys.path.append('../..')
+sys.path.append('../../../shared')
 import numpy as np
-import pickle
+import multiprocessing as mp
 import emcee
 import scipy
 from scipy.optimize import minimize
-from scipy import stats
-import multiprocessing as mp
-import sys
-sys.path.append('../shared')
-from utils import tsz_spectral_response
+
 
 ##############################################
 #####  POWER SPECTRUM COVARIANCE MATRIX  #####
@@ -27,43 +26,6 @@ def get_PScov_sim(inp, Clij):
     cov: (3*Nbins, 3*Nbins) ndarray containing covariance matrix Cov_{ij b1, kl b2}
         index as cov[(0-2 for Cl00 Cl01 Cl11)*Nbins + bin1, (0-2 for Cl00 Cl01 Cl11)*Nbins + bin2]
     '''
-
-    if inp.use_Gaussian_cov:
-
-        cov = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
-        
-        Clij = np.mean(Clij, axis=0) #dim (Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
-        g1, g2 = tsz_spectral_response(inp.freqs) #tSZ spectral response at 90 and 150 GHz
-        CC = Clij[0,0,1] #CMB
-        T = Clij[0,0,2]/g1**2 #tSZ (in Compton-y)
-        N1 = Clij[0,0,3] #noise 90 GHz
-        N2 = Clij[1,1,4] #noise 150 GHz
-        Clij = Clij[:,:,0]
-        f = 1. #fraction of sky
-
-        #get mean ell in each bin
-        res = stats.binned_statistic(np.arange(inp.ellmax+1)[2:], np.arange(inp.ellmax+1)[2:], statistic='mean', bins=inp.Nbins)
-
-        for bin in np.arange(inp.Nbins):
-            Nmodes = f* ((np.floor(res[1][bin+1]))**2 - (np.ceil(res[1][bin])-1)**2)
-            cov[bin, bin] = (1/Nmodes)*np.array([
-                        [2*Clij[0, 0, bin]**2,
-                            2*(CC[bin] + g1**2*T[bin])*Clij[0, 1, bin] + 2*N1[bin]*Clij[0, 1, bin],
-                            2*Clij[0, 1, bin]**2], 
-                        [2*(CC[bin] + g1**2*T[bin])*Clij[0, 1, bin] + 2*N1[bin]*Clij[0, 1, bin], 
-                            Clij[0, 0, bin]*Clij[1, 1, bin] + Clij[0, 1, bin]**2,
-                            2*(CC[bin] + g2**2*T[bin])*Clij[0, 1, bin] + 2*N2[bin]*Clij[0, 1, bin]], 
-                        [2*Clij[0, 1, bin]**2, 
-                            2*(CC[bin] + g2**2*T[bin])*Clij[0, 1, bin] + 2*N2[bin]*Clij[0, 1, bin],
-                            2*Clij[1, 1, bin]**2]])
-        PScov_sim_alt = np.zeros((3*inp.Nbins, 3*inp.Nbins))
-        for b1 in range(inp.Nbins):
-            for b2 in range(inp.Nbins):
-                for ij in range(3):
-                    for kl in range(3):
-                        PScov_sim_alt[ij*inp.Nbins+b1, kl*inp.Nbins+b2] = cov[b1,b2,ij,kl]
-        return PScov_sim_alt
-
     Clij_tmp = Clij[:,:,:,0] #shape (Nsims, Nfreqs=2, Nfreqs=2, Nbins)
     Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,1]]) #shape (3, Nsims, Nbins)
     Clij_tmp = np.transpose(Clij_tmp, axes=(0,2,1)) #shape (3 for Cl00 Cl01 and Cl11, Nbins, Nsims)
@@ -76,17 +38,15 @@ def get_PScov_sim(inp, Clij):
 #########      NUMERICAL MLE      ############
 ##############################################
 
-def ClijA(Acmb, Atsz, Anoise1, Anoise2, inp, Clij00, Clij01, Clij10, Clij11):
+def ClijA(A1, A2, inp, Clij00, Clij01, Clij10, Clij11):
     '''
     Model for theoretical spectra Clpq including amplitude parameters
 
     ARGUMENTS
     ---------
     USED BY MINIMIZER
-    Acmb: float, scaling parameter for CMB power spectrum
-    Atsz: float, scaling parameter for tSZ power spectrum
-    Anoise1: float, scaling parameter for 90 GHz noise power spectrum
-    Anoise2: float, scaling parameter for 150 GHz noise power spectrum
+    A1: float, scaling parameter for power spectrum of first component
+    A2: float, scaling parameter for power spectrum of second component
 
     CONSTANT ARGS
     inp: Info object containing input parameter specifications
@@ -99,10 +59,10 @@ def ClijA(Acmb, Atsz, Anoise1, Anoise2, inp, Clij00, Clij01, Clij10, Clij11):
 
     '''
 
-    Clij_with_A_00 = Acmb*Clij00[1] + Atsz*Clij00[2] + Anoise1*Clij00[3] + Anoise2*Clij00[4]
-    Clij_with_A_01 = Acmb*Clij01[1] + Atsz*Clij01[2] + Anoise1*Clij01[3] + Anoise2*Clij01[4]
-    Clij_with_A_10 = Acmb*Clij10[1] + Atsz*Clij10[2] + Anoise1*Clij10[3] + Anoise2*Clij10[4]
-    Clij_with_A_11 = Acmb*Clij11[1] + Atsz*Clij11[2] + Anoise1*Clij11[3] + Anoise2*Clij11[4]
+    Clij_with_A_00 = A1*Clij00[1] + A2*Clij00[2]
+    Clij_with_A_01 = A1*Clij01[1] + A2*Clij01[2]
+    Clij_with_A_10 = A1*Clij10[1] + A2*Clij10[2]
+    Clij_with_A_11 = A1*Clij11[1] + A2*Clij11[2]
     return np.array([[[Clij_with_A_00[b], Clij_with_A_01[b]],[Clij_with_A_10[b], Clij_with_A_11[b]]] for b in range(inp.Nbins)])
 
 
@@ -141,7 +101,7 @@ def neg_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims
 
 def acmb_atsz_numerical(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv):
     '''
-    Maximize likelihood with respect to Acmb, Atsz, Anoise90, Anoise150 for one sim using numerical minimization routine
+    Maximize likelihood with respect to A1, A2 for one sim using numerical minimization routine
 
     ARGUMENTS
     ---------
@@ -152,11 +112,11 @@ def acmb_atsz_numerical(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_s
 
     RETURNS
     -------
-    best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
+    best fit A1, A2 (floats)
     '''
     all_res = []
     for start in [0.5, 1.0, 1.5]:
-        start_array = [start, start, start, start] #acmb_start, atsz_start, anoise1_start, anoise2_start
+        start_array = [start, start] #a1_start, a2_start
         res = minimize(neg_lnL, x0 = start_array, args = (ClijA, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv), method='Nelder-Mead', bounds=None) #default method is BFGS
         all_res.append(res)
     return (min(all_res, key=lambda res:res.fun)).x
@@ -168,7 +128,7 @@ def acmb_atsz_numerical(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_s
 
 def acmb_atsz_analytic(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv):
     '''
-    Maximize likelihood with respect to Acmb, Atsz, Anoise90, Anoise150 for one sim analytically 
+    Maximize likelihood with respect to A1, A2 for one sim analytically 
 
     ARGUMENTS
     ---------
@@ -179,7 +139,7 @@ def acmb_atsz_analytic(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_si
 
     RETURNS
     -------
-    best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
+    best fit A1, A2 (floats)
 
     INDEX MAPPING IN EINSUM
     -----------------------
@@ -212,10 +172,8 @@ def get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
 
     RETURNS
     -------
-    acmb_array: array of length Nsims containing best fit Acmb for each simulation
-    atsz_array: array of length Nsims containing best fit Atsz for each simulation
-    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
-    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
+    a1_array: array of length Nsims containing best fit A1 for each simulation
+    a2_array: array of length Nsims containing best fit A2 for each simulation
     '''
 
     func = acmb_atsz_analytic if use_analytic else acmb_atsz_numerical
@@ -223,27 +181,18 @@ def get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
     pool = mp.Pool(inp.num_parallel)
     param_array = pool.starmap(func, [(inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv) for sim in range(len(Clij00_all_sims))])
     pool.close()
-    param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 4 for Acmb Atsz Anoise1 Anoise2)
-    acmb_array = param_array[:,0]
-    atsz_array = param_array[:,1]
-    anoise1_array = param_array[:,2]
-    anoise2_array = param_array[:,3]
+    param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 3 for A1 A2)
+    a1_array = param_array[:,0]
+    a2_array = param_array[:,1]
     
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{string}.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{string}.p', 'wb'))
-    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_{string}.p', 'wb'))
-    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_{string}.p', 'wb'))
-    if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_{string}.p and atsz and anoise1 and anoise2', flush=True)
-    final_cov = np.cov(np.array([acmb_array, atsz_array, anoise1_array, anoise2_array]))
+
+    final_cov = np.cov(np.array([a1_array, a2_array]))
     print(f'Results from maximum likelihood estimation using {string} MLEs', flush=True)
     print('---------------------------------------------------------------', flush=True)
-    print(f'Acmb = {np.mean(acmb_array)} +/- {np.sqrt(final_cov[0,0])}', flush=True)
-    print(f'Atsz = {np.mean(atsz_array)} +/- {np.sqrt(final_cov[1,1])}', flush=True)
-    print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.sqrt(final_cov[2,2])}', flush=True)
-    print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.sqrt(final_cov[3,3])}', flush=True)
+    print(f'A1 = {np.mean(a1_array)} +/- {np.sqrt(final_cov[0,0])}', flush=True)
+    print(f'A2 = {np.mean(a2_array)} +/- {np.sqrt(final_cov[1,1])}', flush=True)
 
-    return acmb_array, atsz_array, anoise1_array, anoise2_array 
+    return a1_array, a2_array
 
 
 
@@ -265,11 +214,11 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv):
 
     RETURNS
     -------
-    acmb_std, atsz_std, anoise1_std, anoise2_std: predicted standard deviations of Acmb, etc.
+    a1_std, a2_std: predicted standard deviations of A1, A2
         found by computing the Fisher matrix and inverting
     '''
 
-    Ncomps = 4
+    Ncomps = 2
     Clij_mean = np.mean(Clij, axis=0)
     deriv_vec = np.zeros((Ncomps, 3, inp.Nbins))
     for A in range(Ncomps):
@@ -280,18 +229,14 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv):
             deriv_vec[A,ij] = Clij_mean[i,j,1+A]
     Fisher = np.einsum('Aib,bcij,Bjc->AB', deriv_vec, PScov_sim_Inv, deriv_vec)
     final_cov = np.linalg.inv(Fisher)
-    acmb_std = np.sqrt(final_cov[0,0])
-    atsz_std = np.sqrt(final_cov[1,1])
-    anoise1_std = np.sqrt(final_cov[2,2])
-    anoise2_std = np.sqrt(final_cov[3,3])
+    a1_std = np.sqrt(final_cov[0,0])
+    a2_std = np.sqrt(final_cov[1,1])
 
     print('Results from inverting Fisher matrix', flush=True)
     print('----------------------------------------', flush=True)
-    print('Acmb std dev: ', acmb_std, flush=True)
-    print('Atsz std dev: ', atsz_std, flush=True)
-    print('Anoise1 std dev: ', anoise1_std, flush=True)
-    print('Anoise2 std dev: ', anoise2_std, flush=True)
-    return acmb_std, atsz_std, anoise1_std, anoise2_std
+    print('A1 std dev: ', a1_std, flush=True)
+    print('A2 std dev: ', a2_std, flush=True)
+    return a1_std, a2_std
 
 
 ##############################################
@@ -331,38 +276,28 @@ def MCMC(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims
 
     RETURNS
     -------
-    acmb_std, atsz_std, anoise1_std, anoise2_std: predicted standard deviations of Acmb, etc.
-        found from MCMC
+    a1_std, a2_std: predicted standard deviations of A1, A2 found from MCMC
     '''
 
     np.random.seed(0)
-    ndim = 4
+    ndim = 2
     nwalkers = 10
     p0 = np.random.random((nwalkers, ndim))*(1.2-0.8)+0.8
     sampler = emcee.EnsembleSampler(nwalkers, ndim, pos_lnL, args=[ClijA, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv])
     state = sampler.run_mcmc(p0, 100)
     sampler.reset()
     sampler.run_mcmc(state, 1000)
-    samples = sampler.get_chain() #dimensions (1000, nwalkers, Ncomps=4)
-
-    if inp.save_files:
-        pickle.dump(samples, open(f'{inp.output_dir}/MCMC_chains_multifrequency.p', 'wb'))
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/MCMC_chains_multifrequency.p', flush=True)
+    samples = sampler.get_chain() #dimensions (1000, nwalkers, Ncomps=2)
     
-    acmb_std = np.mean(np.array([np.std(samples[:,walker,0]) for walker in range(nwalkers)]))
-    atsz_std = np.mean(np.array([np.std(samples[:,walker,1]) for walker in range(nwalkers)]))
-    anoise1_std = np.mean(np.array([np.std(samples[:,walker,2]) for walker in range(nwalkers)]))
-    anoise2_std = np.mean(np.array([np.std(samples[:,walker,3]) for walker in range(nwalkers)]))
+    a1_std = np.mean(np.array([np.std(samples[:,walker,0]) for walker in range(nwalkers)]))
+    a2_std = np.mean(np.array([np.std(samples[:,walker,1]) for walker in range(nwalkers)]))
 
     print('Results from MCMC', flush=True)
     print('------------------------------------', flush=True)
-    print('Acmb std dev: ', acmb_std, flush=True)
-    print('Atsz std dev: ', atsz_std, flush=True)
-    print('Anoise1 std dev: ', anoise1_std, flush=True)
-    print('Anoise2 std dev: ', anoise2_std, flush=True)
+    print('A1 std dev: ', a1_std, flush=True)
+    print('A2 std dev: ', a2_std, flush=True)
     print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)), flush=True)
-    return acmb_std, atsz_std, anoise1_std, anoise2_std
+    return a1_std, a2_std
 
 
 ############################################
@@ -393,10 +328,8 @@ def cov_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PScov
     F_inv = np.linalg.inv(F)
     print('Results from Analytic Covariance of MLEs', flush=True)
     print('------------------------------------', flush=True)
-    print('Acmb std dev: ', np.sqrt(F_inv[0,0]), flush=True)
-    print('Atsz std dev: ', np.sqrt(F_inv[1,1]), flush=True)
-    print('Anoise1 std dev: ', np.sqrt(F_inv[2,2]), flush=True)
-    print('Anoise2 std dev: ', np.sqrt(F_inv[3,3]), flush=True)
+    print('A1 std dev: ', np.sqrt(F_inv[0,0]), flush=True)
+    print('A2 std dev: ', np.sqrt(F_inv[1,1]), flush=True)
     return F_inv 
 
 
@@ -416,10 +349,8 @@ def get_all_acmb_atsz(inp, Clij):
 
     RETURNS
     -------
-    acmb_array: array of length Nsims containing best fit Acmb for each simulation
-    atsz_array: array of length Nsims containing best fit Atsz for each simulation
-    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
-    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
+    a1_array: array of length Nsims containing best fit A1 for each simulation
+    a2_array: array of length Nsims containing best fit A2 for each simulation
     '''
 
     PScov_sim = get_PScov_sim(inp, Clij)
@@ -435,9 +366,9 @@ def get_all_acmb_atsz(inp, Clij):
 
     Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims = Clij[:,0,0], Clij[:,0,1], Clij[:,1,0], Clij[:,1,1]
 
-    acmb_array, atsz_array, anoise1_array, anoise2_array = get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, use_analytic=True)
+    a1_array, a2_array = get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, use_analytic=True)
     print(flush=True)
-    acmb_array, atsz_array, anoise1_array, anoise2_array = get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, use_analytic=False)
+    a1_array, a2_array = get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij11_all_sims, PScov_sim_Inv, use_analytic=False)
     
     print(flush=True)
     Fisher_inversion(inp, Clij, PScov_sim_Inv)
@@ -448,7 +379,8 @@ def get_all_acmb_atsz(inp, Clij):
     print(flush=True)
     cov_of_MLE_analytic(Clij00_all_sims, Clij01_all_sims, Clij11_all_sims, PScov_sim_Inv)
 
+    return a1_array, a2_array
 
-   
-    return acmb_array, atsz_array, anoise1_array, anoise2_array
+
+
 

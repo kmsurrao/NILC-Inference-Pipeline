@@ -49,7 +49,7 @@ def main():
         if inp.use_symbolic_regression:
             Clij = pool.starmap(hilc_SR.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
         else:
-            Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
+            Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(inp, sim) for sim in range(inp.Nsims)])
         pool.close()
         Clij = np.asarray(Clij, dtype=np.float32)
         if inp.save_files:

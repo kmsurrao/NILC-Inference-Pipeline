@@ -44,7 +44,7 @@ def main():
 
     if not inp.use_lfi:
         pool = mp.Pool(inp.num_parallel)
-        Clij = pool.starmap(get_data_vectors, [(sim, inp) for sim in range(inp.Nsims)])
+        Clij = pool.starmap(get_data_vectors, [(inp, sim) for sim in range(inp.Nsims)])
         pool.close()
         Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
         if inp.save_files:

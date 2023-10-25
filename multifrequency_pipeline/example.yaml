@@ -64,8 +64,8 @@ halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps'
 # File for CMB map in Kelvin, lensed_alm from Websky is in uK
 cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' 
 
-#Path to folder to store outputs, NOTE: Recommended to be a directory ONLY 
-# sed for the outputs of this pipeline (and other pipelines in the repo) 
+# Path to folder to store outputs, NOTE: Recommended to be a directory ONLY 
+# for the outputs of this pipeline (and other pipelines in the repo) 
 # since files will be written and deleted!
 output_dir: '/scratch/09334/ksurrao/NILC/outputs' 
 

@@ -40,7 +40,7 @@ def get_freq_power_spec(sim, inp):
     g_noise2 = np.array([0.,1.])
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, save=False, scaling=scalings[0])
+    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(inp, sim, save=False, scaling=scalings[0])
     
     #fill in array of data vectors
     for scaling in scalings:

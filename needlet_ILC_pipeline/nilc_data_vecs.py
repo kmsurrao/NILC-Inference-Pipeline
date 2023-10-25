@@ -43,7 +43,7 @@ def get_scaled_maps_and_wts(sim, inp, env):
 
         #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)
         if s==0:
-            CC, T, N1, N2, CMB_map_unscaled, tSZ_map_unscaled, noise1_map_unscaled, noise2_map_unscaled = generate_freq_maps(sim, inp, scaling=scaling)
+            CC, T, N1, N2, CMB_map_unscaled, tSZ_map_unscaled, noise1_map_unscaled, noise2_map_unscaled = generate_freq_maps(inp, sim, scaling=scaling)
         
         #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
         if not weight_maps_exist(sim, inp, scaling=scaling): #check if not all the weight maps already exist
@@ -56,7 +56,7 @@ def get_scaled_maps_and_wts(sim, inp, env):
                 subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/sim{sim}*', shell=True, env=env)
             
             #generate and save files containing frequency maps and then run pyilc
-            generate_freq_maps(sim, inp, scaling=scaling)
+            generate_freq_maps(inp, sim, scaling=scaling)
             setup_pyilc(sim, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
 
         #load weight maps
@@ -194,10 +194,10 @@ def get_maps_and_wts(sim, inp, env, pars=None):
     all_wt_maps = np.zeros((N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
 
     #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)
-    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(sim, inp, pars=pars)
+    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(inp, sim, pars=pars)
        
     #ngenerate and save files containing frequency maps and then run pyilc
-    generate_freq_maps(sim, inp)
+    generate_freq_maps(inp, sim)
     setup_pyilc(sim, inp, env, suppress_printing=True) #set suppress_printing=False to debug pyilc runs
 
     #load weight maps
@@ -208,13 +208,13 @@ def get_maps_and_wts(sim, inp, env, pars=None):
 
 
 
-def get_data_vectors(sim, inp, env, pars=None):
+def get_data_vectors(inp, env, sim=None, pars=None):
     '''
     ARGUMENTS
     ---------
-    sim: int, simulation number
     inp: Info object containing input parameter specifications
     env: environment object
+    sim: int, simulation number (if sim is None, a random simulation number will be used)
     pars: array of floats [Acmb, Atsz, Anoise1, Anoise2] (if not provided, all assumed to be 1)
 
     RETURNS
@@ -223,6 +223,10 @@ def get_data_vectors(sim, inp, env, pars=None):
         containing propagation of each pair of component maps to NILC map auto- and cross-spectra. 
         preserved_comps = CMB, ftSZ
     '''
+
+    if sim is None:
+        sim = np.random.randint(0, high=inp.Nsims, size=None, dtype=int)
+        print('sim: ', sim, flush=True)
     
     N_preserved_comps = 2 #components to create NILC maps for: CMB, ftSZ
 

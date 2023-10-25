@@ -20,7 +20,7 @@ To run the parameter inference pipeline for a harmonic ILC-based likelihood:
 ```cd harmonic_ILC_pipeline```       
 ```python main.py --config=example.yaml```  
 
-The [jupyter_notebooks](jupyter_notebooks) folder contains example Jupyter notebooks for producing plots after running the above pipelines. The [toy_model](toy_model) folder runs inference using various methods (numerical and analytic MLE, Fisher matrix, MCMC, and likelihood-free inference) to verify that the results are the same on a simple toy model $A \cos(x) + Bx$, where $A$ and $B$ are free parameters to fit, and Gaussian noise is added to each realization.
+The [plotting_notebooks](plotting_notebooks) folder contains example Jupyter notebooks for producing plots after running the above pipelines. The [toy_model](toy_model) folder runs inference using various methods (numerical and analytic MLE, Fisher matrix, MCMC, and likelihood-free inference) to verify that the results are the same on a simple toy model $A \cos(x) + Bx$, where $A$ and $B$ are free parameters to fit, and Gaussian noise is added to each realization. There are also various tests in the individual subdirectories.  
 
 ## Recommendations
 There is a large amount of I/O from running this program. It is highly recommended to run on an HPC cluster and to set the output_dir parameter in the yaml files to be an empty subdirectory in a SCRATCH space.
@@ -34,7 +34,3 @@ healpy
 pysr  
 getdist  
 emcee  
-
-## Acknowledgments
-Portions of this code are adapted from PolyBin (https://github.com/oliverphilcox/PolyBin), pyilc (https://github.com/jcolinhill/pyilc), and reMASTERed (https://github.com/kmsurrao/reMASTERed).
-

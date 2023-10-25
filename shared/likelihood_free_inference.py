@@ -90,7 +90,7 @@ def get_posterior(inp, pipeline, env):
     ---------
     inp: Info object containing input parameter specifications
     pipeline: str, either 'multifrequency', 'HILC', or 'NILC'
-    env: environment object, only needed if pipeline=='NILC
+    env: environment object, only needed if pipeline=='NILC'
 
     RETURNS
     -------
@@ -100,7 +100,13 @@ def get_posterior(inp, pipeline, env):
 
     assert pipeline in {'multifrequency', 'HILC', 'NILC'}, "pipeline must be either 'multifrequency', 'HILC', or 'NILC'"
     prior = get_prior(inp)
-    sim = 0
+
+    #observation_all_sims = get_observation(inp, pipeline, env)
+    observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
+    observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,1]]) #shape (3,Nsims,Nbins)
+    observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 3*inp.Nbins))
+    mean_vec = np.mean(observation_all_sims, axis=0)
+    observation = torch.ones(3*inp.Nbins)
 
     def simulator(pars):
         '''
@@ -115,25 +121,22 @@ def get_posterior(inp, pipeline, env):
             Clij of shape (Nfreqs*Nfreqs*Nbins, ) if multifrequency
         
         '''
-        nonlocal sim
         if pipeline == 'multifrequency':
-            data_vec = multifrequency_data_vecs.get_data_vectors(sim, inp, pars=pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
+            data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
         elif pipeline == 'HILC':
-            Clij = hilc_analytic.get_freq_power_spec(sim, inp, pars=pars) # shape (Nfreqs=, Nfreqs, 1+Ncomps, ellmax+1)
+            Clij = hilc_analytic.get_freq_power_spec(inp, sim=None, pars=pars) # shape (Nfreqs=, Nfreqs, 1+Ncomps, ellmax+1)
             data_vec = hilc_analytic.get_data_vecs(inp, Clij)[:,:,0,:] # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
         elif pipeline == 'NILC':
-            data_vec = nilc_data_vecs.get_data_vectors(sim, inp, env, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
-        sim += 1
-        data_vec = torch.tensor(np.array([data_vec[0,0], data_vec[0,1], data_vec[1,1]]).flatten())
+            data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
+        data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,1]]).flatten()
+        data_vec = torch.tensor(data_vec/mean_vec)
         return data_vec
     
+
     posterior = infer(simulator, prior, method="SNPE", num_simulations=inp.Nsims, num_workers=inp.num_parallel)
-    observation_all_sims = get_observation(inp, pipeline, env)
-    #observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
-    mean_observation = np.mean(observation_all_sims, axis=0)
-    observation = torch.tensor(np.array([mean_observation[0,0], mean_observation[0,1], mean_observation[1,1]]).flatten())
     samples = posterior.sample((inp.Nsims,), x=observation)
     acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32).T
+    
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{pipeline}.p', 'wb'))
     pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{pipeline}.p', 'wb'))
     pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_{pipeline}.p', 'wb'))

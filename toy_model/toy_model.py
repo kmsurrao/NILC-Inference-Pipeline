@@ -7,6 +7,7 @@ import torch
 from sbi import utils as utils
 from sbi import analysis as analysis
 from sbi.inference.base import infer
+from sbi.inference import SNPE, SNLE, SNRE, prepare_for_sbi, simulate_for_sbi
 
 #########################################################################################
 ##############               Create realizations of               #######################
@@ -304,8 +305,9 @@ def get_prior():
     prior on A and B to use for likelihood-free inference
     '''
     mean = 1.0
-    step = 1.0
-    prior = utils.BoxUniform(low= torch.tensor([mean-step, mean-step]), high= torch.tensor([mean+step, mean+step]))
+    step_A = 1.3
+    step_B = 1.0
+    prior = utils.BoxUniform(low= torch.tensor([mean-step_A, mean-step_B]), high= torch.tensor([mean+step_A, mean+step_B]))
     return prior
 
 
@@ -340,8 +342,32 @@ def get_posterior_LFI(realizations, Nsims, xvals, method):
 
     prior = get_prior()
     observation = np.mean(realizations, axis=0)
-    posterior = infer(simulator, prior, method=method, num_simulations=Nsims)
+
+    # simulator_, prior_ = prepare_for_sbi(simulator, prior)
+    # if method == 'SNPE':
+    #     inference = SNPE(prior=prior_)
+    # elif method == 'SNLE':
+    #     inference = SNLE(prior=prior_)
+    # elif method == 'SNRE':
+    #     inference = SNRE(prior=prior_)
+
+    # num_rounds = 2
+    # posteriors = []
+    # proposal = prior_
+    # for _ in range(num_rounds):
+    #     theta, x = simulate_for_sbi(simulator_, proposal, num_simulations=Nsims//num_rounds, num_workers=8)
+    #     density_estimator = inference.append_simulations(
+    #                 theta, x, proposal=proposal).train()
+    #     posterior = inference.build_posterior(density_estimator)
+    #     posteriors.append(posterior)
+    #     proposal = posterior.set_default_x(observation)
+    # samples = posterior.sample((Nsims,), x=observation)
+
+
+
+    posterior = infer(simulator, prior, method=method, num_simulations=Nsims, num_workers=8)
     samples = posterior.sample((Nsims,), x=observation)
+
     A_array, B_array = np.array(samples, dtype=np.float32).T
     print(f'Results from likelihood-free inference, method={method}', flush=True)
     print('---------------------------------------------------------------', flush=True)
@@ -395,7 +421,7 @@ def get_all_AB(realizations, xvals, method='SNPE'):
 
 def main():
     np.random.seed(0)
-    Nsims = 1000
+    Nsims = 5000
     xvals = np.arange(30)
     realizations = get_realizations(Nsims, xvals)
     method = 'SNPE'
