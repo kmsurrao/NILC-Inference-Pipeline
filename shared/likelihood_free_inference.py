@@ -133,7 +133,7 @@ def get_posterior(inp, pipeline, env):
         return data_vec
     
 
-    posterior = infer(simulator, prior, method="SNPE", num_simulations=inp.Nsims, num_workers=inp.num_parallel)
+    posterior = infer(simulator, prior, method="SNPE", num_simulations=2*inp.Nsims, num_workers=inp.num_parallel)
     samples = posterior.sample((inp.Nsims,), x=observation)
     acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32).T
     

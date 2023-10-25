@@ -257,7 +257,6 @@ def pos_lnL(pars, f, inp, sim, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims
     ---------
     pars: parameters to function f (not manually inputted but used by minimizer)
     f: function that returns theory model in terms of amplitude parameters
-    sim: int, simulation number
     inp: Info object containing input parameter specifications
     sim: int, simulation number
     Clij{i}{j}_all_sims: (Nsims, 1+N_comps, Nbins) ndarray containing contribution of components to Clij

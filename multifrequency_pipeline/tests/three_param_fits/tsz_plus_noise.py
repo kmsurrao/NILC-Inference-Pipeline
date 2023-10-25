@@ -37,6 +37,10 @@ def main():
     Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+4, Nbins)
     Clij = np.concatenate((Clij[:,:,:,:1,:], Clij[:,:,:,2:,:]), axis=3) #get rid of CMB component
 
+    min_bin = 0
+    Clij = Clij[:,:,:,:,min_bin:] #cut off bins with high variance                                                          
+    inp.Nbins -= min_bin
+
     print(flush=True)
     print('Getting results using an explicit Gaussian likelihood...', flush=True)
     a1_array, a2_array, a3_array = get_all_acmb_atsz(inp, Clij)

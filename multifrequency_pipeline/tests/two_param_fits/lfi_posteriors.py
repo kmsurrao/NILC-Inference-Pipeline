@@ -31,7 +31,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications
-    prior_half_widths: 1D array-like of size 3 containing half the width of uniform prior
+    prior_half_widths: 1D array-like of size 2 containing half the width of uniform prior
         on each parameter. The prior will be set to [1-prior_half_width, 1+prior_half_width].
     observation_all_sims: ndarray of shape (Nsims, 2, 2, (1+Ncomps)=3, Nbins) containing Clij vector
 
@@ -67,7 +67,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims):
         return data_vec
     
 
-    posterior = infer(simulator, prior, method="SNPE", num_simulations=inp.Nsims, num_workers=inp.num_parallel)
+    posterior = infer(simulator, prior, method="SNPE", num_simulations=2*inp.Nsims, num_workers=inp.num_parallel)
     samples = posterior.sample((inp.Nsims,), x=observation)
     a1_array, a2_array = np.array(samples, dtype=np.float32).T
     

@@ -1,8 +1,9 @@
 ##########################################################################
 ## This script computes posteriors for a sky model consisting of only   ##
-## CMB and noise at two frequencies. The parameters are Acmb, Anoise1,  ##
-## and Anoise2. It compares the results using likelihood-free inference ##
-##             and an explicit Gaussian likelihood.                     ##
+## tSZ at a single frequency. The only parameter is Atsz.               ##
+## It compares the results using likelihood-free inference and an       ##
+## explicit Gaussian likelihood (which is only accurate when using      ##
+##                   Gaussian tSZ realizations).                        ##
 ##########################################################################
 
 import sys
@@ -19,7 +20,7 @@ from input import Info
 def main():
 
     # main input file containing most specifications 
-    parser = argparse.ArgumentParser(description="Comparing posteriors for CMB+noise.")
+    parser = argparse.ArgumentParser(description="Comparing posteriors for tSZ.")
     parser.add_argument("--config", default="../../example.yaml")
     args = parser.parse_args()
     input_file = args.config
@@ -27,28 +28,26 @@ def main():
     # read in the input file and set up relevant info object
     inp = Info(input_file)
     inp.ell_sum_max = inp.ellmax
+    inp.use_Gaussian_tSZ = True
 
     pool = mp.Pool(inp.num_parallel)
-    pars = [1., 0., 1., 1.] #CMB and noise only
+    pars = [0., 1., 0., 0.] #tSZ only
     Clij = pool.starmap(get_data_vectors, [(inp, sim, pars) for sim in range(inp.Nsims)])
     pool.close()
-    Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+4, Nbins)
-    Clij = np.concatenate((Clij[:,:,:,:2,:], Clij[:,:,:,3:,:]), axis=3) #get rid of tSZ component
+    Clij = np.asarray(Clij, dtype=np.float32)[:,0,0,0,:] #shape (Nsims, Nbins)
 
     min_bin = 0
-    Clij = Clij[:,:,:,:,min_bin:] #cut off bins with high variance                                                          
+    Clij = Clij[:,min_bin:] #cut off bins with high variance                                                          
     inp.Nbins -= min_bin
 
     print(flush=True)
     print('Getting results using an explicit Gaussian likelihood...', flush=True)
-    a1_array, a2_array, a3_array = get_all_acmb_atsz(inp, Clij)
+    a1_array = get_all_acmb_atsz(inp, Clij)
     
     print(flush=True)
     print('Getting results using neural posterior estimation...', flush=True)
-    prior_half_widths = []
-    for arr in [a1_array, a2_array, a3_array]:
-        prior_half_widths.append(4*np.std(arr))
-    get_posterior(inp, prior_half_widths, Clij, omit_tsz=True)
+    prior_half_widths = [4*np.std(a1_array)]
+    get_posterior(inp, prior_half_widths, Clij, 'tSZ')
 
 if __name__ == '__main__':
     main()
