@@ -12,34 +12,32 @@ def get_prior(prior_half_widths):
     '''
     ARGUMENTS
     ---------
-    prior_half_widths: 1D array-like of size 3 containing half the width of uniform prior
+    prior_half_widths: 1D array-like of size 2 containing half the width of uniform prior
         on each parameter. The prior will be set to [1-prior_half_width, 1+prior_half_width].
 
     RETURNS
     -------
-    prior on A1, A2, A3
+    prior on A1, A2
     '''
-    num_dim = 3
+    num_dim = 2
     mean_tensor = torch.ones(num_dim)
     prior = utils.BoxUniform(low=mean_tensor-torch.tensor(prior_half_widths) , high=mean_tensor+torch.tensor(prior_half_widths))
     return prior
 
 
 
-def get_posterior(inp, prior_half_widths, observation_all_sims, omit_tsz=False, omit_cmb=False):
+def get_posterior(inp, prior_half_widths, observation_all_sims):
     '''
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications
-    prior_half_widths: 1D array-like of size 3 containing half the width of uniform prior
+    prior_half_widths: 1D array-like of size 2 containing half the width of uniform prior
         on each parameter. The prior will be set to [1-prior_half_width, 1+prior_half_width].
-    observation_all_sims: ndarray of shape (Nsims, 2, 2, (1+Ncomps)=4, Nbins) containing Clij vector
-    omit_tsz: Bool, whether to omit tSZ from the model
-    omit_cmb: Bool, whether to omit CMB from the model
+    observation_all_sims: ndarray of shape (Nsims, 2, 2, (1+Ncomps)=3, Nbins) containing Clij vector
 
     RETURNS
     -------
-    samples: torch tensor of shape (Nsims, 3) containing A1, A2, A3 posteriors
+    samples: torch tensor of shape (Nsims, 4) containing A1, A2 posteriors
     
     '''
 
@@ -54,7 +52,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims, omit_tsz=False, 
         '''
         ARGUMENTS
         ---------
-        pars: [A1, A2, A3] parameters (floats)
+        pars: [A1, A2] parameters (floats)
 
         RETURNS
         -------
@@ -62,10 +60,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims, omit_tsz=False, 
         
         '''
         new_pars = pars
-        if omit_tsz:
-            new_pars = torch.cat([new_pars[:1], torch.tensor([0]), new_pars[1:]])
-        elif omit_cmb:
-            new_pars = torch.cat([torch.tensor([0]), new_pars])
+        new_pars = torch.cat([new_pars, torch.tensor([0,0])])
         data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=new_pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
         data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,1]]).flatten()
         data_vec = torch.tensor(data_vec/mean_vec)
@@ -74,12 +69,11 @@ def get_posterior(inp, prior_half_widths, observation_all_sims, omit_tsz=False, 
 
     posterior = infer(simulator, prior, method="SNPE", num_simulations=2*inp.Nsims, num_workers=inp.num_parallel)
     samples = posterior.sample((inp.Nsims,), x=observation)
-    a1_array, a2_array, a3_array = np.array(samples, dtype=np.float32).T
+    a1_array, a2_array = np.array(samples, dtype=np.float32).T
     
     print('1D marginalized posteriors from likelihood-free inference', flush=True)
     print('---------------------------------------------------------', flush=True)
     print(f'A1 = {np.mean(a1_array)} +/- {np.std(a1_array)}', flush=True)
     print(f'A2 = {np.mean(a2_array)} +/- {np.std(a2_array)}', flush=True)
-    print(f'A3 = {np.mean(a3_array)} +/- {np.std(a3_array)}', flush=True)
 
     return samples

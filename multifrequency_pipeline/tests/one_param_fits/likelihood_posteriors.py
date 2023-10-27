@@ -44,7 +44,7 @@ def ClijA(A1, Clij):
 
     RETURNS
     -------
-    (Nbins, ) ndarray, 
+    (Nbins, ) ndarray
 
     '''
     return A1*Clij
@@ -149,7 +149,7 @@ def get_MLE_arrays(inp, Clij_all_sims, PScov_sim_Inv, use_analytic=True):
     '''
 
     func = acmb_atsz_analytic if use_analytic else acmb_atsz_numerical
-    string = 'multifrequency'
+    string = 'analytic' if use_analytic else 'numerical'
     pool = mp.Pool(inp.num_parallel)
     param_array = pool.starmap(func, [(inp, sim, Clij_all_sims, PScov_sim_Inv) for sim in range(len(Clij_all_sims))])
     pool.close()

@@ -38,7 +38,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims, comp):
 
     RETURNS
     -------
-    samples: torch tensor of shape (Nsims, 4) containing Acmb, Atsz, Anoise1, Anoise2 posteriors
+    samples: torch tensor of shape (Nsims, 1) containing A1 posterior
     
     '''
     assert comp in {'CMB', 'tSZ', 'noise1', 'noise2'}, 'comp must be either CMB, tSZ, noise1, or noise2'

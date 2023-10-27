@@ -33,20 +33,18 @@ def get_posterior(inp, prior_half_widths, observation_all_sims):
     inp: Info object containing input parameter specifications
     prior_half_widths: 1D array-like of size 2 containing half the width of uniform prior
         on each parameter. The prior will be set to [1-prior_half_width, 1+prior_half_width].
-    observation_all_sims: ndarray of shape (Nsims, 2, 2, (1+Ncomps)=3, Nbins) containing Clij vector
+    observation_all_sims: ndarray of shape (Nsims, (1+Ncomps)=3, Nbins) containing Clij vector
 
     RETURNS
     -------
-    samples: torch tensor of shape (Nsims, 4) containing Acmb, Atsz, Anoise1, Anoise2 posteriors
+    samples: torch tensor of shape (Nsims, 2) containing A1, A2 posteriors
     
     '''
 
     prior = get_prior(prior_half_widths)
-    observation_all_sims = observation_all_sims[:,:,:,0,:]
-    observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,1]]) #shape (3,Nsims,Nbins)
-    observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 3*inp.Nbins))
+    observation_all_sims = observation_all_sims[:,0,:]
     mean_vec = np.mean(observation_all_sims, axis=0)
-    observation = torch.ones(3*inp.Nbins)
+    observation = torch.ones(inp.Nbins)
 
     def simulator(pars):
         '''
@@ -61,8 +59,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims):
         '''
         new_pars = pars
         new_pars = torch.cat([new_pars, torch.tensor([0,0])])
-        data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=new_pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
-        data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,1]]).flatten()
+        data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=new_pars)[0,0,0,:] # shape (Nbins,)
         data_vec = torch.tensor(data_vec/mean_vec)
         return data_vec
     
