@@ -34,3 +34,6 @@ healpy
 pysr  
 getdist  
 emcee  
+
+## Acknowledgments  
+Portions of this code are adapted from pyilc and sbi.  

@@ -1,7 +1,5 @@
 import torch
 from sbi import utils as utils
-from sbi import analysis as analysis
-from sbi.inference.base import infer
 import multiprocessing as mp
 import numpy as np
 import pickle
@@ -12,6 +10,7 @@ sys.path.append('../needlet_ILC_pipeline')
 import multifrequency_data_vecs
 import hilc_analytic
 import nilc_data_vecs
+import sbi_utils
 
 def get_prior(inp):
     '''
@@ -105,8 +104,7 @@ def get_posterior(inp, pipeline, env):
     observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
     observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,1]]) #shape (3,Nsims,Nbins)
     observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 3*inp.Nbins))
-    mean_vec = np.mean(observation_all_sims, axis=0)
-    observation = torch.ones(3*inp.Nbins)
+    observation = torch.tensor(np.mean(observation_all_sims, axis=0))
 
     def simulator(pars):
         '''
@@ -129,12 +127,10 @@ def get_posterior(inp, pipeline, env):
         elif pipeline == 'NILC':
             data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
         data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,1]]).flatten()
-        data_vec = torch.tensor(data_vec/mean_vec)
+        data_vec = torch.tensor(data_vec)
         return data_vec
     
-
-    posterior = infer(simulator, prior, method="SNPE", num_simulations=2*inp.Nsims, num_workers=inp.num_parallel)
-    samples = posterior.sample((inp.Nsims,), x=observation)
+    samples = sbi_utils.multi_round_SNPE(inp, prior, simulator, observation, density_estimator='maf')
     acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32).T
     
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{pipeline}.p', 'wb'))

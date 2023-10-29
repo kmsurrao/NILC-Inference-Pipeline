@@ -178,7 +178,7 @@ def get_MLE_arrays(inp, Clij_all_sims, PScov_sim_Inv, use_analytic=True):
 
 
 ###############################
-### FISHER MATRIX INVERSION ###
+### FISHER MATRIX FORECAST  ###
 ###############################
 
 

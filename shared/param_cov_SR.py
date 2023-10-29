@@ -182,7 +182,7 @@ def get_MLE_arrays(inp, Clpq, PScov_sim_Inv, best_fits, HILC=False):
 
 
 ###############################
-### FISHER MATRIX INVERSION ###
+### FISHER MATRIX FORECAST  ###
 ###############################
 
 def Fisher_inversion(inp, Clpq, PScov_sim_Inv, best_fits):

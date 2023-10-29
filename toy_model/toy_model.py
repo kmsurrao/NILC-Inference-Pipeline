@@ -16,13 +16,18 @@ from sbi.inference import SNPE, SNLE, SNRE, prepare_for_sbi, simulate_for_sbi
 ##############          A and B have fiducial values of 1         #######################   
 #########################################################################################
 
-def get_realizations(Nsims, xvals, pars=None):
+def get_realizations(Nsims, xvals, pars=None, add_noise=False, sample_variance=True):
     '''
     ARGUMENTS
     ---------
     Nsims: int, number of realizations to generate
     xvals: numpy array of x values over which to compute function
     pars: array-like of floats A and B, defaults to None
+    add_noise: Bool, whether to add a separate Gaussian noise term
+    sample_variance: Bool, whether to build in sample variance to the 
+        cosine and linear terms
+    Note that at least one of add_noise or sample_variance must be True to avoid
+    singular matrices.
 
 
     RETURNS
@@ -36,13 +41,24 @@ def get_realizations(Nsims, xvals, pars=None):
         A,B = 1., 1.
 
     # Add noise
-    cov_matrix_noise = np.diag(1.+1./np.sqrt(2*xvals+1))
-    samples = np.random.multivariate_normal(np.zeros(len(xvals)), cov_matrix_noise, size=Nsims)
+    if add_noise:
+        cov_matrix_noise = np.diag(1.+1./np.sqrt(2*xvals+1))
+        samples = np.random.multivariate_normal(np.zeros(len(xvals)), cov_matrix_noise, size=Nsims)
+    if sample_variance:
+        cov_matA = np.diag(3./np.sqrt(2*xvals+1))
+        cov_matB = np.diag(3./np.sqrt(2*xvals+1))
+        samples_A = np.random.multivariate_normal(np.zeros(len(xvals)), cov_matA, size=Nsims)
+        samples_B = np.random.multivariate_normal(np.zeros(len(xvals)), cov_matB, size=Nsims)
     
     # Generate the realizations
     realizations = np.zeros((Nsims, len(xvals)))
-    for i, sample in enumerate(samples):
-        realizations[i] = A*np.cos(xvals) + B*xvals  + sample
+    for i in range(Nsims):
+        if sample_variance:
+            realizations[i] = A*(np.cos(xvals)+samples_A[i]) + B*(xvals+samples_B[i])
+        else:
+            realizations[i] = A*np.cos(xvals) + B*xvals
+        if add_noise:
+            realizations[i] += samples[i]
     return realizations
 
 
@@ -205,7 +221,7 @@ def get_MLE_arrays(realizations, cov_sim_Inv, xvals, use_analytic=True):
 
 
 ###############################
-### FISHER MATRIX INVERSION ###
+### FISHER MATRIX FORECAST  ###
 ###############################
 
 
@@ -298,21 +314,29 @@ def MCMC(realizations, cov_sim_Inv, xvals, sim=0):
 ######## LIKELIHOOD-FREE INFERENCE   #######
 ############################################
 
-def get_prior():
+def get_prior(prior_half_widths=None):
     '''
+    ARGUMENTS
+    ---------
+    prior_half_widths: list of 2 floats, half width of uniform prior to use for each parameter
+        The parameter prior will be set to [1-prior_half_width, 1+prior_half_width]
+    
     RETURNS
     -------
     prior on A and B to use for likelihood-free inference
     '''
     mean = 1.0
-    step_A = 1.3
-    step_B = 1.0
+    if prior_half_widths is not None:
+        step_A, step_B = prior_half_widths
+    else:
+        step_A = 1.3
+        step_B = 1.0
     prior = utils.BoxUniform(low= torch.tensor([mean-step_A, mean-step_B]), high= torch.tensor([mean+step_A, mean+step_B]))
     return prior
 
 
 
-def get_posterior_LFI(realizations, Nsims, xvals, method):
+def get_posterior_LFI(realizations, Nsims, xvals, method='SNPE', prior_half_widths=None):
     '''
     ARGUMENTS
     ---------
@@ -320,6 +344,8 @@ def get_posterior_LFI(realizations, Nsims, xvals, method):
     Nsims: int, number of realizations to generate
     xvals: numpy array of x values over which to compute function
     method: str, either 'SNPE', 'SNLE', or 'SNRE'
+    prior_half_widths: list of 2 floats, half width of uniform prior to use for each parameter
+        The parameter prior will be set to [1-prior_half_width, 1+prior_half_width]
 
     RETURNS
     -------
@@ -340,7 +366,7 @@ def get_posterior_LFI(realizations, Nsims, xvals, method):
         return realization
 
 
-    prior = get_prior()
+    prior = get_prior(prior_half_widths=prior_half_widths)
     observation = np.mean(realizations, axis=0)
 
     # simulator_, prior_ = prepare_for_sbi(simulator, prior)
@@ -355,7 +381,7 @@ def get_posterior_LFI(realizations, Nsims, xvals, method):
     # posteriors = []
     # proposal = prior_
     # for _ in range(num_rounds):
-    #     theta, x = simulate_for_sbi(simulator_, proposal, num_simulations=Nsims//num_rounds, num_workers=8)
+    #     theta, x = simulate_for_sbi(simulator_, proposal, num_simulations=2*Nsims//num_rounds, num_workers=8)
     #     density_estimator = inference.append_simulations(
     #                 theta, x, proposal=proposal).train()
     #     posterior = inference.build_posterior(density_estimator)
@@ -413,7 +439,7 @@ def get_all_AB(realizations, xvals, method='SNPE'):
     MCMC(realizations, cov_sim_Inv, xvals, sim=1)
 
     print(flush=True)
-    get_posterior_LFI(realizations, Nsims, xvals, method=method)
+    get_posterior_LFI(realizations, Nsims, xvals, method=method, prior_half_widths=[3*np.std(A_array), 3*np.std(B_array)])
    
     return A_array, B_array
 
@@ -421,7 +447,7 @@ def get_all_AB(realizations, xvals, method='SNPE'):
 
 def main():
     np.random.seed(0)
-    Nsims = 5000
+    Nsims = 1000
     xvals = np.arange(30)
     realizations = get_realizations(Nsims, xvals)
     method = 'SNPE'

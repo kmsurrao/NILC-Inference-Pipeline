@@ -197,7 +197,7 @@ def get_MLE_arrays(inp, Clij00_all_sims, Clij01_all_sims, Clij10_all_sims, Clij1
 
 
 ###############################
-### FISHER MATRIX INVERSION ###
+### FISHER MATRIX FORECAST  ###
 ###############################
 
 

@@ -1,12 +1,11 @@
 import torch
 from sbi import utils as utils
-from sbi import analysis as analysis
-from sbi.inference.base import infer
 import numpy as np
 import sys
 sys.path.append('../..')
 sys.path.append('../../../shared')
 import multifrequency_data_vecs
+import sbi_utils
 
 def get_prior(prior_half_widths):
     '''
@@ -44,7 +43,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims, comp):
     assert comp in {'CMB', 'tSZ', 'noise1', 'noise2'}, 'comp must be either CMB, tSZ, noise1, or noise2'
     prior = get_prior(prior_half_widths)
     mean_vec = np.mean(observation_all_sims, axis=0)
-    observation = torch.ones(inp.Nbins)
+    observation = torch.tensor(mean_vec)
 
     def simulator(pars):
         '''
@@ -67,12 +66,10 @@ def get_posterior(inp, prior_half_widths, observation_all_sims, comp):
         elif comp == 'noise2':
             new_pars = torch.cat([torch.tensor([0,0,0]), new_pars])
         data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=new_pars)[0,0,0,:] # shape (Nbins,)
-        data_vec = torch.tensor(data_vec/mean_vec)
+        data_vec = torch.tensor(data_vec)
         return data_vec
     
-
-    posterior = infer(simulator, prior, method="SNPE", num_simulations=2*inp.Nsims, num_workers=inp.num_parallel)
-    samples = posterior.sample((inp.Nsims,), x=observation)
+    samples = sbi_utils.basic_single_round_SNPE(inp, prior, simulator, observation)
     a1_array = np.array(samples, dtype=np.float32).T
     
     print('1D marginalized posteriors from likelihood-free inference', flush=True)
