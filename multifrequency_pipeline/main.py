@@ -20,8 +20,6 @@ def main():
     -------
     acmb_array: array of length Nsims containing best fit Acmb for each simulation
     atsz_array: array of length Nsims containing best fit Atsz for each simulation
-    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
-    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
     '''
 
     # main input file containing most specifications 
@@ -43,29 +41,28 @@ def main():
     setup_output_dir(inp, my_env)
 
     if not inp.use_lfi:
-        pool = mp.Pool(inp.num_parallel)
-        Clij = pool.starmap(get_data_vectors, [(inp, sim) for sim in range(inp.Nsims)])
-        pool.close()
-        Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
-        if inp.save_files:
-            pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
-            if inp.verbose:
-                print(f'saved {inp.output_dir}/data_vecs/Clij.p')
-        acmb_array, atsz_array, anoise1_array, anoise2_array = get_all_acmb_atsz(inp, Clij)
+        # pool = mp.Pool(inp.num_parallel)
+        # Clij = pool.starmap(get_data_vectors, [(inp, sim) for sim in range(inp.Nsims)])
+        # pool.close()
+        # Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
+        # if inp.save_files:
+        #     pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
+        #     if inp.verbose:
+        #         print(f'saved {inp.output_dir}/data_vecs/Clij.p')
+        Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb')) #remove and uncomment above
+        acmb_array, atsz_array = get_all_acmb_atsz(inp, Clij)
     
     else:
         samples = get_posterior(inp, 'multifrequency', my_env)
-        acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32).T
+        acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
         print('Results from Likelihood-Free Inference', flush=True)
         print('----------------------------------------------', flush=True)
         print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
         print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
-        print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
-        print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
     
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
-    return acmb_array, atsz_array, anoise1_array, anoise2_array
+    return acmb_array, atsz_array
 
 
 if __name__ == '__main__':

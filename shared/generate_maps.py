@@ -3,7 +3,7 @@ import numpy as np
 from utils import tsz_spectral_response
 
 
-def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None, same_noise=True, pars=None):
+def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None, same_noise=True, pars=None, include_noise=True):
 
     '''
     ARGUMENTS
@@ -17,16 +17,17 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
                 indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
-            idx3: 0 for unscaled noise90, 1 for scaled noise90
-            idx4: 0 for unscaled noise150, 1 for scaled noise150
     same_noise: Bool, whether to use the same or different noise in the two frequently channels
             (currently, if False, sets the noise in the higher frequency channel to be slightly higher)
-    pars: array of floats [Acmb, Atsz, Anoise1, Anoise2] (if not provided, all assumed to be 1)
+    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
+    include_noise: Bool, whether to include noise in the simulations (if False, same_noise is ignored)
 
     RETURNS
     -------
-    power spectra of CMB, tSZ, and noise (CC, T, N)
-    cmb_map, tsz_map, noise1_map, noise2_map (amplified depending on scaling)
+    cmb_cl, tsz_cl: power spectra of CMB and tSZ (CC, T)
+    cmb_map, tsz_map: healpix galactic coordinate maps of CMB and tSZ
+        (maps are amplified depending on scaling and pars)
+    noise_maps: (Nfreqs, Nsplits, Npix) ndarray of noise maps
 
     '''
     if sim is None:
@@ -36,19 +37,15 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
     l_arr, m_arr = hp.Alm.getlm(3*inp.nside-1)
 
     #Determine which components to scale
-    CMB_amp, tSZ_amp_extra, noise1_amp, noise2_amp = 1, 1, 1, 1
+    CMB_amp, tSZ_amp_extra= 1, 1
     if scaling is not None:
         scale_factor = inp.scaling_factors[scaling[0]]
         if scaling[1]: CMB_amp = scale_factor
         if scaling[2]: tSZ_amp_extra = scale_factor
-        if scaling[3]: noise1_amp = scale_factor
-        if scaling[4]: noise2_amp = scale_factor
     if pars is not None:
         pars = np.sqrt(np.array(pars))
         CMB_amp *= pars[0]
         tSZ_amp_extra *= pars[1]
-        noise1_amp *= pars[2]
-        noise2_amp *= pars[3]
 
     #Read tSZ halosky map
     if tSZ_amp_extra == 0:
@@ -84,11 +81,8 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
         cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
 
     #noise map realizations
-    if noise1_amp == noise2_amp == 0:
-        noise1_map = np.zeros(12*inp.nside**2)
-        noise2_map = np.zeros(12*inp.nside**2)
-        noise1_cl = np.zeros(inp.ell_sum_max+1)
-        noise2_cl = np.zeros(inp.ell_sum_max+1)
+    if not include_noise:
+        noise_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32) #shape Nfreqs, Nsplits, Npix
     else:
         theta_fwhm = (1.4/60.)*(np.pi/180.)
         sigma = theta_fwhm/np.sqrt(8.*np.log(2.))
@@ -98,42 +92,35 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
         else:
             W2 = (inp.noise*np.sqrt(1.5)/60.)*(np.pi/180.)
         ells = np.arange(3*inp.nside)
-        noise1_cl = W1**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
-        noise2_cl = W2**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
-        noise1_map = noise1_amp*hp.synfast(noise1_cl, inp.nside)
-        if sim==0:
-            np.random.seed(1)
-        else:
-            np.random.seed(inp.Nsims+sim)
-        noise2_map = noise2_amp*hp.synfast(noise2_cl, inp.nside)
-        np.random.seed(sim)
-        if band_limit:
-            noise1_alm = hp.map2alm(noise1_map)
-            noise1_alm = noise1_alm*(l_arr<=inp.ellmax)
-            noise1_map = hp.alm2map(noise1_alm, nside=inp.nside)
-            noise2_alm = hp.map2alm(noise2_map)
-            noise2_alm = noise2_alm*(l_arr<=inp.ellmax)
-            noise2_map = hp.alm2map(noise2_alm, nside=inp.nside)
-        noise1_cl = hp.anafast(noise1_map, lmax=inp.ell_sum_max)
-        noise2_cl = hp.anafast(noise2_map, lmax=inp.ell_sum_max)
+        noise_cl = np.zeros((2,2,len(ells)), dtype=np.float32) #shape Nfreqs, Nsplits, len(ells)
+        noise_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32) #shape Nfreqs, Nsplits, Npix
+        W_arr = [W1, W2]
+        for i in range(2): #iterate over frequencies
+            for s in range(2): #iterate over splits
+                noise_cl[i,s] = W_arr[i]**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
+                noise_maps[i,s] = hp.synfast(noise_cl[i,s], inp.nside)
+                if band_limit:
+                    alm = hp.map2alm(noise_maps[i,s])
+                    alm = alm*(l_arr<=inp.ellmax)
+                    noise_maps[i,s] = hp.map2alm(alm, nside=inp.nside)
 
     #tSZ spectral response
     g1, g2 = tsz_spectral_response(inp.freqs)
+    g_vec = [g1, g2]
 
-    #create maps at freq1 and freq2 (in GHz)
-    sim_map_1 = cmb_map + g1*tsz_map + noise1_map
-    sim_map_2 = cmb_map + g2*tsz_map + noise2_map #make noise different in both maps
-    if save:
-        if not scaling:
-            map1_fname = f'{inp.output_dir}/maps/sim{sim}_freq1.fits'
-            map2_fname = f'{inp.output_dir}/maps/sim{sim}_freq2.fits'
-        else:
-            scaling_str = ''.join(str(e) for e in scaling) 
-            map1_fname = f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq1.fits'
-            map2_fname = f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq2.fits'
-        hp.write_map(map1_fname, sim_map_1, overwrite=True, dtype=np.float32)
-        hp.write_map(map2_fname, sim_map_2, overwrite=True, dtype=np.float32)
-        if inp.verbose:
-            print(f'created {map1_fname} and {map2_fname}', flush=True)
+    #create maps at freq1 and freq2 (in GHz) and 2 splits 
+    sim_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32)
+    for i in range(2):
+        for s in range(2):
+            sim_maps[i,s] = cmb_map + g_vec[i] + noise_maps[i,s]
+            if save:
+                if not scaling:
+                    map_fname = f'{inp.output_dir}/maps/sim{sim}_freq{i+1}_split{s+1}.fits'
+                else:
+                    scaling_str = ''.join(str(e) for e in scaling) 
+                    map_fname = f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq{i+1}_split{s+1}.fits'
+                hp.write_map(map_fname, sim_maps[i,s], overwrite=True, dtype=np.float32)
+    if inp.verbose and save:
+        print(f'created {map_fname} and similarly for other freqs and splits', flush=True)
 
-    return cmb_cl, tsz_cl, noise1_cl, noise2_cl, cmb_map, tsz_map, noise1_map, noise2_map
+    return cmb_cl, tsz_cl, cmb_map, tsz_map, noise_maps

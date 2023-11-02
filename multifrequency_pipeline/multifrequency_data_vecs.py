@@ -25,12 +25,12 @@ def get_data_vectors(inp, sim=None, pars=None):
     if sim is None:
         sim = np.random.randint(0, high=inp.Nsims, size=None, dtype=int)
 
-    Ncomps = 4 #CMB, tSZ, noise 90 nGHz, noise 150 GHz
+    Ncomps = 2 #CMB, tSZ
     Nfreqs = len(inp.freqs)
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, N1, N2, CMB_map, tSZ_map, noise1_map, noise2_map = generate_freq_maps(inp, sim, save=False, pars=pars)
-    all_spectra_orig = [CC, T, N1, N2]
+    CC, T, CMB_map, tSZ_map, noise_maps = generate_freq_maps(inp, sim, save=False, pars=pars)
+    all_spectra_orig = [CC, T]
     all_spectra = []
     ells = np.arange(inp.ellmax+1)
     for Cl in all_spectra_orig:
@@ -42,16 +42,14 @@ def get_data_vectors(inp, sim=None, pars=None):
     #get spectral responses
     g_cmb = np.ones(len(inp.freqs))
     g_tsz = tsz_spectral_response(inp.freqs)
-    g_noise1 = np.array([1.,0.])
-    g_noise2 = np.array([0.,1.])
-    all_g_vecs = np.array([g_cmb, g_tsz, g_noise1, g_noise2])
+    all_g_vecs = np.array([g_cmb, g_tsz])
 
     #define and fill in array of data vectors
     Clij = np.zeros((Nfreqs, Nfreqs, 1+Ncomps, inp.Nbins))
     for i in range(Nfreqs):
       for j in range(Nfreqs):
-        map_i = CMB_map + g_tsz[i]*tSZ_map + g_noise1[i]*noise1_map + g_noise2[i]*noise2_map
-        map_j = CMB_map + g_tsz[j]*tSZ_map + g_noise1[j]*noise1_map + g_noise2[j]*noise2_map
+        map_i = CMB_map + g_tsz[i]*tSZ_map + noise_maps[i,0]
+        map_j = CMB_map + g_tsz[j]*tSZ_map + noise_maps[i,1]
         spectrum = hp.anafast(map_i, map_j, lmax=inp.ellmax)
         Dl = ells*(ells+1)/2/np.pi*spectrum
         res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)

@@ -107,7 +107,7 @@ def GaussianNeedlets(inp, taper_width=0):
         filters[i] = filters[i]*taper_func
     return ell, filters
 
-def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None):
+def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None, split=None):
     '''
     Note that pyilc checks which frequencies to use for every filter scale
     We include all freqs for all filter scales here
@@ -123,6 +123,7 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None):
                 contains NILC weight maps for preserved tSZ
     freq_maps: (Nfreqs=2, 12*nside**2) ndarray containing simulated map at 
                 each frequency to use in NILC map construction
+    split: None or int, either 1 or 2 representing which split of data is used
 
     RETURNS
     -------
@@ -130,8 +131,9 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None):
     '''
 
     if freq_maps is None:
-        freq_map1 = hp.read_map(f'{inp.output_dir}/maps/sim{sim}_freq1.fits')
-        freq_map2 = hp.read_map(f'{inp.output_dir}/maps/sim{sim}_freq2.fits')
+        split_str = f'_split{split}' if split is not None else ''
+        freq_map1 = hp.read_map(f'{inp.output_dir}/maps/sim{sim}_freq1{split_str}.fits')
+        freq_map2 = hp.read_map(f'{inp.output_dir}/maps/sim{sim}_freq2{split_str}.fits')
         freq_maps = [freq_map1, freq_map2]
     
     NILC_maps = []
@@ -175,10 +177,8 @@ def get_scalings(inp):
                   indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
-            idx3: 0 for unscaled noise90, 1 for scaled noise90
-            idx4: 0 for unscaled noise150, 1 for scaled noise150
     '''
-    scalings_init = [list(i) for i in itertools.product([0, 1], repeat=4)]
+    scalings_init = [list(i) for i in itertools.product([0, 1], repeat=2)]
     scalings = []
     for i in range(len(inp.scaling_factors)):
         for s in scalings_init:

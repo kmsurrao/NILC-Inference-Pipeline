@@ -47,9 +47,9 @@ class Info(object):
         if self.use_lfi:
             assert 'prior_half_widths' in p, "prior_half_widths must be defined if use_lfi is True"
             self.prior_half_widths = p['prior_half_widths']
-            assert len(self.prior_half_widths)==4, "prior_half_widths must have length 4 for Acmb, Atsz, Anoise1, Anoise2"
+            assert len(self.prior_half_widths)==2, "prior_half_widths must have length 2 for Acmb, Atsz"
         if 'Nsims_for_fits' in p and not self.use_lfi:
-            self.Nsims_for_fits = p['Nsims_for_fits'] # number of simulations for fitting f(Acmb, Aftsz, Anoise90, Anoise150)
+            self.Nsims_for_fits = p['Nsims_for_fits'] # number of simulations for fitting f(Acmb, Aftsz)
             assert type(self.Nsims_for_fits) is int and 0 <= self.Nsims_for_fits <= self.Nsims, "Nsims_for_fits cannot be greater than Nsims"
         if 'scaling_factors' in p and not self.use_lfi:
             self.scaling_factors = p['scaling_factors']

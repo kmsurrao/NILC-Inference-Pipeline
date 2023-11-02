@@ -2,23 +2,22 @@ import subprocess
 import yaml
 import os
 
-def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
+def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None):
     '''
     Sets up yaml files for pyilc and runs the code
 
     ARGUMENTS
     ---------
     sim: int, simulation number
+    split: int, split number (1 or 2)
     inp: Info object containing input parameter specifications
     env: environment object
     suppress_printing: Bool, whether to suppress outputs and errors from pyilc code itself
-    scaling: None or list of length 5
+    scaling: None or list of length 3
             idx0: takes on values from 0 to len(inp.scaling_factors)-1,
                   indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
-            idx3: 0 for unscaled noise90, 1 for scaled noise90
-            idx4: 0 for unscaled noise150, 1 for scaled noise150
 
     RETURNS
     -------
@@ -31,7 +30,7 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     if scaling is not None: 
         scaling_str = ''.join(str(e) for e in scaling)
         pyilc_input_params['output_dir'] += f"{scaling_str}/"
-    pyilc_input_params['output_prefix'] = "sim" + str(sim)
+    pyilc_input_params['output_prefix'] = f"sim{sim}_split{split}"
     pyilc_input_params['save_weights'] = "yes"
     pyilc_input_params['ELLMAX'] = inp.ell_sum_max
     pyilc_input_params['N_scales'] = inp.Nscales
@@ -49,19 +48,19 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     pyilc_input_params['N_SED_params'] = 0
     pyilc_input_params['N_maps_xcorr'] = 0
     if scaling is None:
-        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/sim{sim}_freq2.fits']
+        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/sim{sim}_freq1_split{split}.fits', f'{inp.output_dir}/maps/sim{sim}_freq2_split{split}.fits']
     else:
-        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq1.fits', f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq2.fits']
+        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq1_split{split}.fits', f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq2_split{split}.fits']
     pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)
     pyilc_input_params_preserved_tsz.update(pyilc_input_params)
     if scaling is None:
-        CMB_yaml = f'{inp.output_dir}/pyilc_yaml_files/sim{sim}_CMB_preserved.yml'
-        tSZ_yaml = f'{inp.output_dir}/pyilc_yaml_files/sim{sim}_tSZ_preserved.yml'
+        CMB_yaml = f'{inp.output_dir}/pyilc_yaml_files/sim{sim}_split{split}_CMB_preserved.yml'
+        tSZ_yaml = f'{inp.output_dir}/pyilc_yaml_files/sim{sim}_split{split}_tSZ_preserved.yml'
     else:
-        CMB_yaml = f'{inp.output_dir}/pyilc_yaml_files/{scaling_str}/sim{sim}_CMB_preserved.yml'
-        tSZ_yaml = f'{inp.output_dir}/pyilc_yaml_files/{scaling_str}/sim{sim}_tSZ_preserved.yml'
+        CMB_yaml = f'{inp.output_dir}/pyilc_yaml_files/{scaling_str}/sim{sim}_split{split}_CMB_preserved.yml'
+        tSZ_yaml = f'{inp.output_dir}/pyilc_yaml_files/{scaling_str}/sim{sim}_split{split}_tSZ_preserved.yml'
     with open(CMB_yaml, 'w') as outfile:
         yaml.dump(pyilc_input_params_preserved_cmb, outfile, default_flow_style=None)
     with open(tSZ_yaml, 'w') as outfile:
@@ -82,21 +81,20 @@ def setup_pyilc(sim, inp, env, suppress_printing=False, scaling=None):
     
     return
 
-def weight_maps_exist(sim, inp, scaling=None):
+def weight_maps_exist(sim, split, inp, scaling=None):
     '''
     Checks whether all weight maps for a given simulation and scaling already exist
 
     ARGUMENTS
     ---------
     sim: int, simulation number
+    split: int, split number (1 or 2)
     inp: Info object containing input parameter specifications
-    scaling: None or list of length 5
+    scaling: None or list of length 3
             idx0: takes on values from 0 to len(inp.scaling_factors)-1,
                   indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
-            idx3: 0 for unscaled noise90, 1 for scaled noise90
-            idx4: 0 for unscaled noise150, 1 for scaled noise150
 
     RETURNS
     -------
@@ -108,9 +106,9 @@ def weight_maps_exist(sim, inp, scaling=None):
             for scale in range(inp.Nscales):
                 if scaling is not None:
                     scaling_str = ''.join(str(e) for e in scaling)
-                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
+                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}_split{split}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
                         return False
                 else:
-                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/sim{sim}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
+                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/sim{sim}_split{split}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
                         return False
     return True

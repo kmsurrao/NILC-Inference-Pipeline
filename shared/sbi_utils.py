@@ -4,7 +4,7 @@ from sbi.inference.base import infer
 from sbi.inference import SNPE, prepare_for_sbi, simulate_for_sbi
 from sbi.utils.get_nn_models import posterior_nn
 
-def multi_round_SNPE(inp, prior, simulator, observation, density_estimator='maf'):
+def multi_round_SNPE(inp, prior, simulator, observation, density_estimator='maf', sample_with_mcmc=False):
     '''
     ARGUMENTS
     ---------
@@ -21,20 +21,25 @@ def multi_round_SNPE(inp, prior, simulator, observation, density_estimator='maf'
                 needs to return a PyTorch `nn.Module` implementing the density
                 estimator. The density estimator needs to provide the methods
                 `.log_prob` and `.sample()`.
+    sample_with_mcmc: Bool, if True, samples with MCMC. If False, uses rejection sampling.
 
     RETURNS
     -------
     samples: (Nsims, Ndim) torch tensor containing samples drawn from posterior
     '''
     num_rounds = 2
+    simulator, prior = prepare_for_sbi(simulator, prior)
     inference = SNPE(prior=prior, density_estimator=density_estimator)
     posteriors = []
     proposal = prior
     for _ in range(num_rounds):
-        theta, x = simulate_for_sbi(simulator, proposal, num_simulations=2*inp.Nsims//num_rounds, num_workers=inp.num_parallel)
+        theta, x = simulate_for_sbi(simulator, proposal, num_simulations=inp.Nsims//num_rounds, num_workers=inp.num_parallel)
         density_estimator = inference.append_simulations(
                     theta, x, proposal=proposal).train()
-        posterior = inference.build_posterior(density_estimator)
+        if sample_with_mcmc:
+            posterior = inference.build_posterior(density_estimator, sample_with='mcmc')
+        else:
+            posterior = inference.build_posterior(density_estimator)
         posteriors.append(posterior)
         proposal = posterior.set_default_x(observation)
     samples = posterior.sample((inp.Nsims,), x=observation)
@@ -55,7 +60,7 @@ def basic_single_round_SNPE(inp, prior, simulator, observation):
     -------
     samples: (Nsims, Ndim) torch tensor containing samples drawn from posterior
     '''
-    posterior = infer(simulator, prior, method="SNPE", num_simulations=2*inp.Nsims, num_workers=inp.num_parallel)
+    posterior = infer(simulator, prior, method="SNPE", num_simulations=inp.Nsims, num_workers=inp.num_parallel)
     samples = posterior.sample((inp.Nsims,), x=observation)
     return samples
 
@@ -84,7 +89,7 @@ def flexible_single_round_SNPE(inp, prior, simulator, observation, density_estim
     '''
     simulator, prior = prepare_for_sbi(simulator, prior)
     inference = SNPE(prior=prior, density_estimator=density_estimator)
-    theta, x = simulate_for_sbi(simulator, proposal=prior, num_simulations=2*inp.Nsims, num_workers=inp.num_parallel)
+    theta, x = simulate_for_sbi(simulator, proposal=prior, num_simulations=inp.Nsims, num_workers=inp.num_parallel)
     density_estimator = inference.append_simulations(theta, x).train()
     posterior = inference.build_posterior(density_estimator)
     samples = posterior.sample((inp.Nsims,), x=observation)

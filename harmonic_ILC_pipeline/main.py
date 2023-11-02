@@ -21,8 +21,6 @@ def main():
     -------
     acmb_array: array of length Nsims containing best fit Acmb for each simulation
     atsz_array: array of length Nsims containing best fit Atsz for each simulation
-    anoise1_array: array of length Nsims containing best fit Anoise1 for each simulation
-    anoise2_array: array of length Nsims containing best fit Anoise2 for each simulation
     '''
 
     # main input file containing most specifications 
@@ -59,7 +57,7 @@ def main():
         
         pool = mp.Pool(inp.num_parallel)
         if inp.use_symbolic_regression:
-            inp.Clij_theory = np.mean(Clij[:,0,0,0,0,0], axis=0)
+            inp.Clij_theory = np.mean(Clij[:,0,0,0], axis=0)
             Clpq = pool.starmap(hilc_SR.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
         else:
             inp.Clij_theory = np.mean(Clij, axis=0)
@@ -72,24 +70,22 @@ def main():
                 print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
         
         if inp.use_symbolic_regression:
-            acmb_array, atsz_array, anoise1_array, anoise2_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, my_env, HILC=True)
+            acmb_array, atsz_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, my_env, HILC=True)
         else:
-            acmb_array, atsz_array, anoise1_array, anoise2_array = param_cov_analytic.get_all_acmb_atsz(inp, Clpq)
+            acmb_array, atsz_array = param_cov_analytic.get_all_acmb_atsz(inp, Clpq)
     
     else:
         samples = get_posterior(inp, 'HILC', my_env)
-        acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32).T
+        acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
         print('Results from Likelihood-Free Inference', flush=True)
         print('----------------------------------------------', flush=True)
         print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
         print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
-        print(f'Anoise1 = {np.mean(anoise1_array)} +/- {np.std(anoise1_array)}', flush=True)
-        print(f'Anoise2 = {np.mean(anoise2_array)} +/- {np.std(anoise2_array)}', flush=True)
 
         
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
-    return acmb_array, atsz_array, anoise1_array, anoise2_array
+    return acmb_array, atsz_array
 
 
 if __name__ == '__main__':

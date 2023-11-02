@@ -20,9 +20,9 @@ def get_prior(inp):
 
     RETURNS
     -------
-    prior on Acmb, Atsz, Anoise1, Anoise2 to use for likelihood-free inference
+    prior on Acmb, Atsz to use for likelihood-free inference
     '''
-    num_dim = 4
+    num_dim = 2
     mean_tensor = torch.ones(num_dim)
     prior = utils.BoxUniform(low=mean_tensor-torch.tensor(inp.prior_half_widths) , high=mean_tensor+torch.tensor(inp.prior_half_widths))
     return prior
@@ -93,7 +93,7 @@ def get_posterior(inp, pipeline, env):
 
     RETURNS
     -------
-    samples: torch tensor of shape (Nsims, 4) containing Acmb, Atsz, Anoise1, Anoise2 posteriors
+    samples: torch tensor of shape (Nsims, 2) containing Acmb, Atsz posteriors
     
     '''
 
@@ -102,8 +102,8 @@ def get_posterior(inp, pipeline, env):
 
     #observation_all_sims = get_observation(inp, pipeline, env)
     observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
-    observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,1]]) #shape (3,Nsims,Nbins)
-    observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 3*inp.Nbins))
+    observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,0], observation_all_sims[:,1,1]]) #shape (4,Nsims,Nbins)
+    observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 4*inp.Nbins))
     observation = torch.tensor(np.mean(observation_all_sims, axis=0))
 
     def simulator(pars):
@@ -126,16 +126,14 @@ def get_posterior(inp, pipeline, env):
             data_vec = hilc_analytic.get_data_vecs(inp, Clij)[:,:,0,:] # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
         elif pipeline == 'NILC':
             data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
-        data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,1]]).flatten()
+        data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,0], data_vec[1,1]]).flatten()
         data_vec = torch.tensor(data_vec)
         return data_vec
     
-    samples = sbi_utils.multi_round_SNPE(inp, prior, simulator, observation, density_estimator='maf')
-    acmb_array, atsz_array, anoise1_array, anoise2_array = np.array(samples, dtype=np.float32).T
+    samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation, density_estimator='maf')
+    acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
     
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{pipeline}.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{pipeline}.p', 'wb'))
-    pickle.dump(anoise1_array, open(f'{inp.output_dir}/anoise1_array_{pipeline}.p', 'wb'))
-    pickle.dump(anoise2_array, open(f'{inp.output_dir}/anoise2_array_{pipeline}.p', 'wb'))
-    print(f'saved {inp.output_dir}/acmb_array_{pipeline}.p and likewise for atsz, anoise1, anoise2')
+    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{pipeline}_lfi.p', 'wb'))
+    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{pipeline}_lfi.p', 'wb'))
+    print(f'saved {inp.output_dir}/acmb_array_{pipeline}_lfi.p and likewise for atsz')
     return samples

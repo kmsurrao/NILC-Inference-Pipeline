@@ -45,7 +45,7 @@ class Info(object):
         if self.use_lfi:
             assert 'prior_half_widths' in p, "prior_half_widths must be defined if use_lfi is True"
             self.prior_half_widths = p['prior_half_widths']
-            assert len(self.prior_half_widths)==4, "prior_half_widths must have length 4 for Acmb, Atsz, Anoise1, Anoise2"
+            assert len(self.prior_half_widths)==2, "prior_half_widths must have length 2 for Acmb, Atsz"
         if not self.compute_weights_once:
             assert self.use_lfi or (('use_symbolic_regression' in p) and (p['use_symbolic_regression'] is True)), "use_symbolic_regression must be True if compute_weights_once is False"
         if 'use_symbolic_regression' in p and not self.use_lfi:
