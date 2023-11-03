@@ -56,8 +56,8 @@ use_lfi: True
 # Half widths of prior to use for LFI
 # The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
 # Only need to be provided if use_lfi is True; otherwise this input is ignored
-# Should be list of 4 elements (prior half-widths for Acmb, Atsz, Anoise1, Anoise2)
-prior_half_widths: [0.4, 0.2, 1.0, 0.4]
+# Should be list of 2 elements (prior half-widths for Acmb, Atsz)
+prior_half_widths: [0.4, 0.2]
 
 # Whether or not to use symbolic regression to estimate parameter dependence.
 # If provided, this input is ignored if use_lfi is True.
@@ -67,7 +67,7 @@ prior_half_widths: [0.4, 0.2, 1.0, 0.4]
 use_symbolic_regression: True
 
 # number of simulations to average over for fitting overall 
-# parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
+# parameter dependence f(Acmb, Aftsz)
 # If provided, this input is ignored if use_lfi is True.
 # If use_symbolic_regression is True, this number must be provided with 0 <= Nsims_for_fits <= Nsims
 # If use_symbolic_regression is False, this input is not necessary and will be ignored if provided.

@@ -1,6 +1,6 @@
 import healpy as hp
 
-def load_wt_maps(inp, sim, split, band_limit=False, scaling=None):
+def load_wt_maps(inp, sim, split, band_limit=False, scaling=None, pars=None):
     '''
     ARGUMENTS
     ---------
@@ -12,6 +12,7 @@ def load_wt_maps(inp, sim, split, band_limit=False, scaling=None):
             idx0: 0 if "scaled" means maps are scaled down, 1 if "scaled" means maps are scaled up
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
 
     RETURNS
     --------
@@ -26,11 +27,15 @@ def load_wt_maps(inp, sim, split, band_limit=False, scaling=None):
     for comp in ['CMB', 'tSZ']:
         for scale in range(inp.Nscales):
             for freq in range(2):
+                if pars is not None:
+                    pars_str = f'_pars{pars[0]}_{pars[1]}_'
+                else:
+                    pars_str = ''
                 if scaling is None:
-                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/sim{sim}_split{split}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
+                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
                 else:
                     scaling_str = ''.join(str(e) for e in scaling)
-                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}_split{split}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
+                    wt_map_path = f'{inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
                 wt_map = hp.read_map(wt_map_path)
                 wt_map = hp.ud_grade(wt_map, inp.nside)
                 if band_limit:

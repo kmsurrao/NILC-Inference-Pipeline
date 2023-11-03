@@ -114,11 +114,15 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
         for s in range(2):
             sim_maps[i,s] = cmb_map + g_vec[i] + noise_maps[i,s]
             if save:
+                if pars is not None:
+                    pars_str = f'_pars{pars[0]}_{pars[1]}_'
+                else:
+                    pars_str = ''
                 if not scaling:
-                    map_fname = f'{inp.output_dir}/maps/sim{sim}_freq{i+1}_split{s+1}.fits'
+                    map_fname = f'{inp.output_dir}/maps/sim{sim}_freq{i+1}_split{s+1}{pars_str}.fits'
                 else:
                     scaling_str = ''.join(str(e) for e in scaling) 
-                    map_fname = f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq{i+1}_split{s+1}.fits'
+                    map_fname = f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq{i+1}_split{s+1}{pars_str}.fits'
                 hp.write_map(map_fname, sim_maps[i,s], overwrite=True, dtype=np.float32)
     if inp.verbose and save:
         print(f'created {map_fname} and similarly for other freqs and splits', flush=True)

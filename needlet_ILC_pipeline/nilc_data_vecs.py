@@ -161,13 +161,6 @@ def get_scaled_data_vectors(sim, inp, env):
         if sim >= inp.Nsims_for_fits:
             break #only need unscaled version after getting Nsims_for_fits scaled maps and weights
 
-
-    if inp.remove_files:
-        #remove pyilc outputs
-        subprocess.call(f'rm {inp.output_dir}/pyilc_outputs/*/sim{sim}*', shell=True, env=env)
-        #remove frequency map files
-        subprocess.call(f'rm {inp.output_dir}/maps/*/sim{sim}_freq*.fits', shell=True, env=env)
-
     return Clpq
 
 
@@ -178,7 +171,7 @@ def get_maps_and_wts(sim, inp, env, pars=None):
     sim: int, simulation number
     inp: Info object containing input parameter specifications
     env: environment object
-    pars: array of floats [Acmb, Atsz, Anoise1, Anoise2] (if not provided, all assumed to be 1)
+    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
@@ -198,8 +191,8 @@ def get_maps_and_wts(sim, inp, env, pars=None):
     #ngenerate and save files containing frequency maps and then run pyilc
     generate_freq_maps(inp, sim)
     for split in [1,2]:
-        setup_pyilc(sim, split, inp, env, suppress_printing=True) #set suppress_printing=False to debug pyilc runs
-        CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split) #load weight maps
+        setup_pyilc(sim, split, inp, env, suppress_printing=True, pars=pars) #set suppress_printing=False to debug pyilc runs
+        CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split, pars=pars) #load weight maps
         all_wt_maps[split-1] = np.array([CMB_wt_maps, tSZ_wt_maps])
 
     return CMB_map, tSZ_map, noise_maps, all_wt_maps
@@ -213,7 +206,7 @@ def get_data_vectors(inp, env, sim=None, pars=None):
     inp: Info object containing input parameter specifications
     env: environment object
     sim: int, simulation number (if sim is None, a random simulation number will be used)
-    pars: array of floats [Acmb, Atsz, Anoise1, Anoise2] (if not provided, all assumed to be 1)
+    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
@@ -267,11 +260,5 @@ def get_data_vectors(inp, env, sim=None, pars=None):
         mean_ells = (res[1][:-1]+res[1][1:])/2
         p,q = index_mapping[idx]
         Clpq[p,q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
-
-    if inp.remove_files:
-        #remove pyilc outputs
-        subprocess.call(f'rm {inp.output_dir}/pyilc_outputs/*/sim{sim}*', shell=True, env=env)
-        #remove frequency map files
-        subprocess.call(f'rm {inp.output_dir}/maps/*/sim{sim}_freq*.fits', shell=True, env=env)
 
     return Clpq

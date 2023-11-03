@@ -72,7 +72,6 @@ class Info(object):
                 warnings.warn("Output directory is not empty! For safety, make sure to use an output directory that only contains outputs from this pipeline (and other pipelines in the repo) since files will be written and deleted.") 
                 
         self.verbose = p['verbose']
-        self.remove_files = p['remove_files']
         self.save_files = p['save_files']
 
 

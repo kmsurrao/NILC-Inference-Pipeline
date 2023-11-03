@@ -41,15 +41,15 @@ def main():
     setup_output_dir(inp, my_env)
 
     if not inp.use_lfi:
-        # pool = mp.Pool(inp.num_parallel)
-        # Clij = pool.starmap(get_data_vectors, [(inp, sim) for sim in range(inp.Nsims)])
-        # pool.close()
-        # Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
-        # if inp.save_files:
-        #     pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
-        #     if inp.verbose:
-        #         print(f'saved {inp.output_dir}/data_vecs/Clij.p')
-        Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb')) #remove and uncomment above
+        pool = mp.Pool(inp.num_parallel)
+        Clij = pool.starmap(get_data_vectors, [(inp, sim) for sim in range(inp.Nsims)])
+        pool.close()
+        Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
+        if inp.save_files:
+            pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
+            if inp.verbose:
+                print(f'saved {inp.output_dir}/data_vecs/Clij.p')
+        #Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb')) #remove and uncomment above
         acmb_array, atsz_array = get_all_acmb_atsz(inp, Clij)
     
     else:

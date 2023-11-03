@@ -140,7 +140,7 @@ def HILC_spectrum(inp, Clij, spectral_response, spectral_response2=None):
     return Clpq
 
 
-def get_data_vecs(inp, Clij):
+def get_data_vecs(inp, Clij, sim):
     '''
     ARGUMENTS
     ---------
@@ -152,6 +152,7 @@ def get_data_vecs(inp, Clij):
               idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
         dim1: idx0 for unscaled CMB, idx1 for scaled CMB
         dim2: idx0 for unscaled ftSZ, idx1 for scaled ftSZ
+    sim: int, simulation number
 
     RETURNS
     -------
@@ -174,10 +175,12 @@ def get_data_vecs(inp, Clij):
 
     #HILC auto- and cross-spectra
     Clpq_orig = np.zeros((Nscalings, 2, 2, N_preserved_comps, N_preserved_comps, inp.ellmax+1), dtype=np.float32)
-    for s in scalings:
-        for p in range(N_preserved_comps):
-            for q in range(N_preserved_comps):
+    for p in range(N_preserved_comps):
+        for q in range(N_preserved_comps):
+            for s in scalings:
                 Clpq_orig[s[0],s[1],s[2],p,q] = HILC_spectrum(inp, Clij[s[0],s[1],s[2]], all_g_vecs[p], spectral_response2=all_g_vecs[q])
+                if sim >= inp.Nsims_for_fits:
+                    break
     
     #binning
     Clpq = np.zeros((Nscalings, 2, 2, N_preserved_comps, N_preserved_comps, inp.Nbins), dtype=np.float32)

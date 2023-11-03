@@ -111,7 +111,7 @@ def acmb_atsz(inp, sim, Clpq, PScov_sim_Inv):
     '''
     all_res = []
     for start in [0.5, 1.0, 1.5]:
-        start_array = [start, start, start, start] #acmb_start, atsz_start, anoise1_start, anoise2_start
+        start_array = [start, start] #acmb_start, atsz_start
         res = minimize(neg_lnL, x0 = start_array, args = (ClpqA, inp, sim, Clpq, PScov_sim_Inv), method='Nelder-Mead') #default method is BFGS
         all_res.append(res)
     return (min(all_res, key=lambda res:res.fun)).x
@@ -280,12 +280,15 @@ def get_all_acmb_atsz(inp, Clpq):
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
     PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim)
-    PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, 3, 3))
+    PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, 2,2,2,2), dtype=np.float32)
+    idx_mapping = {(0,0):0, (0,1):1, (1,0):2, (1,1):3}
     for b1 in range(inp.Nbins):
         for b2 in range(inp.Nbins):
-            for i in range(3):
-                for j in range(3):
-                    PScov_sim_Inv[b1, b2, i, j] = PScov_sim_alt_Inv[i*inp.Nbins+b1, j*inp.Nbins+b2]
+            for p,q in [(0,0), (0,1), (1,0), (1,1)]:
+                for r,s in [(0,0), (0,1), (1,0), (1,1)]:
+                    pq = idx_mapping[(p,q)]
+                    rs = idx_mapping[(r,s)]
+                    PScov_sim_Inv[b1,b2,p,q,r,s] = PScov_sim_alt_Inv[pq*inp.Nbins+b1, rs*inp.Nbins+b2]
     PScov_sim_Inv *= (inp.Nsims-(inp.Nbins*3)-2)/(inp.Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
 
     acmb_array, atsz_array = get_MLE_arrays(inp, Clpq, PScov_sim_Inv)

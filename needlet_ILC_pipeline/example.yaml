@@ -52,8 +52,8 @@ use_lfi: True
 # Half widths of prior to use for LFI
 # The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
 # Only need to be provided if use_lfi is True; otherwise this input is ignored
-# Should be list of 4 elements (prior half-widths for Acmb, Atsz, Anoise1, Anoise2)
-prior_half_widths: [0.4, 0.2, 1.0, 0.4]
+# Should be list of 2 elements (prior half-widths for Acmb, Atsz)
+prior_half_widths: [0.4, 0.2]
 
 # number of simulations to average over for fitting overall 
 # parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
@@ -62,16 +62,13 @@ Nsims_for_fits: 50
 
 # scaling factors for components to fit parameter dependence
 # If provided, this input is ignored if use_lfi is True
-scaling_factors: [0.9, 0.95, 1.05, 1.1] 
+scaling_factors: [0.95, 1.05] 
 
 ###################################################################################
 ###################################################################################
 
 # set to 0 to suppress intermediate printing
 verbose: 1 
-
-# set to 0 if do not want to remove intermediate files between each sim
-remove_files: 0 
 
 # set to nonzero value to save pickle files
 save_files: 1 

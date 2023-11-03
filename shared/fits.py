@@ -33,7 +33,7 @@ def call_fit(A_vec, expr):
     '''
     ARGUMENTS
     ---------
-    A_vec: list of [Acmb, Atsz, Anoise1, Anoise2] independent variables
+    A_vec: list of [Acmb, Atsz] independent variables
     expr: sympy expression of best fit involving parameters Acmb, Atsz,
         which map to x0, x1, respectively 
 
@@ -81,7 +81,7 @@ def get_parameter_dependence(inp, Clpq, env, HILC=False):
                 y_vals.append(Clpq_mean[s[0],s[1],s[2],p,q,bin]/Clpq_mean[0,0,0,p,q,bin])
             best_fits[p][q][bin] = symbolic_regression(x_vals, y_vals)
             subprocess.call(f'rm -f hall_of_fame*', shell=True, env=env)
-            if inp.verbose: print(f'estimated parameter dependence for p,q,y,z,bin={p},{q},{bin}', flush=True)
+            if inp.verbose: print(f'estimated parameter dependence for p,q,bin={p},{q},{bin}', flush=True)
 
     if inp.save_files:
         if HILC:

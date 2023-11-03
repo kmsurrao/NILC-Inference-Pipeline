@@ -15,7 +15,7 @@ def get_freq_power_spec(inp, sim=None, pars=None):
     ---------
     inp: Info object containing input parameter specifications
     sim: int, simulation number (if sim is None, a random simulation number will be used)
-    pars: array of floats [Acmb, Atsz, Anoise1, Anoise2] (if not provided, all assumed to be 1)
+    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
 
     RETURNS
     -------

@@ -2,7 +2,7 @@ import subprocess
 import yaml
 import os
 
-def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None):
+def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, pars=None):
     '''
     Sets up yaml files for pyilc and runs the code
 
@@ -18,6 +18,7 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None):
                   indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
@@ -30,7 +31,14 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None):
     if scaling is not None: 
         scaling_str = ''.join(str(e) for e in scaling)
         pyilc_input_params['output_dir'] += f"{scaling_str}/"
+    else:
+        scaling_str = ''
     pyilc_input_params['output_prefix'] = f"sim{sim}_split{split}"
+    if pars is not None:
+        pars_str = f'_pars{pars[0]}_{pars[1]}_'
+        pyilc_input_params['output_prefix'] += pars_str
+    else:
+        pars_str = ''
     pyilc_input_params['save_weights'] = "yes"
     pyilc_input_params['ELLMAX'] = inp.ell_sum_max
     pyilc_input_params['N_scales'] = inp.Nscales
@@ -48,9 +56,9 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None):
     pyilc_input_params['N_SED_params'] = 0
     pyilc_input_params['N_maps_xcorr'] = 0
     if scaling is None:
-        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/sim{sim}_freq1_split{split}.fits', f'{inp.output_dir}/maps/sim{sim}_freq2_split{split}.fits']
+        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/sim{sim}_freq1_split{split}{pars_str}.fits', f'{inp.output_dir}/maps/sim{sim}_freq2_split{split}{pars_str}.fits']
     else:
-        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq1_split{split}.fits', f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq2_split{split}.fits']
+        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq1_split{split}{pars_str}.fits', f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq2_split{split}{pars_str}.fits']
     pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)
@@ -68,16 +76,14 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None):
 
     #run pyilc for preserved CMB and preserved tSZ
     stdout = subprocess.DEVNULL if suppress_printing else None
+    if scaling is not None:
+        scaling_str = f', scaling {scaling_str}'
     subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {CMB_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
     if inp.verbose:
-        print(f'generated NILC weight maps for preserved component CMB, sim {sim}, scaling {scaling_str}', flush=True)
+        print(f'generated NILC weight maps for preserved component CMB, sim {sim}{scaling_str}, pars={pars}', flush=True)
     subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {tSZ_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
     if inp.verbose:
-        print(f'generated NILC weight maps for preserved component tSZ, sim {sim}, scaling {scaling_str}', flush=True)
-
-    #remove unncessary files
-    subprocess.run('rm -f ' + pyilc_input_params['output_dir'] + f'sim{sim}_needletcoeff*', shell=True, env=env)
-    subprocess.run('rm -f ' + pyilc_input_params['output_dir'] + f'sim{sim}*.pdf', shell=True, env=env)
+        print(f'generated NILC weight maps for preserved component tSZ, sim {sim}{scaling_str}, pars={pars}', flush=True)
     
     return
 

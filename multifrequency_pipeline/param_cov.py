@@ -88,7 +88,7 @@ def neg_lnL(pars, f, sim, Clij_all_sims, PScov_sim_Inv):
 
 def acmb_atsz_numerical(sim, Clij_all_sims, PScov_sim_Inv):
     '''
-    Maximize likelihood with respect to Acmb, Atsz, Anoise90, Anoise150 for one sim using numerical minimization routine
+    Maximize likelihood with respect to Acmb, Atsz for one sim using numerical minimization routine
 
     ARGUMENTS
     ---------
@@ -114,7 +114,7 @@ def acmb_atsz_numerical(sim, Clij_all_sims, PScov_sim_Inv):
 
 def acmb_atsz_analytic(sim, Clij_all_sims, PScov_sim_Inv):
     '''
-    Maximize likelihood with respect to Acmb, Atsz, Anoise90, Anoise150 for one sim analytically 
+    Maximize likelihood with respect to Acmb, Atsz for one sim analytically 
 
     ARGUMENTS
     ---------
@@ -124,7 +124,7 @@ def acmb_atsz_analytic(sim, Clij_all_sims, PScov_sim_Inv):
 
     RETURNS
     -------
-    best fit Acmb, Atsz, Anoise1, Anoise2 (floats)
+    best fit Acmb, Atsz (floats)
 
     INDEX MAPPING IN EINSUM
     -----------------------

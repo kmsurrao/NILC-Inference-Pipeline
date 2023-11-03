@@ -79,7 +79,7 @@ def neg_lnL(pars, f, inp, sim, Clpq, PScov_sim_Inv, best_fits):
     ARGUMENTS
     ---------
     pars: parameters to function f (not manually inputted but used by minimizer)
-    f: function that returns theory model in terms of Acmb, Atsz, Anoise1, and Anoise2
+    f: function that returns theory model in terms of Acmb, Atsz
     inp: Info object containing input parameter specifications
     sim: int, simulation number
     Clpq: (Nsims, N_preserved_comps, N_preserved_comps, Nbins) ndarray containing power spectra of maps p and q
@@ -133,7 +133,7 @@ def get_MLE_arrays(inp, Clpq, PScov_sim_Inv, best_fits, HILC=False):
         containing binned auto- and cross-spectra of harmonic ILC maps p and q
     PScov_sim_Inv: (Nbins, Nbins, 2, 2, 2, 2) ndarray containing inverse of power spectrum covariance matrix
     best_fits: (N_preserved_comps, N_preserved_comps, Nbins) ndarray
-        containing best fit sympy expressions to Acmb, Atsz, Anoise1, Anoise2
+        containing best fit sympy expressions to Acmb, Atsz
     HILC: Bool, True is using harmonic ILC pipeline, False if using needlet ILC pipeline
 
     RETURNS
@@ -153,7 +153,7 @@ def get_MLE_arrays(inp, Clpq, PScov_sim_Inv, best_fits, HILC=False):
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{string}.p', 'wb'))
     pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{string}.p', 'wb'))
     if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_{string}.p, atsz_array_{string}.p, anoise1_array_{string}.p, anoise2_array_{string}.p', flush=True)
+        print(f'created {inp.output_dir}/acmb_array_{string}.p, atsz_array_{string}.p', flush=True)
     print('Results from maximum likelihood estimation', flush=True)
     print('----------------------------------------------', flush=True)
     print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
@@ -177,7 +177,7 @@ def Fisher_inversion(inp, Clpq, PScov_sim_Inv, best_fits):
     PScov_sim_Inv: (Nbins, Nbins, 2, 2, 2, 2) ndarray containing 
         inverse of power spectrum covariance matrix
     best_fits: (N_preserved_comps, N_preserved_comps, Nbins) ndarray
-        containing best fit sympy expressions to Acmb, Atsz, Anoise1, Anoise2
+        containing best fit sympy expressions to Acmb, Atsz
 
     RETURNS
     -------
@@ -198,8 +198,8 @@ def Fisher_inversion(inp, Clpq, PScov_sim_Inv, best_fits):
             for q in range(2):
                 Clpq_high, Clpq_low = np.zeros(inp.Nbins), np.zeros(inp.Nbins)
                 for b in range(inp.Nbins):
-                    Clpq_high[b] = call_fit(pars_high, best_fits[p,q,b])*Clpq_mean[p,q,b]
-                    Clpq_low[b] = call_fit(pars_low, best_fits[p,q,b])*Clpq_mean[p,q,b]
+                    Clpq_high[b] = call_fit(pars_high, best_fits[p][q][b])*Clpq_mean[p,q,b]
+                    Clpq_low[b] = call_fit(pars_low, best_fits[p][q][b])*Clpq_mean[p,q,b]
                 deriv_vec[A,p,q] = (Clpq_high-Clpq_low)/(2*h)
 
     Fisher = np.einsum('Aijb,bcijkl,Bklc->AB', deriv_vec, PScov_sim_Inv, deriv_vec)
@@ -225,13 +225,13 @@ def pos_lnL(pars, f, inp, sim, Clpq, PScov_sim_Inv, best_fits):
     ARGUMENTS
     ---------
     pars: parameters to function f (not manually inputted but used by minimizer)
-    f: function that returns theory model in terms of Acmb, Atsz, Anoise1, and Anoise2
+    f: function that returns theory model in terms of Acmb, Atsz
     inp: Info object containing input parameter specifications
     sim: int, simulation number
     Clpq: (Nsims, N_preserved_comps, N_preserved_comps, Nbins) ndarray containing power spectra of maps p and q
     PScov_sim_Inv: (Nbins, Nbins, 2, 2, 2, 2) ndarray containing inverse of power spectrum covariance matrix
     best_fits: (N_preserved_comps, N_preserved_comps, Nbins) ndarray
-        containing best fit sympy expressions to Acmb, Atsz, Anoise1, Anoise2
+        containing best fit sympy expressions to Acmb, Atsz
 
     RETURNS
     -------
@@ -249,7 +249,7 @@ def MCMC(inp, Clpq, PScov_sim_Inv, best_fits, sim=0):
     PScov_sim_Inv: (Nbins, Nbins, 2, 2, 2, 2) ndarray containing 
         inverse of power spectrum covariance matrix
     best_fits: (N_preserved_comps, N_preserved_comps, Nbins) ndarray
-        containing best fit sympy expressions to Acmb, Atsz, Anoise1, Anoise2
+        containing best fit sympy expressions to Acmb, Atsz
     sim: int, simulation number
 
     RETURNS

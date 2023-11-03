@@ -48,7 +48,7 @@ def get_observation(inp, pipeline, env):
         fname = 'Clpq_HILC.p'
 
         pool = mp.Pool(inp.num_parallel)
-        Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
+        Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(inp, sim) for sim in range(inp.Nsims)])
         pool.close()
         Clij = np.asarray(Clij, dtype=np.float32)
 
@@ -62,11 +62,11 @@ def get_observation(inp, pipeline, env):
         pool = mp.Pool(inp.num_parallel)
         if pipeline == 'multifrequency':
             func = multifrequency_data_vecs.get_data_vectors
-            args = [(sim, inp) for sim in range(inp.Nsims)]
+            args = [(inp, sim) for sim in range(inp.Nsims)]
 
         elif pipeline == 'NILC':
             func = nilc_data_vecs.get_data_vectors
-            args = [(sim, inp, env) for sim in range(inp.Nsims)]
+            args = [(inp, env, sim) for sim in range(inp.Nsims)]
         
         data_vec = pool.starmap(func, args)
         pool.close()
@@ -100,8 +100,8 @@ def get_posterior(inp, pipeline, env):
     assert pipeline in {'multifrequency', 'HILC', 'NILC'}, "pipeline must be either 'multifrequency', 'HILC', or 'NILC'"
     prior = get_prior(inp)
 
-    #observation_all_sims = get_observation(inp, pipeline, env)
-    observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
+    observation_all_sims = get_observation(inp, pipeline, env)
+    #observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
     observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,0], observation_all_sims[:,1,1]]) #shape (4,Nsims,Nbins)
     observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 4*inp.Nbins))
     observation = torch.tensor(np.mean(observation_all_sims, axis=0))

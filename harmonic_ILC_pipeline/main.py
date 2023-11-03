@@ -58,7 +58,7 @@ def main():
         pool = mp.Pool(inp.num_parallel)
         if inp.use_symbolic_regression:
             inp.Clij_theory = np.mean(Clij[:,0,0,0], axis=0)
-            Clpq = pool.starmap(hilc_SR.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
+            Clpq = pool.starmap(hilc_SR.get_data_vecs, [(inp, Clij[sim], sim) for sim in range(inp.Nsims)])
         else:
             inp.Clij_theory = np.mean(Clij, axis=0)
             Clpq = pool.starmap(hilc_analytic.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
