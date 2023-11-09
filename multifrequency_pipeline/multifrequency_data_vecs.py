@@ -12,7 +12,7 @@ def get_data_vectors(inp, sim=None, pars=None):
     ---------
     inp: Info object containing input parameter specifications
     sim: int, simulation number (if sim is None, a random simulation number will be used)
-    pars: array of floats [Acmb, Atsz, Anoise1, Anoise2] (if not provided, all assumed to be 1)
+    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
@@ -49,7 +49,7 @@ def get_data_vectors(inp, sim=None, pars=None):
     for i in range(Nfreqs):
       for j in range(Nfreqs):
         map_i = CMB_map + g_tsz[i]*tSZ_map + noise_maps[i,0]
-        map_j = CMB_map + g_tsz[j]*tSZ_map + noise_maps[i,1]
+        map_j = CMB_map + g_tsz[j]*tSZ_map + noise_maps[j,1]
         spectrum = hp.anafast(map_i, map_j, lmax=inp.ellmax)
         Dl = ells*(ells+1)/2/np.pi*spectrum
         res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)

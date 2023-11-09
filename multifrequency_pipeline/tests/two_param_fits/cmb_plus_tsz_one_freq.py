@@ -29,13 +29,12 @@ def main():
     inp = Info(input_file)
     inp.ell_sum_max = inp.ellmax
     inp.use_Gaussian_tSZ = True
+    inp.noise = 0
 
     pool = mp.Pool(inp.num_parallel)
-    pars = [1., 1., 0., 0.] #CMB and tSZ only
-    Clij = pool.starmap(get_data_vectors, [(inp, sim, pars) for sim in range(inp.Nsims)])
+    Clij = pool.starmap(get_data_vectors, [(inp, sim) for sim in range(inp.Nsims)])
     pool.close()
-    Clij = np.asarray(Clij, dtype=np.float32)[:,0,0] #shape (Nsims, 1+4, Nbins)
-    Clij = Clij[:,:3,:] #get rid of noise components
+    Clij = np.asarray(Clij, dtype=np.float32)[:,0,0] #shape (Nsims, 1+2, Nbins)
 
     print(flush=True)
     print('Getting results using an explicit Gaussian likelihood...', flush=True)

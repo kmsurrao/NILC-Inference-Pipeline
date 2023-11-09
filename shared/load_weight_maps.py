@@ -28,7 +28,7 @@ def load_wt_maps(inp, sim, split, band_limit=False, scaling=None, pars=None):
         for scale in range(inp.Nscales):
             for freq in range(2):
                 if pars is not None:
-                    pars_str = f'_pars{pars[0]}_{pars[1]}_'
+                    pars_str = f'_pars{pars[0]:.3f}_{pars[1]:.3f}_'
                 else:
                     pars_str = ''
                 if scaling is None:

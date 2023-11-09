@@ -36,7 +36,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims):
 
     RETURNS
     -------
-    samples: torch tensor of shape (Nsims, 4) containing A1, A2 posteriors
+    samples: torch tensor of shape (Nsims, 2) containing A1, A2 posteriors
     
     '''
 
@@ -58,14 +58,12 @@ def get_posterior(inp, prior_half_widths, observation_all_sims):
         data_vec: torch tensor of shape (Nfreqs*Nfreqs*Nbins, ) containing outputs from simulation
         
         '''
-        new_pars = pars
-        new_pars = torch.cat([new_pars, torch.tensor([0,0])])
-        data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=new_pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
+        data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
         data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,1]]).flatten()
         data_vec = torch.tensor(data_vec)
         return data_vec
     
-    samples = sbi_utils.multi_round_SNPE(inp, prior, simulator, observation, density_estimator='maf')
+    samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation, density_estimator='maf')
     a1_array, a2_array = np.array(samples, dtype=np.float32).T
     
     print('1D marginalized posteriors from likelihood-free inference', flush=True)

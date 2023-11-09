@@ -35,7 +35,7 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, par
         scaling_str = ''
     pyilc_input_params['output_prefix'] = f"sim{sim}_split{split}"
     if pars is not None:
-        pars_str = f'_pars{pars[0]}_{pars[1]}_'
+        pars_str = f'_pars{pars[0]:.3f}_{pars[1]:.3f}_'
         pyilc_input_params['output_prefix'] += pars_str
     else:
         pars_str = ''
@@ -87,7 +87,7 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, par
     
     return
 
-def weight_maps_exist(sim, split, inp, scaling=None):
+def weight_maps_exist(sim, split, inp, scaling=None, pars=None):
     '''
     Checks whether all weight maps for a given simulation and scaling already exist
 
@@ -101,20 +101,26 @@ def weight_maps_exist(sim, split, inp, scaling=None):
                   indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
     Bool, whether or not weight maps already exist
     '''
     
+    if pars is not None:
+        pars_str = f'_pars{pars[0]:.3f}_{pars[1]:.3f}_'
+    else:
+        pars_str = ''
+    
     for comp in ['CMB', 'tSZ']:
         for freq in range(len(inp.freqs)):
             for scale in range(inp.Nscales):
                 if scaling is not None:
                     scaling_str = ''.join(str(e) for e in scaling)
-                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}_split{split}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
+                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
                         return False
                 else:
-                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/sim{sim}_split{split}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
+                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
                         return False
     return True

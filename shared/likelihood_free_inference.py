@@ -110,7 +110,7 @@ def get_posterior(inp, pipeline, env):
         '''
         ARGUMENTS
         ---------
-        pars: [Acmb, Atsz, Anoise1, Anoise2] parameters (floats)
+        pars: [Acmb, Atsz] parameters (floats)
 
         RETURNS
         -------

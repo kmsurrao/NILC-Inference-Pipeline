@@ -24,7 +24,7 @@ tSZ_amp: 1000.
 
 # Set to nonzero value to use Gaussian tSZ realizations
 # (not recommended, use only for testing)
-use_Gaussian_tSZ: 0 
+use_Gaussian_tSZ: False 
 
 # noise level in uK arcmin
 noise: 3500 

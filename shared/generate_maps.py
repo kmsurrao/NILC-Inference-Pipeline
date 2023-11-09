@@ -43,6 +43,7 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
         if scaling[1]: CMB_amp = scale_factor
         if scaling[2]: tSZ_amp_extra = scale_factor
     if pars is not None:
+        old_pars = pars
         pars = np.sqrt(np.array(pars))
         CMB_amp *= pars[0]
         tSZ_amp_extra *= pars[1]
@@ -81,7 +82,7 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
         cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
 
     #noise map realizations
-    if not include_noise:
+    if not include_noise or inp.noise==0:
         noise_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32) #shape Nfreqs, Nsplits, Npix
     else:
         theta_fwhm = (1.4/60.)*(np.pi/180.)
@@ -112,10 +113,10 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
     sim_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32)
     for i in range(2):
         for s in range(2):
-            sim_maps[i,s] = cmb_map + g_vec[i] + noise_maps[i,s]
+            sim_maps[i,s] = cmb_map + g_vec[i]*tsz_map + noise_maps[i,s]
             if save:
                 if pars is not None:
-                    pars_str = f'_pars{pars[0]}_{pars[1]}_'
+                    pars_str = f'_pars{old_pars[0]:.3f}_{old_pars[1]:.3f}_'
                 else:
                     pars_str = ''
                 if not scaling:
