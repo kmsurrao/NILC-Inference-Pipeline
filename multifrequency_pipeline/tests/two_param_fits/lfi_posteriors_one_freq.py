@@ -43,7 +43,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims):
     prior = get_prior(prior_half_widths)
     observation_all_sims = observation_all_sims[:,0,:]
     mean_vec = np.mean(observation_all_sims, axis=0)
-    observation = torch.tensor(mean_vec)
+    observation = torch.ones(inp.Nbins)
 
     def simulator(pars):
         '''
@@ -57,7 +57,7 @@ def get_posterior(inp, prior_half_widths, observation_all_sims):
         
         '''
         data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=pars)[0,0,0,:] # shape (Nbins,)
-        data_vec = torch.tensor(data_vec)
+        data_vec = torch.tensor(data_vec/mean_vec)
         return data_vec
     
     samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation, density_estimator='maf')

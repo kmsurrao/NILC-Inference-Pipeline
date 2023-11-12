@@ -37,7 +37,7 @@ use_lfi: True
 # The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
 # Only need to be provided if use_lfi is True; otherwise this input is ignored
 # Should be list of 2 elements (prior half-widths for Acmb, Atsz)
-prior_half_widths: [0.4, 0.2]
+prior_half_widths: [0.04, 0.02]
 
 
 # Set to True (not recommended, use only for testing) 

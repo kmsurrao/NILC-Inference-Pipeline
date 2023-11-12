@@ -24,7 +24,7 @@ tSZ_amp: 1000.
 
 # Set to nonzero value to use Gaussian tSZ realizations
 # (not recommended, use only for testing)
-use_Gaussian_tSZ: False 
+use_Gaussian_tSZ: True 
 
 # noise level in uK arcmin
 noise: 3500 
@@ -53,7 +53,7 @@ use_lfi: True
 # The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
 # Only need to be provided if use_lfi is True; otherwise this input is ignored
 # Should be list of 2 elements (prior half-widths for Acmb, Atsz)
-prior_half_widths: [0.4, 0.2]
+prior_half_widths: [0.04, 0.02]
 
 # number of simulations to average over for fitting overall 
 # parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
@@ -62,7 +62,7 @@ Nsims_for_fits: 50
 
 # scaling factors for components to fit parameter dependence
 # If provided, this input is ignored if use_lfi is True
-scaling_factors: [0.95, 1.05] 
+scaling_factors: [0.99, 1.01] 
 
 ###################################################################################
 ###################################################################################

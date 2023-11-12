@@ -298,8 +298,7 @@ def get_all_acmb_atsz(inp, Clij):
 
     PScov_sim = get_PScov_sim(Clij)
     PScov_sim_Inv = scipy.linalg.inv(PScov_sim)
-    if not inp.use_Gaussian_cov:
-        PScov_sim_Inv *= (inp.Nsims-(inp.Nbins*3)-2)/(inp.Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
+    PScov_sim_Inv *= (inp.Nsims-(inp.Nbins*3)-2)/(inp.Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
 
     Clij_all_sims = Clij
 

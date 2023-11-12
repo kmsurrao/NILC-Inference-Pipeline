@@ -29,16 +29,13 @@ def main():
     inp = Info(input_file)
     inp.ell_sum_max = inp.ellmax
     inp.use_Gaussian_tSZ = True
+    inp.noise = 0
 
     pool = mp.Pool(inp.num_parallel)
-    pars = [0., 1., 0., 0.] #tSZ only
+    pars = [0., 1.] #tSZ only
     Clij = pool.starmap(get_data_vectors, [(inp, sim, pars) for sim in range(inp.Nsims)])
     pool.close()
     Clij = np.asarray(Clij, dtype=np.float32)[:,0,0,0,:] #shape (Nsims, Nbins)
-
-    min_bin = 0
-    Clij = Clij[:,min_bin:] #cut off bins with high variance                                                          
-    inp.Nbins -= min_bin
 
     print(flush=True)
     print('Getting results using an explicit Gaussian likelihood...', flush=True)

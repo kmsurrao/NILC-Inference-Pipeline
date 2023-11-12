@@ -43,18 +43,20 @@ def get_observation(inp, pipeline, env):
             Clij of shape (Nsims, Nfreqs, Nfreqs, Nbins) if multifrequency
     
     '''
+    sims_for_obs = min(inp.Nsims, 1000)
+
     if pipeline == 'HILC':
 
         fname = 'Clpq_HILC.p'
 
         pool = mp.Pool(inp.num_parallel)
-        Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(inp, sim) for sim in range(inp.Nsims)])
+        Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(inp, sim) for sim in range(sims_for_obs)])
         pool.close()
         Clij = np.asarray(Clij, dtype=np.float32)
 
         pool = mp.Pool(inp.num_parallel)
         inp.Clij_theory = np.mean(Clij, axis=0)
-        Clpq = pool.starmap(hilc_analytic.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
+        Clpq = pool.starmap(hilc_analytic.get_data_vecs, [(inp, Clij[sim]) for sim in range(sims_for_obs)])
         pool.close()
         data_vec = np.asarray(Clpq, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins)
 
@@ -62,11 +64,11 @@ def get_observation(inp, pipeline, env):
         pool = mp.Pool(inp.num_parallel)
         if pipeline == 'multifrequency':
             func = multifrequency_data_vecs.get_data_vectors
-            args = [(inp, sim) for sim in range(inp.Nsims)]
+            args = [(inp, sim) for sim in range(sims_for_obs)]
 
         elif pipeline == 'NILC':
             func = nilc_data_vecs.get_data_vectors
-            args = [(inp, env, sim) for sim in range(inp.Nsims)]
+            args = [(inp, env, sim) for sim in range(sims_for_obs)]
         
         data_vec = pool.starmap(func, args)
         pool.close()
@@ -104,7 +106,8 @@ def get_posterior(inp, pipeline, env):
     #observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
     observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,0], observation_all_sims[:,1,1]]) #shape (4,Nsims,Nbins)
     observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 4*inp.Nbins))
-    observation = torch.tensor(np.mean(observation_all_sims, axis=0))
+    mean_vec = np.mean(observation_all_sims, axis=0)
+    observation = torch.ones(4*inp.Nbins)
 
     def simulator(pars):
         '''
@@ -127,7 +130,7 @@ def get_posterior(inp, pipeline, env):
         elif pipeline == 'NILC':
             data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
         data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,0], data_vec[1,1]]).flatten()
-        data_vec = torch.tensor(data_vec)
+        data_vec = torch.tensor(data_vec/mean_vec)
         return data_vec
     
     samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation, density_estimator='maf')
