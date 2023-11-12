@@ -283,7 +283,7 @@ def MCMC(inp, Clpq, PScov_sim_Inv, best_fits, sim=0):
 ##############################################
 
 
-def get_all_acmb_atsz(inp, Clpq, env, HILC=False):
+def get_all_acmb_atsz(inp, Clpq, HILC=False):
     '''
     ARGUMENTS
     ---------
@@ -294,7 +294,6 @@ def get_all_acmb_atsz(inp, Clpq, env, HILC=False):
               idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
         dim2: idx0 for unscaled CMB, idx1 for scaled CMB
         dim3: idx0 for unscaled ftSZ, idx1 for scaled ftSZ
-    env: environment object
     HILC: Bool, True is using harmonic ILC pipeline, False if using needlet ILC pipeline
 
     RETURNS
@@ -302,7 +301,7 @@ def get_all_acmb_atsz(inp, Clpq, env, HILC=False):
     acmb_array: array of length Nsims containing best fit Acmb for each simulation
     atsz_array: array of length Nsims containing best fit Atsz for each simulation
     '''
-    best_fits = get_parameter_dependence(inp, Clpq[:inp.Nsims_for_fits], env, HILC=HILC)
+    best_fits = get_parameter_dependence(inp, Clpq[:inp.Nsims_for_fits], HILC=HILC)
     Clpq_unscaled = Clpq[:,0,0,0,]
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)

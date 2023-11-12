@@ -70,7 +70,7 @@ def main():
                 print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
         
         if inp.use_symbolic_regression:
-            acmb_array, atsz_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, my_env, HILC=True)
+            acmb_array, atsz_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, HILC=True)
         else:
             acmb_array, atsz_array = param_cov_analytic.get_all_acmb_atsz(inp, Clpq)
     

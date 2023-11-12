@@ -2,12 +2,12 @@ import numpy as np
 import pickle
 from pysr import PySRRegressor 
 from utils import get_scalings
-import tempfile
 
-def symbolic_regression(x_vals, y_vals):
+def symbolic_regression(inp, x_vals, y_vals):
     '''
     ARGUMENTS
     ---------
+    inp: Info object containing input parameter specifications
     x_vals: list of points, where each point contains value of Acmb, Atsz
     y_vals: Clpq evaluated at scaled points / Clpq evaluated at all unscaled points
 
@@ -24,10 +24,9 @@ def symbolic_regression(x_vals, y_vals):
         unary_operators = ["exp", "square", "cube", "inv(x) = 1/x"],
         extra_sympy_mappings = {"inv": lambda x: 1 / x},
         loss = "loss(prediction, target) = (prediction - target)^2",
-        cluster_manager = 'slurm', 
         verbosity = 0,
         temp_equation_file = True,
-        tempdir = tempfile.mkdtemp(), 
+        tempdir = inp.output_dir, 
         delete_tempfiles = True
     )
     model.fit(x_vals, y_vals)
@@ -49,7 +48,7 @@ def call_fit(A_vec, expr):
     return expr.subs('x0', A_vec[0]).subs('x1', A_vec[1])
 
 
-def get_parameter_dependence(inp, Clpq, env, HILC=False):
+def get_parameter_dependence(inp, Clpq, HILC=False):
     '''
     ARGUMENTS
     ---------
@@ -60,7 +59,6 @@ def get_parameter_dependence(inp, Clpq, env, HILC=False):
             idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
         dim2: 0 for unscaled CMB, 1 for scaled CMB
         dim3: 0 for unscaled ftSZ, 1 for scaled ftSZ
-    env: environment object
     HILC: Bool, set to True if computing paramter dependence for harmonic ILC, False if for needlet ILC
     
     RETURNS
@@ -84,7 +82,7 @@ def get_parameter_dependence(inp, Clpq, env, HILC=False):
                 x[np.array(s[1:])==1] = scaling_factor
                 x_vals.append(x)
                 y_vals.append(Clpq_mean[s[0],s[1],s[2],p,q,bin]/Clpq_mean[0,0,0,p,q,bin])
-            best_fits[p][q][bin] = symbolic_regression(x_vals, y_vals)
+            best_fits[p][q][bin] = symbolic_regression(inp, x_vals, y_vals)
             if inp.verbose: print(f'estimated parameter dependence for p,q,bin={p},{q},{bin}', flush=True)
 
     if inp.save_files:

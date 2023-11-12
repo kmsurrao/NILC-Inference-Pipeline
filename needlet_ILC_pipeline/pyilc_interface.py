@@ -29,11 +29,11 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, par
     '''
 
     #set up temporary directory
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = tempfile.mkdtemp(dir=inp.output_dir)
 
     #set up yaml files for pyilc
     pyilc_input_params = {}
-    pyilc_input_params['output_dir'] = tmpdir
+    pyilc_input_params['output_dir'] = tmpdir + '/'
     if scaling is not None: 
         scaling_str = ''.join(str(e) for e in scaling)
     else:
