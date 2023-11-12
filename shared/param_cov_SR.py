@@ -10,7 +10,7 @@ import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
 import emcee
-from fits import call_fit, get_parameter_dependence
+from sym_reg import call_fit, get_parameter_dependence
 
 ##############################################
 #####  POWER SPECTRUM COVARIANCE MATRIX  #####

@@ -1,6 +1,9 @@
 import subprocess
 import yaml
 import os
+import tempfile
+import healpy as hp
+import numpy as np
 
 def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, pars=None):
     '''
@@ -22,15 +25,17 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, par
 
     RETURNS
     -------
-    None
+    tmpdir: str, temporary directory in which pyilc files were stored
     '''
+
+    #set up temporary directory
+    tmpdir = tempfile.mkdtemp()
 
     #set up yaml files for pyilc
     pyilc_input_params = {}
-    pyilc_input_params['output_dir'] = str(inp.output_dir) + "/pyilc_outputs/"
+    pyilc_input_params['output_dir'] = tmpdir
     if scaling is not None: 
         scaling_str = ''.join(str(e) for e in scaling)
-        pyilc_input_params['output_dir'] += f"{scaling_str}/"
     else:
         scaling_str = ''
     pyilc_input_params['output_prefix'] = f"sim{sim}_split{split}"
@@ -63,12 +68,10 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, par
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)
     pyilc_input_params_preserved_tsz.update(pyilc_input_params)
-    if scaling is None:
-        CMB_yaml = f'{inp.output_dir}/pyilc_yaml_files/sim{sim}_split{split}_CMB_preserved.yml'
-        tSZ_yaml = f'{inp.output_dir}/pyilc_yaml_files/sim{sim}_split{split}_tSZ_preserved.yml'
-    else:
-        CMB_yaml = f'{inp.output_dir}/pyilc_yaml_files/{scaling_str}/sim{sim}_split{split}_CMB_preserved.yml'
-        tSZ_yaml = f'{inp.output_dir}/pyilc_yaml_files/{scaling_str}/sim{sim}_split{split}_tSZ_preserved.yml'
+
+    #dump yaml files
+    CMB_yaml = f'{tmpdir}/sim{sim}_split{split}_CMB_preserved.yml'
+    tSZ_yaml = f'{tmpdir}/sim{sim}_split{split}_tSZ_preserved.yml'
     with open(CMB_yaml, 'w') as outfile:
         yaml.dump(pyilc_input_params_preserved_cmb, outfile, default_flow_style=None)
     with open(tSZ_yaml, 'w') as outfile:
@@ -85,9 +88,9 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, par
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}{scaling_str}, pars={pars}', flush=True)
     
-    return
+    return tmpdir
 
-def weight_maps_exist(sim, split, inp, scaling=None, pars=None):
+def weight_maps_exist(sim, split, inp, tmpdir, pars=None):
     '''
     Checks whether all weight maps for a given simulation and scaling already exist
 
@@ -96,11 +99,7 @@ def weight_maps_exist(sim, split, inp, scaling=None, pars=None):
     sim: int, simulation number
     split: int, split number (1 or 2)
     inp: Info object containing input parameter specifications
-    scaling: None or list of length 3
-            idx0: takes on values from 0 to len(inp.scaling_factors)-1,
-                  indicating by which scaling factor the input maps are scaled
-            idx1: 0 for unscaled CMB, 1 for scaled CMB
-            idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+    tmpdir: str, temporary directory in which weight maps were placed
     pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
 
     RETURNS
@@ -116,11 +115,42 @@ def weight_maps_exist(sim, split, inp, scaling=None, pars=None):
     for comp in ['CMB', 'tSZ']:
         for freq in range(len(inp.freqs)):
             for scale in range(inp.Nscales):
-                if scaling is not None:
-                    scaling_str = ''.join(str(e) for e in scaling)
-                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
-                        return False
-                else:
-                    if not os.path.exists(f"{inp.output_dir}/pyilc_outputs/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
-                        return False
+                if not os.path.exists(f"{tmpdir}/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
+                    return False
     return True
+
+def load_wt_maps(inp, sim, split, tmpdir, pars=None):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+    sim: int, simulation number
+    split: int, split number (1 or 2)
+    tmpdir: str, temporary directory in which pyilc outputs were placed
+    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
+
+    RETURNS
+    --------
+    CMB_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
+                contains NILC weight maps for preserved CMB
+    tSZ_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
+                contains NILC weight maps for preserved tSZ
+
+    '''
+    CMB_wt_maps = np.zeros((inp.Nscales, len(inp.freqs), 12*inp.nside**2))
+    tSZ_wt_maps = np.zeros((inp.Nscales, len(inp.freqs), 12*inp.nside**2))
+    for comp in ['CMB', 'tSZ']:
+        for scale in range(inp.Nscales):
+            for freq in range(2):
+                if pars is not None:
+                    pars_str = f'_pars{pars[0]:.3f}_{pars[1]:.3f}_'
+                else:
+                    pars_str = ''
+                wt_map_path = f'{tmpdir}/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
+                wt_map = hp.read_map(wt_map_path)
+                wt_map = hp.ud_grade(wt_map, inp.nside)
+                if comp=='CMB':
+                    CMB_wt_maps[scale][freq] = wt_map*10**(-6) #since pyilc outputs CMB map in uK
+                else:
+                    tSZ_wt_maps[scale][freq] = wt_map
+    return CMB_wt_maps, tSZ_wt_maps

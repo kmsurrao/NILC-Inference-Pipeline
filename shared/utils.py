@@ -22,24 +22,12 @@ def setup_output_dir(inp, env, scaling=False):
         subprocess.call(f'mkdir {inp.output_dir}', shell=True, env=env)
     if not os.path.isdir(f'{inp.output_dir}/maps'):
         subprocess.call(f'mkdir {inp.output_dir}/maps', shell=True, env=env)
-    if not os.path.isdir(f'{inp.output_dir}/pyilc_yaml_files'):
-        subprocess.call(f'mkdir {inp.output_dir}/pyilc_yaml_files', shell=True, env=env)
-    if not os.path.isdir(f'{inp.output_dir}/pyilc_outputs'):
-        subprocess.call(f'mkdir {inp.output_dir}/pyilc_outputs', shell=True, env=env)
-    if not os.path.isdir(f'{inp.output_dir}/n_point_funcs'):
-        subprocess.call(f'mkdir {inp.output_dir}/n_point_funcs', shell=True, env=env)
     if not os.path.isdir(f'{inp.output_dir}/data_vecs'):
         subprocess.call(f'mkdir {inp.output_dir}/data_vecs', shell=True, env=env)
     if scaling:
         scalings = get_scalings(inp)
         for s in scalings:
-            scaling_str = ''.join(str(e) for e in s) 
-            new_dir_pyilc_inputs = f'{inp.output_dir}/pyilc_yaml_files/{scaling_str}'
-            if not os.path.isdir(new_dir_pyilc_inputs):
-                subprocess.call(f'mkdir {new_dir_pyilc_inputs}', shell=True, env=env)
-            new_dir_pyilc_outputs = f'{inp.output_dir}/pyilc_outputs/{scaling_str}'
-            if not os.path.isdir(new_dir_pyilc_outputs):
-                subprocess.call(f'mkdir {new_dir_pyilc_outputs}', shell=True, env=env)
+            scaling_str = ''.join(str(e) for e in s)
             new_dir_maps = f'{inp.output_dir}/maps/{scaling_str}'
             if not os.path.isdir(new_dir_maps):
                 subprocess.call(f'mkdir {new_dir_maps}', shell=True, env=env)

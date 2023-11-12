@@ -20,7 +20,7 @@ ellmax: 250
 Nbins: 10 
 
 # amplification factor for tSZ map
-tSZ_amp: 1000. 
+tSZ_amp: 150. 
 
 # Set to nonzero value to use Gaussian tSZ realizations
 # (not recommended, use only for testing)
@@ -47,13 +47,7 @@ GN_FWHM_arcmin: [300., 120., 60.]
 # Set to True to use likelihood-free inference (recommended)
 # If set to False, will use analytic Gaussian likelihood, which is only accurate if 
 # use_Gaussian_tSZ is True
-use_lfi: True
-
-# Half widths of prior to use for LFI
-# The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
-# Only need to be provided if use_lfi is True; otherwise this input is ignored
-# Should be list of 2 elements (prior half-widths for Acmb, Atsz)
-prior_half_widths: [0.04, 0.02]
+use_lfi: False
 
 # number of simulations to average over for fitting overall 
 # parameter dependence f(Acmb, Aftsz, Anoise90, Anoise150)
@@ -82,9 +76,8 @@ cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits'
 # Path to pyilc code
 pyilc_path: '/work2/09334/ksurrao/stampede2/GitHub/pyilc' 
 
-#Path to folder to store outputs, NOTE: Recommended to be a directory ONLY 
-# used for the outputs of this pipeline (and other pipelines in the repo) 
-# since files will be written and deleted!
+# Path to folder to store outputs
+# n.b. see note in README about setting TEMPDIR variable before running
 output_dir: '/scratch/09334/ksurrao/NILC/outputs' 
 
 ###################################################################################

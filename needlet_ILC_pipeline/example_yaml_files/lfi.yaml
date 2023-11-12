@@ -1,0 +1,82 @@
+###################################################################################
+###################################################################################
+
+# number of simulations to run
+Nsims: 1000 
+
+#number of sims to run in parallel
+num_parallel: 20 
+
+###################################################################################
+###################################################################################
+
+# nside of NILC maps
+nside: 128 
+
+# maximum ell for power spectra
+ellmax: 250 
+
+# number of ell-space bins
+Nbins: 10 
+
+# amplification factor for tSZ map
+tSZ_amp: 150. 
+
+# Set to nonzero value to use Gaussian tSZ realizations
+# (not recommended, use only for testing)
+use_Gaussian_tSZ: True 
+
+# noise level in uK arcmin
+noise: 3500 
+
+# frequencies for maps, in GHz
+freqs: [90., 150.] 
+
+# number of needlet filter scales
+Nscales: 4 
+
+# array of FWHM used for constrution of Gaussians 
+# (needlet filters are differences of two Gaussians). 
+# FWHM need to be in strictly decreasing order.
+GN_FWHM_arcmin: [300., 120., 60.] 
+
+
+###################################################################################
+###################################################################################
+
+# Set to True to use likelihood-free inference (recommended)
+# If set to False, will use analytic Gaussian likelihood, which is only accurate if 
+# use_Gaussian_tSZ is True
+use_lfi: True
+
+# Half widths of prior to use for LFI
+# The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
+# Only need to be provided if use_lfi is True; otherwise this input is ignored
+# Should be list of 2 elements (prior half-widths for Acmb, Atsz)
+prior_half_widths: [0.04, 0.02]
+
+
+###################################################################################
+###################################################################################
+
+# set to 0 to suppress intermediate printing
+verbose: 1 
+
+# set to nonzero value to save pickle files
+save_files: 1 
+
+# Path to folder containing tSZ maps, assumed to be in Kelvin
+halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' 
+
+# File for CMB map in Kelvin, lensed_alm from Websky is in uK
+cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' 
+
+# Path to pyilc code
+pyilc_path: '/work2/09334/ksurrao/stampede2/GitHub/pyilc' 
+
+# Path to folder to store outputs
+# n.b. see note in README about setting TEMPDIR variable before running
+output_dir: '/scratch/09334/ksurrao/NILC/outputs' 
+
+###################################################################################
+###################################################################################

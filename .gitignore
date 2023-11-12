@@ -6,6 +6,7 @@ toy_model/sbi-logs/
 toy_model/toy_model.ipynb
 jupyter_notebooks/pipeline_plotting_examples.ipynb
 
+*/example_yaml_files/laptop.yaml
 */*/.ipynb_checkpoints
 */*/*/sbi-logs
 mathematica_notebooks/*

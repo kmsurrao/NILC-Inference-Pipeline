@@ -1,0 +1,59 @@
+###################################################################################
+###################################################################################
+
+# number of simulations to run
+Nsims: 1000 
+
+# number of sims to run in parallel
+num_parallel: 20 
+
+###################################################################################
+###################################################################################
+
+# nside of NILC maps
+nside: 128 
+
+# ellmax for power spectra
+ellmax: 250 
+
+# number of ell-space bins
+Nbins: 10 
+
+# amplification factor for tSZ map
+tSZ_amp: 150. 
+
+# noise level in uK arcmin
+noise: 3500 
+
+# frequencies for maps, in GHz
+freqs: [90., 150.] 
+
+# Set to True to use likelihood-free inference (recommended)
+# If set to False, will use analytic Gaussian likelihood, which is only accurate if 
+# use_Gaussian_tSZ is True
+use_lfi: False
+
+# Set to True (not recommended, use only for testing) 
+# to use Gaussian tSZ realizations
+use_Gaussian_tSZ: True 
+
+###################################################################################
+###################################################################################
+
+# set to False to suppress intermediate printing
+verbose: True 
+
+# set to True to save pickle files
+save_files: True 
+
+# Path to folder containing tSZ maps, assumed to be in Kelvin
+halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' 
+
+# File for CMB map in Kelvin, lensed_alm from Websky is in uK
+cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' 
+
+# Path to folder to store outputs
+output_dir: '/scratch/09334/ksurrao/NILC/outputs' 
+
+###################################################################################
+###################################################################################

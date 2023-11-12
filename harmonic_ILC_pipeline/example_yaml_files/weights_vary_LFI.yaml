@@ -59,25 +59,6 @@ use_lfi: True
 # Should be list of 2 elements (prior half-widths for Acmb, Atsz)
 prior_half_widths: [0.04, 0.02]
 
-# Whether or not to use symbolic regression to estimate parameter dependence.
-# If provided, this input is ignored if use_lfi is True.
-# Note that if compute_weights_once is False, use_symbolic_regression must be set to True.
-# If compute_weights_once is True, use_symbolic_regression can optionally be set to False
-# to use analytic parameter dependence, which is faster.
-use_symbolic_regression: False
-
-# number of simulations to average over for fitting overall 
-# parameter dependence f(Acmb, Aftsz)
-# If provided, this input is ignored if use_lfi is True.
-# If use_symbolic_regression is True, this number must be provided with 0 <= Nsims_for_fits <= Nsims
-# If use_symbolic_regression is False, this input is not necessary and will be ignored if provided.
-Nsims_for_fits: 50 
-
-# scaling factors for components to fit parameter dependence (given in a list)
-# If provided, this input is ignored if use_lfi is True.
-# If use_symbolic_regression is True, there must be at least one scaling_factor given that is not equal to 1.
-# If use_symbolic_regression is False, this input is not necessary and will be ignored if provided.
-scaling_factors: [0.99, 1.01] 
 
 ###################################################################################
 ###################################################################################
@@ -94,9 +75,7 @@ halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps'
 # File for CMB map in Kelvin, lensed_alm from Websky is in uK
 cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' 
 
-# Path to folder to store outputs, 
-# NOTE: Recommended to be a directory ONLY used for the outputs of this
-# pipeline (and other pipelines in the repo) since files will be written and deleted!
+# Path to folder to store outputs
 output_dir: '/scratch/09334/ksurrao/NILC/outputs' 
 
 ###################################################################################

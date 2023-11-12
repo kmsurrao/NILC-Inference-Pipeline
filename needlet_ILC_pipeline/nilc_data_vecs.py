@@ -1,12 +1,11 @@
 import sys
 sys.path.append('../shared')
 import numpy as np
-import subprocess
+import shutil
 import healpy as hp
 from scipy import stats
 from generate_maps import generate_freq_maps
-from pyilc_interface import setup_pyilc, weight_maps_exist
-from load_weight_maps import load_wt_maps
+from pyilc_interface import setup_pyilc, load_wt_maps
 from utils import tsz_spectral_response, GaussianNeedlets, build_NILC_maps, get_scalings
 
 
@@ -46,23 +45,16 @@ def get_scaled_maps_and_wts(sim, inp, env):
         
         #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
         for split in [1,2]:
-            if not weight_maps_exist(sim, split, inp, scaling=scaling): #check if not all the weight maps already exist
                 
-                #remove any existing weight maps for this sim and scaling to prevent pyilc errors
-                if scaling is not None:  
-                    scaling_str = ''.join(str(e) for e in scaling)                                                  
-                    subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/{scaling_str}/sim{sim}_split{split}*', shell=True, env=env)
-                else:
-                    subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/sim{sim}_split{split}*', shell=True, env=env)
-                
-                #generate and save files containing frequency maps and then run pyilc
-                if split == 1: #generate_freq_maps gets maps for both splits, so only need to generate once
-                    generate_freq_maps(inp, sim, scaling=scaling)
-                setup_pyilc(sim, split, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
+            #generate and save files containing frequency maps and then run pyilc
+            if split == 1: #generate_freq_maps gets maps for both splits, so only need to generate once
+                generate_freq_maps(inp, sim, scaling=scaling)
+            tmpdir = setup_pyilc(sim, split, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
 
             #load weight maps
-            CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split, scaling=scaling)
+            CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split, tmpdir)
             all_wt_maps[scaling[0], scaling[1], scaling[2], split-1] = np.array([CMB_wt_maps, tSZ_wt_maps])
+            shutil.rmtree(tmpdir)
 
         if sim >= inp.Nsims_for_fits:
             break #only need unscaled version after getting Nsims_for_fits scaled maps and weights
@@ -196,12 +188,11 @@ def get_maps_and_wts(sim, inp, env, pars=None):
        
     #generate and save files containing frequency maps and then run pyilc
     for split in [1,2]:
-        if not weight_maps_exist(sim, split, inp, pars=pars): #check if not all the weight maps already exist
-            #remove any existing weight maps for this sim and pars to prevent pyilc errors, and then run pyilc
-            subprocess.call(f'rm -f {inp.output_dir}/pyilc_outputs/sim{sim}_split{split}{pars_str}*', shell=True, env=env)
-            setup_pyilc(sim, split, inp, env, suppress_printing=True, pars=pars) #set suppress_printing=False to debug pyilc runs
-        CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split, pars=pars) #load weight maps
+
+        tmpdir = setup_pyilc(sim, split, inp, env, suppress_printing=True, pars=pars) #set suppress_printing=False to debug pyilc runs
+        CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split, tmpdir, pars=pars) #load weight maps
         all_wt_maps[split-1] = np.array([CMB_wt_maps, tSZ_wt_maps])
+        shutil.rmtree(tmpdir)
 
     return CMB_map, tSZ_map, noise_maps, all_wt_maps
 

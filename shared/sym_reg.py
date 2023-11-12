@@ -1,8 +1,8 @@
 import numpy as np
 import pickle
-import subprocess
 from pysr import PySRRegressor 
 from utils import get_scalings
+import tempfile
 
 def symbolic_regression(x_vals, y_vals):
     '''
@@ -17,13 +17,18 @@ def symbolic_regression(x_vals, y_vals):
     '''
     model = PySRRegressor(
         niterations = 50,  # < Increase me for better results
-        ncyclesperiteration = 750,
+        ncyclesperiteration = 1000,
         progress = False, 
         maxsize = 12,
         binary_operators = ["*", "+", "-", "/"],
         unary_operators = ["exp", "square", "cube", "inv(x) = 1/x"],
         extra_sympy_mappings = {"inv": lambda x: 1 / x},
         loss = "loss(prediction, target) = (prediction - target)^2",
+        cluster_manager = 'slurm', 
+        verbosity = 0,
+        temp_equation_file = True,
+        tempdir = tempfile.mkdtemp(), 
+        delete_tempfiles = True
     )
     model.fit(x_vals, y_vals)
     return model.sympy()
@@ -80,7 +85,6 @@ def get_parameter_dependence(inp, Clpq, env, HILC=False):
                 x_vals.append(x)
                 y_vals.append(Clpq_mean[s[0],s[1],s[2],p,q,bin]/Clpq_mean[0,0,0,p,q,bin])
             best_fits[p][q][bin] = symbolic_regression(x_vals, y_vals)
-            subprocess.call(f'rm -f hall_of_fame*', shell=True, env=env)
             if inp.verbose: print(f'estimated parameter dependence for p,q,bin={p},{q},{bin}', flush=True)
 
     if inp.save_files:

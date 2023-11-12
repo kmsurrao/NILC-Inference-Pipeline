@@ -25,7 +25,7 @@ def main():
 
     # main input file containing most specifications 
     parser = argparse.ArgumentParser(description="Covariance from harmonic ILC power spectrum template-fitting approach.")
-    parser.add_argument("--config", default="example.yaml")
+    parser.add_argument("--config", default="example_yaml_files/weights_vary_LFI.yaml")
     args = parser.parse_args()
     input_file = args.config
 

@@ -20,7 +20,7 @@ def main():
 
     # main input file containing most specifications 
     parser = argparse.ArgumentParser(description="Comparing posteriors for CMB.")
-    parser.add_argument("--config", default="../../example.yaml")
+    parser.add_argument("--config", default="../../example_yaml_files/lfi.yaml")
     args = parser.parse_args()
     input_file = args.config
 
