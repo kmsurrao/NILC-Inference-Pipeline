@@ -90,6 +90,7 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, par
     
     return tmpdir
 
+
 def weight_maps_exist(sim, split, inp, tmpdir, pars=None):
     '''
     Checks whether all weight maps for a given simulation and scaling already exist
@@ -118,6 +119,7 @@ def weight_maps_exist(sim, split, inp, tmpdir, pars=None):
                 if not os.path.exists(f"{tmpdir}/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
                     return False
     return True
+
 
 def load_wt_maps(inp, sim, split, tmpdir, pars=None):
     '''

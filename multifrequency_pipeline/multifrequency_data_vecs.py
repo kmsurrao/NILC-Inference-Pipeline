@@ -58,3 +58,19 @@ def get_data_vectors(inp, sim=None, pars=None):
             Clij[i,j,1+y] = all_g_vecs[y,i]*all_g_vecs[y,j]*all_spectra[y]
     
     return Clij
+
+
+def get_data_vectors_star(args):
+    '''
+    Useful for using multiprocessing imap
+    (imap supports tqdm but starmap does not)
+
+    ARGUMENTS
+    ---------
+    args: arguments to function get_data_vectors
+
+    RETURNS
+    -------
+    function of *args, get_data_vectors(inp, sim=None, pars=None)
+    '''
+    return get_data_vectors(*args)

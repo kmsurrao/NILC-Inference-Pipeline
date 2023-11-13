@@ -63,8 +63,8 @@ use_symbolic_regression: False
 ###################################################################################
 ###################################################################################
 
-# Set to False to suppress intermediate printing
-verbose: True 
+# set to True for printing in debug mode (recommended to set to False for long runs)
+verbose: False 
 
 # Set to True to save pickle files
 save_files: True 

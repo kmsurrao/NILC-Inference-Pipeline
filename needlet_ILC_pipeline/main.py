@@ -7,9 +7,10 @@ from input import Info
 import pickle
 import time
 import argparse
+import tqdm
 from utils import setup_output_dir
 import param_cov_SR
-from nilc_data_vecs import get_scaled_data_vectors
+from nilc_data_vecs import get_scaled_data_vectors_star
 from likelihood_free_inference import get_posterior
 
 def main():
@@ -40,7 +41,9 @@ def main():
 
     if not inp.use_lfi:
         pool = mp.Pool(inp.num_parallel)
-        Clpq = pool.starmap(get_scaled_data_vectors, [(sim, inp, env) for sim in range(inp.Nsims)])
+        inputs = [(sim, inp, env) for sim in range(inp.Nsims)]
+        print(f'Running {inp.Nsims} simulations...', flush=True)
+        Clpq = list(tqdm.tqdm(pool.imap(get_scaled_data_vectors_star, inputs), total=inp.Nsims))
         pool.close()
         Clpq = np.asarray(Clpq, dtype=np.float32)
         if inp.save_files:

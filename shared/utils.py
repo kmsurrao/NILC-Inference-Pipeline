@@ -1,8 +1,11 @@
 import numpy as np
 import os
+import sys
 import subprocess
 import healpy as hp
 import itertools
+import multiprocessing.pool as mpp
+
 
 def setup_output_dir(inp, env, scaling=False):
     '''
@@ -34,6 +37,7 @@ def setup_output_dir(inp, env, scaling=False):
 
     return 
 
+
 def tsz_spectral_response(freqs):
     '''
     ARGUMENTS
@@ -52,6 +56,7 @@ def tsz_spectral_response(freqs):
         x = h*(freq*10**9)/(kb*T_cmb) #x is v/56.9 GHz
         response.append(T_cmb*(x*1/np.tanh(x/2)-4))
     return np.array(response)
+
 
 def GaussianNeedlets(inp, taper_width=0):
     '''
@@ -94,6 +99,7 @@ def GaussianNeedlets(inp, taper_width=0):
     for i, filt in enumerate(filters):
         filters[i] = filters[i]*taper_func
     return ell, filters
+
 
 def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None, split=None):
     '''
@@ -152,6 +158,7 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None, split
         NILC_maps.append(T_ILC)
     return NILC_maps
 
+
 def get_scalings(inp):
     '''
     ARGUMENTS
@@ -172,6 +179,4 @@ def get_scalings(inp):
         for s in scalings_init:
             scalings.append([i]+s)
     return scalings
-
-
 

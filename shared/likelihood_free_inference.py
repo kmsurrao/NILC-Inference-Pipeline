@@ -3,6 +3,7 @@ from sbi import utils as utils
 import multiprocessing as mp
 import numpy as np
 import pickle
+import tqdm
 import sys
 sys.path.append('../multifrequency_pipeline')
 sys.path.append('../harmonic_ILC_pipeline')
@@ -47,37 +48,42 @@ def get_observation(inp, pipeline, env):
 
     if pipeline == 'HILC':
 
-        fname = 'Clpq_HILC.p'
+        fname = 'Clpq_HILC_LFI.p'
 
         pool = mp.Pool(inp.num_parallel)
-        Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(inp, sim) for sim in range(sims_for_obs)])
+        args = [(inp, sim) for sim in range(sims_for_obs)]
+        print(f'Running {sims_for_obs} simulations of frequency-frequency power spectra as part of observation vector calculation...', flush=True)
+        Clij = list(tqdm.tqdm(pool.imap(hilc_analytic.get_freq_power_spec_star, args), total=sims_for_obs))
         pool.close()
         Clij = np.asarray(Clij, dtype=np.float32)
 
         pool = mp.Pool(inp.num_parallel)
         inp.Clij_theory = np.mean(Clij, axis=0)
-        Clpq = pool.starmap(hilc_analytic.get_data_vecs, [(inp, Clij[sim]) for sim in range(sims_for_obs)])
+        args = [(inp, Clij[sim]) for sim in range(sims_for_obs)]
+        print(f'Running {sims_for_obs} simulations to average together for observation vector...', flush=True)
+        Clpq = list(tqdm.tqdm(pool.imap(hilc_analytic.get_data_vecs_star, args), total=sims_for_obs))
         pool.close()
         data_vec = np.asarray(Clpq, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins)
 
     else:
         pool = mp.Pool(inp.num_parallel)
+        print(f'Running {sims_for_obs} simulations to average together for observation vector...', flush=True)
         if pipeline == 'multifrequency':
-            func = multifrequency_data_vecs.get_data_vectors
+            func = multifrequency_data_vecs.get_data_vectors_star
             args = [(inp, sim) for sim in range(sims_for_obs)]
 
         elif pipeline == 'NILC':
-            func = nilc_data_vecs.get_data_vectors
+            func = nilc_data_vecs.get_data_vectors_star
             args = [(inp, env, sim) for sim in range(sims_for_obs)]
         
-        data_vec = pool.starmap(func, args)
+        data_vec = list(tqdm.tqdm(pool.imap(func, args), total=sims_for_obs))
         pool.close()
 
         if pipeline == 'NILC':
-            fname = 'Clpq_NILC.p'
+            fname = 'Clpq_NILC_LFI.p'
             data_vec = np.asarray(data_vec, dtype=np.float32) # shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins)
         else:
-            fname = 'Clij.p'
+            fname = 'Clij_LFI.p'
             data_vec = np.asarray(data_vec, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, Nfreqs, Nfreqs, Nbins)
     
     pickle.dump(data_vec, open(f'{inp.output_dir}/data_vecs/{fname}', 'wb'), protocol=4)
@@ -107,7 +113,8 @@ def get_posterior(inp, pipeline, env):
     observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,0], observation_all_sims[:,1,1]]) #shape (4,Nsims,Nbins)
     observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 4*inp.Nbins))
     mean_vec = np.mean(observation_all_sims, axis=0)
-    observation = torch.ones(4*inp.Nbins)
+    std_dev_vec = np.std(observation_all_sims, axis=0)
+    observation = torch.zeros(4*inp.Nbins)
 
     def simulator(pars):
         '''
@@ -130,7 +137,7 @@ def get_posterior(inp, pipeline, env):
         elif pipeline == 'NILC':
             data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
         data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,0], data_vec[1,1]]).flatten()
-        data_vec = torch.tensor(data_vec/mean_vec)
+        data_vec = torch.tensor((data_vec-mean_vec)/std_dev_vec)
         return data_vec
     
     samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation, density_estimator='maf')

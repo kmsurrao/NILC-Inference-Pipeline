@@ -3,7 +3,7 @@ import numpy as np
 from utils import tsz_spectral_response
 
 
-def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None, same_noise=True, pars=None, include_noise=True):
+def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, pars=None, include_noise=True):
 
     '''
     ARGUMENTS
@@ -11,7 +11,6 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
     inp: Info object containing input parameter specifications
     sim: int, simulation number (if None, will generate a random simulation number)
     save: Bool, whether to save frequency map files
-    band_limit: Bool, whether or not to remove all power in weight maps above ellmax
     scaling: None or list of length 5
             idx0: takes on values from 0 to len(inp.scaling_factors)-1,
                 indicating by which scaling factor the input maps are scaled
@@ -32,9 +31,7 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
     '''
     if sim is None:
         sim = np.random.randint(0, high=inp.Nsims, size=None, dtype=int)
-
     np.random.seed(sim)
-    l_arr, m_arr = hp.Alm.getlm(3*inp.nside-1)
 
     #Determine which components to scale
     CMB_amp, tSZ_amp_extra= 1, 1
@@ -60,10 +57,6 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
             tsz_cl = hp.anafast(tsz_map, lmax=3*inp.nside-1)
             tsz_map = hp.synfast(tsz_cl, nside=inp.nside)
         tsz_map = inp.tsz_amp*tSZ_amp_extra*hp.ud_grade(tsz_map, inp.nside)
-        if band_limit:
-            tsz_alm = hp.map2alm(tsz_map)
-            tsz_alm = tsz_alm*(l_arr<=inp.ellmax)
-            tsz_map = hp.alm2map(tsz_alm, nside=inp.nside)
         tsz_cl = hp.anafast(tsz_map, lmax=inp.ell_sum_max)
 
     #realization of CMB from lensed alm
@@ -73,10 +66,6 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
     else:
         cmb_map = hp.read_map(inp.cmb_map_file)
         cmb_map = CMB_amp*hp.ud_grade(cmb_map, inp.nside)
-        if band_limit:
-            cmb_alm = hp.map2alm(cmb_map)
-            cmb_alm = cmb_alm*(l_arr<=inp.ellmax)
-            cmb_map = hp.alm2map(cmb_alm, nside=inp.nside)
         cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
         cmb_map = hp.synfast(cmb_cl, inp.nside)
         cmb_cl = hp.anafast(cmb_map, lmax=inp.ell_sum_max)
@@ -100,10 +89,6 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
             for s in range(2): #iterate over splits
                 noise_cl[i,s] = W_arr[i]**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
                 noise_maps[i,s] = hp.synfast(noise_cl[i,s], inp.nside)
-                if band_limit:
-                    alm = hp.map2alm(noise_maps[i,s])
-                    alm = alm*(l_arr<=inp.ellmax)
-                    noise_maps[i,s] = hp.map2alm(alm, nside=inp.nside)
 
     #tSZ spectral response
     g1, g2 = tsz_spectral_response(inp.freqs)
@@ -125,7 +110,7 @@ def generate_freq_maps(inp, sim=None, save=True, band_limit=False, scaling=None,
                     scaling_str = ''.join(str(e) for e in scaling) 
                     map_fname = f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq{i+1}_split{s+1}{pars_str}.fits'
                 hp.write_map(map_fname, sim_maps[i,s], overwrite=True, dtype=np.float32)
-    if inp.verbose and save:
+    if inp.verbose and save and pars is None:
         print(f'created {map_fname} and similarly for other freqs and splits', flush=True)
 
     return cmb_cl, tsz_cl, cmb_map, tsz_map, noise_maps

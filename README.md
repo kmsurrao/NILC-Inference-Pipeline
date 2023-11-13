@@ -42,6 +42,7 @@ healpy
 pysr  
 getdist  
 emcee  
+tqdm  
 
 ## Acknowledgments  
 Portions of this code are adapted from pyilc and sbi.  

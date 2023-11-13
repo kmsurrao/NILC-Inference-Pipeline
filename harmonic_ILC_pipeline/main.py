@@ -7,6 +7,7 @@ from input import Info
 import pickle
 import time
 import argparse
+import tqdm
 from utils import setup_output_dir
 import hilc_SR
 import hilc_analytic
@@ -44,30 +45,34 @@ def main():
     if not inp.use_lfi:
         
         pool = mp.Pool(inp.num_parallel)
+        print(f'Running {inp.Nsims} simulations for frequency-frequency power spectra...', flush=True)
         if inp.use_symbolic_regression:
-            Clij = pool.starmap(hilc_SR.get_freq_power_spec, [(sim, inp) for sim in range(inp.Nsims)])
+            inputs = [(sim, inp) for sim in range(inp.Nsims)]
+            Clij = list(tqdm.tqdm(pool.imap(hilc_SR.get_freq_power_spec_star, inputs), total=inp.Nsims))
         else:
-            Clij = pool.starmap(hilc_analytic.get_freq_power_spec, [(inp, sim) for sim in range(inp.Nsims)])
+            inputs = [(inp, sim) for sim in range(inp.Nsims)]
+            Clij = list(tqdm.tqdm(pool.imap(hilc_analytic.get_freq_power_spec_star, inputs), total=inp.Nsims))
         pool.close()
         Clij = np.asarray(Clij, dtype=np.float32)
         if inp.save_files:
             pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij_HILC.p', 'wb'), protocol=4)
-            if inp.verbose:
-                print(f'saved {inp.output_dir}/data_vecs/Clij_HILC.p')
+            print(f'saved {inp.output_dir}/data_vecs/Clij_HILC.p')
         
         pool = mp.Pool(inp.num_parallel)
+        print(f'Running {inp.Nsims} simulations for HILC spectra...', flush=True)
         if inp.use_symbolic_regression:
             inp.Clij_theory = np.mean(Clij[:,0,0,0], axis=0)
-            Clpq = pool.starmap(hilc_SR.get_data_vecs, [(inp, Clij[sim], sim) for sim in range(inp.Nsims)])
+            inputs = [(inp, Clij[sim], sim) for sim in range(inp.Nsims)]
+            Clpq = list(tqdm.tqdm(pool.imap(hilc_SR.get_data_vecs_star, inputs), total=inp.Nsims))
         else:
             inp.Clij_theory = np.mean(Clij, axis=0)
-            Clpq = pool.starmap(hilc_analytic.get_data_vecs, [(inp, Clij[sim]) for sim in range(inp.Nsims)])
+            inputs = [(inp, Clij[sim]) for sim in range(inp.Nsims)]
+            Clpq = list(tqdm.tqdm(pool.imap(hilc_analytic.get_data_vecs_star, inputs), total=inp.Nsims))
         pool.close()
         Clpq = np.asarray(Clpq, dtype=np.float32)
         if inp.save_files:
             pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_HILC.p', 'wb'), protocol=4)
-            if inp.verbose:
-                print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
+            print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
         
         if inp.use_symbolic_regression:
             acmb_array, atsz_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, HILC=True)

@@ -55,6 +55,22 @@ def get_freq_power_spec(sim, inp):
     return Clij
 
 
+def get_freq_power_spec_star(args):
+    '''
+    Useful for using multiprocessing imap
+    (imap supports tqdm but starmap does not)
+
+    ARGUMENTS
+    ---------
+    args: arguments to function get_freq_power_spec
+
+    RETURNS
+    -------
+    function of *args, get_freq_power_spec(sim, inp)
+    '''
+    return get_freq_power_spec(*args)
+
+
 def get_Rlij_inv(inp, Clij):
     '''
     ARGUMENTS
@@ -194,4 +210,20 @@ def get_data_vecs(inp, Clij, sim):
                 Clpq[s[0],s[1],s[2],p,q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
     
     return Clpq
+
+
+def get_data_vecs_star(args):
+    '''
+    Useful for using multiprocessing imap
+    (imap supports tqdm but starmap does not)
+
+    ARGUMENTS
+    ---------
+    args: arguments to function get_data_vecs
+
+    RETURNS
+    -------
+    function of *args, get_data_vecs(inp, Clij, sim)
+    '''
+    return get_data_vecs(*args)
 

@@ -1,5 +1,6 @@
 import yaml
 import os
+import warnings
 
 ##########################
 # simple function for opening the file
@@ -53,6 +54,10 @@ class Info(object):
 
         self.verbose = p['verbose']
         self.save_files = p['save_files']
+
+        if not self.use_Gaussian_tSZ and not self.use_lfi:
+            warnings.warn("You are using a Gaussian likelihood with a non-Gaussian tSZ component. For\
+                          more accurate posteriors, switch use_lfi to True to use likelihood-free inference.")
 
 
         

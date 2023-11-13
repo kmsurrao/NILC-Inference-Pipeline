@@ -156,6 +156,22 @@ def get_scaled_data_vectors(sim, inp, env):
     return Clpq
 
 
+def get_scaled_data_vectors_star(args):
+    '''
+    Useful for using multiprocessing imap
+    (imap supports tqdm but starmap does not)
+
+    ARGUMENTS
+    ---------
+    args: arguments to function get_scaled_data_vectors
+
+    RETURNS
+    -------
+    function of *args, get_scaled_data_vectors(sim, inp, env)
+    '''
+    return get_scaled_data_vectors(*args)
+
+
 def get_maps_and_wts(sim, inp, env, pars=None):
     '''
     ARGUMENTS
@@ -176,12 +192,6 @@ def get_maps_and_wts(sim, inp, env, pars=None):
     Nsplits = 2
     N_preserved_comps = 2
     all_wt_maps = np.zeros((Nsplits, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
-
-    #pars string
-    if pars is not None:
-        pars_str = f'_pars{pars[0]:.3f}_{pars[1]:.3f}_'
-    else:
-        pars_str = ''
 
     #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T)
     CC, T, CMB_map, tSZ_map, noise_maps = generate_freq_maps(inp, sim, pars=pars)
@@ -261,3 +271,19 @@ def get_data_vectors(inp, env, sim=None, pars=None):
         Clpq[p,q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
 
     return Clpq
+
+
+def get_data_vectors_star(args):
+    '''
+    Useful for using multiprocessing imap
+    (imap supports tqdm but starmap does not)
+
+    ARGUMENTS
+    ---------
+    args: arguments to function get_data_vectors
+
+    RETURNS
+    -------
+    function of *args, get_data_vectors(inp, env, sim=None, pars=None)
+    '''
+    return get_data_vectors(*args)

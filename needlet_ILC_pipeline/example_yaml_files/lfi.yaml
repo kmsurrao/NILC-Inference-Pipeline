@@ -59,11 +59,11 @@ prior_half_widths: [0.04, 0.02]
 ###################################################################################
 ###################################################################################
 
-# set to 0 to suppress intermediate printing
-verbose: 1 
+# set to True for printing in debug mode (recommended to set to False for long runs)
+verbose: False 
 
-# set to nonzero value to save pickle files
-save_files: 1 
+# set to True to save pickle files
+save_files: True 
 
 # Path to folder containing tSZ maps, assumed to be in Kelvin
 halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' 

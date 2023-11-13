@@ -7,10 +7,11 @@ from input import Info
 import pickle
 import time
 import argparse
+import tqdm
 import healpy as hp
 from utils import setup_output_dir
 from param_cov import get_all_acmb_atsz
-from multifrequency_data_vecs import get_data_vectors
+from multifrequency_data_vecs import get_data_vectors_star
 from likelihood_free_inference import get_posterior
 
 
@@ -42,13 +43,14 @@ def main():
 
     if not inp.use_lfi:
         pool = mp.Pool(inp.num_parallel)
-        Clij = pool.starmap(get_data_vectors, [(inp, sim) for sim in range(inp.Nsims)])
+        inputs = [(inp, sim) for sim in range(inp.Nsims)]
+        print(f'Running {inp.Nsims} simulations...', flush=True)
+        Clij = list(tqdm.tqdm(pool.imap(get_data_vectors_star, inputs), total=inp.Nsims))
         pool.close()
         Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
         if inp.save_files:
             pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
-            if inp.verbose:
-                print(f'saved {inp.output_dir}/data_vecs/Clij.p')
+            print(f'saved {inp.output_dir}/data_vecs/Clij.p')
         #Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb')) #remove and uncomment above
         acmb_array, atsz_array = get_all_acmb_atsz(inp, Clij)
     
