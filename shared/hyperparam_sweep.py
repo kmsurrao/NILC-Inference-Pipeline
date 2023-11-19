@@ -2,9 +2,14 @@ import wandb
 import numpy as np
 import sbi_utils
 
-def build_sweep_config():
+def build_sweep_config(inp, pipeline):
     '''
     Build hyperparameter sweep configuration
+
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+    pipeline: str, pipeline being run, one of 'multifrequency', 'HILC', or 'NILC'
 
     RETURNS
     -------
@@ -12,9 +17,25 @@ def build_sweep_config():
 
     '''
 
+    # name for sweep
+    name = f'{pipeline}_'
+    gaussian_str = 'gaussiantsz_' if inp.use_Gaussian_tSZ else 'nongaussiantsz_'
+    name += gaussian_str
+    if pipeline == 'HILC':
+        wts_str = 'weightsonce_' if inp.compute_weights_once else 'weightsvary_'
+        name += wts_str
+    if inp.Nsims % 1000 == 0:
+        sims_str = f'{inp.Nsims//1000}ksims_'
+    else:
+        sims_str = f'{int(inp.Nsims)}sims_'
+    name += sims_str
+    name += f'noise{int(inp.noise)}_'
+    name += f'tsz_amp{int(inp.tsz_amp)}'
+
     # choose random configurations of hyperparameters
     sweep_config = {
-        'method': 'random'
+        'method': 'random',
+        'name': name
     }
 
     # goal of hyperparameter sweep
@@ -34,7 +55,7 @@ def build_sweep_config():
         'learning_rate':{
             'distribution': 'uniform',
             'min': 1.e-4,
-            'max': 5.e-4,
+            'max': 7.e-4,
         },
         'clip_max_norm': {
             'distribution': 'uniform',
@@ -53,11 +74,10 @@ def build_sweep_config():
         }
     }
     sweep_config['parameters'] = parameters_dict
-    
     return sweep_config
 
 
-def run_sweep(inp, prior, simulator, observation):
+def run_sweep(inp, prior, simulator, observation, pipeline):
     '''                                                                                                                                            
     ARGUMENTS                                                                                                                                      
     ---------                                                                                                                                      
@@ -65,7 +85,8 @@ def run_sweep(inp, prior, simulator, observation):
     prior: prior on parameters to use for likelihood-free inference                                                                                
         (for example, sbi.utils.BoxUniform or torch tensor such as Gaussian)                                                                       
     simulator: function that generates simulations of the data vector                                                                              
-    observation: torch tensor, contains "observation" of data vector                                                                               
+    observation: torch tensor, contains "observation" of data vector  
+    pipeline: str, pipeline being run, one of 'multifrequency', 'HILC', or 'NILC'                                                                             
                                                                                                                                                    
     RETURNS                                                                                                                                        
     -------                                                                                                                                        
@@ -75,7 +96,7 @@ def run_sweep(inp, prior, simulator, observation):
     curr_best_val_log_prob = 0
     curr_best_samples = None
     theta, x = sbi_utils.generate_samples(inp, prior, simulator)
-    config = build_sweep_config()
+    config = build_sweep_config(inp, pipeline)
 
     def run_one_sweep_iter():
         '''                                                                                                                                        
@@ -97,5 +118,5 @@ def run_sweep(inp, prior, simulator, observation):
         return
     
     sweep_id = wandb.sweep(sweep=config, project=inp.wandb_project_name)
-    wandb.agent(sweep_id, function=run_one_sweep_iter, project=inp.wandb_project_name, count=10)
+    wandb.agent(sweep_id, function=run_one_sweep_iter, project=inp.wandb_project_name, count=inp.Nsweeps)
     return curr_best_samples

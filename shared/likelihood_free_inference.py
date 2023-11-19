@@ -143,7 +143,7 @@ def get_posterior(inp, pipeline, env):
         return data_vec
     
     if inp.tune_hyperparameters:
-        samples = hyperparam_sweep.run_sweep(inp, prior, simulator, observation)
+        samples = hyperparam_sweep.run_sweep(inp, prior, simulator, observation, pipeline)
     else:
         samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation,
                                                     learning_rate=inp.learning_rate, 

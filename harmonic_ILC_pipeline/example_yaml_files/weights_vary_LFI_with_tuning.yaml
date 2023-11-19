@@ -68,7 +68,17 @@ tune_hyperparameters: True
 
 # Name of wandb project (note that the project must be created already)
 # Set to None or omit this input to use an uncategorized project
+# This input is ignored if use_lfi is False or tune_hyperparameters is False
 wandb_project_name: 'cmb_sbi'
+
+# Number of hyperparameter sweeps to run
+# This input is ignored if use_lfi is False or tune_hyperparameters is False
+Nsweeps: 20
+
+# wandb API key (can use this input if you have not logged into wandb prior to running the program)
+# This input can be omitted if you've already configured your wandb login information.
+# This input is ignored if use_lfi is False or tune_hyperparameters is False.
+wandb_api_key: 
 
 ###################################################################################
 ###################################################################################

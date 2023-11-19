@@ -63,15 +63,28 @@ class Info(object):
         if self.use_lfi:
             self.tune_hyperparameters = p['tune_hyperparameters']
             if self.tune_hyperparameters:
+                self.Nsweeps = p['Nsweeps']
                 if 'wandb_project_name' in p:
                     self.wandb_project_name = p['wandb_project_name']
                 else:
                     self.wandb_project_name = None
-                try:
-                    wandb.login()
-                except Exception:
-                    print('Could not log into wandb. See instructions in README for configuring your login before running the program.')
-                    raise
+                if 'wandb_api_key' in p:
+                    try:
+                        wandb.login(key=self.wandb_api_key)
+                    except Exception:
+                        try:
+                            wandb.login()
+                        except Exception:
+                            print('Could not log into wandb. Either configure your login prior to running the program (see instructions in README), or\
+                            specify a valid API key in the wandb_api_key field of the yaml file.')
+                            raise
+                else:
+                    try:
+                        wandb.login()
+                    except Exception:
+                        print('Could not log into wandb. Either configure your login prior to running the program (see instructions in README), or\
+                        specify a valid API key in the wandb_api_key field of the yaml file.')
+                        raise
             else:
                 self.learning_rate = p['learning_rate']
                 self.stop_after_epochs = p['stop_after_epochs']
