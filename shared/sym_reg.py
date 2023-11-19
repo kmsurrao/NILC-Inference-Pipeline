@@ -67,6 +67,8 @@ def get_parameter_dependence(inp, Clpq, HILC=False):
         containing sympy expressions with best fits to Acmb, Atsz
 
     '''
+    print('\nRunning symbolic regression to get parameter dependence. This may take some time.', flush=True)
+
     N_preserved_comps = 2
     N_comps = 2
     Clpq_mean = np.mean(Clpq[:inp.Nsims_for_fits], axis=0)

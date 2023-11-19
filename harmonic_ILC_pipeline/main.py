@@ -56,10 +56,10 @@ def main():
         Clij = np.asarray(Clij, dtype=np.float32)
         if inp.save_files:
             pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij_HILC.p', 'wb'), protocol=4)
-            print(f'saved {inp.output_dir}/data_vecs/Clij_HILC.p')
+            print(f'\nsaved {inp.output_dir}/data_vecs/Clij_HILC.p', flush=True)
         
         pool = mp.Pool(inp.num_parallel)
-        print(f'Running {inp.Nsims} simulations for HILC spectra...', flush=True)
+        print(f'\nRunning {inp.Nsims} simulations for HILC spectra...', flush=True)
         if inp.use_symbolic_regression:
             inp.Clij_theory = np.mean(Clij[:,0,0,0], axis=0)
             inputs = [(inp, Clij[sim], sim) for sim in range(inp.Nsims)]
@@ -71,8 +71,17 @@ def main():
         pool.close()
         Clpq = np.asarray(Clpq, dtype=np.float32)
         if inp.save_files:
-            pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_HILC.p', 'wb'), protocol=4)
-            print(f'saved {inp.output_dir}/data_vecs/Clpq_HILC.p')
+            save_str =  ''
+            if inp.weights_once:
+                save_str += '_weights_once'
+            else:
+                save_str += '_weights_vary'
+            if inp.use_symbolic_regression:
+                save_str += '_SR'
+            else:
+                save_str += '_analytic'
+            pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_HILC{save_str}.p', 'wb'), protocol=4)
+            print(f'\nsaved {inp.output_dir}/data_vecs/Clpq_HILC{save_str}.p', flush=True)
         
         if inp.use_symbolic_regression:
             acmb_array, atsz_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, HILC=True)

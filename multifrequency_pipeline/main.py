@@ -50,7 +50,7 @@ def main():
         Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
         if inp.save_files:
             pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
-            print(f'saved {inp.output_dir}/data_vecs/Clij.p')
+            print(f'\nsaved {inp.output_dir}/data_vecs/Clij.p')
         #Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb')) #remove and uncomment above
         acmb_array, atsz_array = get_all_acmb_atsz(inp, Clij)
     

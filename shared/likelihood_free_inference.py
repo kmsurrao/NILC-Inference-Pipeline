@@ -12,6 +12,7 @@ import multifrequency_data_vecs
 import hilc_analytic
 import nilc_data_vecs
 import sbi_utils
+import hyperparam_sweep
 
 def get_prior(inp):
     '''
@@ -87,6 +88,7 @@ def get_observation(inp, pipeline, env):
             data_vec = np.asarray(data_vec, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, Nfreqs, Nfreqs, Nbins)
     
     pickle.dump(data_vec, open(f'{inp.output_dir}/data_vecs/{fname}', 'wb'), protocol=4)
+    print(f'\nsaved {inp.output_dir}/data_vecs/{fname}', flush=True)
     return data_vec
 
 
@@ -140,10 +142,19 @@ def get_posterior(inp, pipeline, env):
         data_vec = torch.tensor((data_vec-mean_vec)/std_dev_vec)
         return data_vec
     
-    samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation, density_estimator='maf')
+    if inp.tune_hyperparameters:
+        samples = hyperparam_sweep.run_sweep(inp, prior, simulator, observation)
+    else:
+        samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation,
+                                                    learning_rate=inp.learning_rate, 
+                                                    stop_after_epochs=inp.stop_after_epochs,
+                                                    clip_max_norm=inp.clip_max_norm,
+                                                    num_transforms=inp.num_transforms,
+                                                    hidden_features=inp.hidden_features,
+                                                    sweep=False)
     acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
     
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{pipeline}_lfi.p', 'wb'))
     pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{pipeline}_lfi.p', 'wb'))
-    print(f'saved {inp.output_dir}/acmb_array_{pipeline}_lfi.p and likewise for atsz')
+    print(f'\nsaved {inp.output_dir}/acmb_array_{pipeline}_lfi.p and likewise for atsz')
     return samples

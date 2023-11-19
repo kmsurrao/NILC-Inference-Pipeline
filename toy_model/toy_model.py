@@ -264,8 +264,7 @@ def pos_lnL(pars, f, sim, realizations, cov_sim_Inv, xvals):
     pars: parameters to function f (not manually inputted but used by minimizer)
     f: function that returns theory model in terms of Acmb and Atsz
     sim: int, simulation number
-    realizations: (Nsims, 2, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
-        index as realizations[sim, 0-1, x] with 0-1 for cos(x) contribution or x contribution
+    realizations: (Nsims, len(xvals)) ndarray containing random realizations of f(x) = Acos(x) + B(x)
     cov_sim_Inv: (len(xvals), len(xvals)) ndarray containing inverse of realizations covariance matrix
 
     RETURNS
@@ -368,28 +367,6 @@ def get_posterior_LFI(realizations, Nsims, xvals, method='SNPE', prior_half_widt
 
     prior = get_prior(prior_half_widths=prior_half_widths)
     observation = np.mean(realizations, axis=0)
-
-    # simulator_, prior_ = prepare_for_sbi(simulator, prior)
-    # if method == 'SNPE':
-    #     inference = SNPE(prior=prior_)
-    # elif method == 'SNLE':
-    #     inference = SNLE(prior=prior_)
-    # elif method == 'SNRE':
-    #     inference = SNRE(prior=prior_)
-
-    # num_rounds = 2
-    # posteriors = []
-    # proposal = prior_
-    # for _ in range(num_rounds):
-    #     theta, x = simulate_for_sbi(simulator_, proposal, num_simulations=2*Nsims//num_rounds, num_workers=8)
-    #     density_estimator = inference.append_simulations(
-    #                 theta, x, proposal=proposal).train()
-    #     posterior = inference.build_posterior(density_estimator)
-    #     posteriors.append(posterior)
-    #     proposal = posterior.set_default_x(observation)
-    # samples = posterior.sample((Nsims,), x=observation)
-
-
 
     posterior = infer(simulator, prior, method=method, num_simulations=Nsims, num_workers=8)
     samples = posterior.sample((Nsims,), x=observation)

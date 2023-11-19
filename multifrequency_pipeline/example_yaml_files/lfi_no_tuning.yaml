@@ -10,7 +10,7 @@ num_parallel: 20
 ###################################################################################
 ###################################################################################
 
-# nside resolution parameter for generated maps
+# nside of NILC maps
 nside: 128 
 
 # ellmax for power spectra
@@ -22,31 +22,11 @@ Nbins: 10
 # amplification factor for tSZ map
 tSZ_amp: 150. 
 
-# Set to True to use Gaussian tSZ realizations (not recommended, use only for testing) 
-# Set to False to use regular non-Gaussian tSZ realizations
-use_Gaussian_tSZ: True 
-
-# white noise level in uK arcmin
+# noise level in uK arcmin
 noise: 3500 
 
 # frequencies for maps, in GHz
 freqs: [90., 150.] 
-
-###################################################################################
-###################################################################################
-
-# bin width for harmonic ILC frequency-frequency covariance matrix computation, 
-# set to 0 for no binning
-delta_l: 10 
-
-# Set to True to omit central ell in bin when computing empirical covariance matrix
-# for producing harmonic ILC maps (mitigates ILC bias) 
-# Set to False to keep central ell in bin
-omit_central_ell: True 
-
-# Set to True to compute weights once from "data" and apply to every realization, 
-# set to False to compute weights separately for each realization (and include parameter dependence in the weights)
-compute_weights_once: False
 
 # Set to True to use likelihood-free inference (recommended)
 # If set to False, will use analytic Gaussian likelihood, which is only accurate if 
@@ -59,6 +39,41 @@ use_lfi: True
 # Should be list of 2 elements (prior half-widths for Acmb, Atsz)
 prior_half_widths: [0.04, 0.02]
 
+# Set to True (not recommended, use only for testing) 
+# to use Gaussian tSZ realizations
+# If False, uses standard non-Gaussian tSZ realizations
+use_Gaussian_tSZ: True 
+
+# Whether to tune hyperparameters in likelihood-free inference.
+# If use_lfi is False, this input is ignored if provided.
+# Set to True to use wandb to tune hyperparameters. 
+# (See note in README about setting up and logging into wandb before 
+# running the program. In this case, the wandb_project_name variable must be provided.)
+# Set to False to manually set hyperparameters in the section below.
+tune_hyperparameters: False
+
+
+###################################################################################
+###################################################################################
+# For each of the parameters in this section, if tune_hyperparameters is True,
+# the input is ignored if provided. Otherwise, a default value that has been tuned
+# for the settings in this yaml is provided, but these can be changed.
+
+# Learning rate for masked autoregressive flow. 
+learning_rate: 2.e-4
+
+# Number of epochs to wait for improvement on the validation set before terminating training.
+stop_after_epochs: 40
+
+# Value at which to clip the total gradient norm in order to
+# prevent exploding gradients. Use None for no clipping.
+clip_max_norm: 5.0
+
+# Number of transforms in the normalizing flow.
+num_transforms: 5
+
+# Number of hidden features in the model.
+hidden_features: 50
 
 ###################################################################################
 ###################################################################################
@@ -66,7 +81,7 @@ prior_half_widths: [0.04, 0.02]
 # set to True for printing in debug mode (recommended to set to False for long runs)
 verbose: False 
 
-# Set to True to save pickle files
+# set to True to save pickle files
 save_files: True 
 
 # Path to folder containing tSZ maps, assumed to be in Kelvin

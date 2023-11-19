@@ -1,6 +1,7 @@
 import yaml
 import os
 import warnings
+import wandb
 
 ##########################
 # simple function for opening the file
@@ -76,6 +77,28 @@ class Info(object):
         if not self.use_Gaussian_tSZ and not self.use_lfi:
             warnings.warn("You are using a Gaussian likelihood with a non-Gaussian tSZ component. For\
                           more accurate posteriors, switch use_lfi to True to use likelihood-free inference.")
+            
+        if self.use_lfi:
+            self.tune_hyperparameters = p['tune_hyperparameters']
+            if self.tune_hyperparameters:
+                assert 'wandb_project_name' in p, 'Must provide wandb_project_name if tune_hyperparameters is True'
+                self.wandb_project_name = p['wandb_project_name']
+                try:
+                    wandb.login()
+                except Exception:
+                    print('Could not log into wandb. See instructions in README for configuring your login before running the program.')
+                    raise
+                try:
+                    wandb.init(project=self.wandb_project_name)
+                except Exception:
+                    print('Could not access wandb project given by wandb_project_name.')
+                    raise
+            else:
+                self.learning_rate = p['learning_rate']
+                self.stop_after_epochs = p['stop_after_epochs']
+                self.clip_max_norm = p['clip_max_norm']
+                self.num_transforms = p['num_transforms']
+                self.hidden_features = p['hidden_features']
 
 
         

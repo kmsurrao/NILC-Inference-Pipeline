@@ -51,27 +51,43 @@ compute_weights_once: False
 # Set to True to use likelihood-free inference (recommended)
 # If set to False, will use analytic Gaussian likelihood, which is only accurate if 
 # use_Gaussian_tSZ is True
-use_lfi: False
+use_lfi: True
 
-# Whether or not to use symbolic regression to estimate parameter dependence.
-# If provided, this input is ignored if use_lfi is True.
-# Note that if compute_weights_once is False, use_symbolic_regression must be set to True.
-# If compute_weights_once is True, use_symbolic_regression can optionally be set to False
-# to use analytic parameter dependence, which is faster.
-use_symbolic_regression: True
+# Half widths of prior to use for LFI
+# The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
+# Only need to be provided if use_lfi is True; otherwise this input is ignored
+# Should be list of 2 elements (prior half-widths for Acmb, Atsz)
+prior_half_widths: [0.04, 0.02]
 
-# number of simulations to average over for fitting overall 
-# parameter dependence f(Acmb, Aftsz)
-# If provided, this input is ignored if use_lfi is True.
-# If use_symbolic_regression is True, this number must be provided with 0 <= Nsims_for_fits <= Nsims
-# If use_symbolic_regression is False, this input is not necessary and will be ignored if provided.
-Nsims_for_fits: 50 
+# Whether to tune hyperparameters in likelihood-free inference.
+# If use_lfi is False, this input is ignored if provided.
+# Set to True to use wandb to tune hyperparameters. 
+# (See note in README about setting up and logging into wandb before 
+# running the program. In this case, the wandb_project_name variable must be provided.)
+# Set to False to manually set hyperparameters in the section below.
+tune_hyperparameters: False
 
-# scaling factors for components to fit parameter dependence (given in a list)
-# If provided, this input is ignored if use_lfi is True.
-# If use_symbolic_regression is True, there must be at least one scaling_factor given that is not equal to 1.
-# If use_symbolic_regression is False, this input is not necessary and will be ignored if provided.
-scaling_factors: [0.99, 1.01] 
+###################################################################################
+###################################################################################
+# For each of the parameters in this section, if tune_hyperparameters is True,
+# the input is ignored if provided. Otherwise, a default value that has been tuned
+# for the settings in this yaml is provided, but these can be changed.
+
+# Learning rate for masked autoregressive flow. 
+learning_rate: 2.e-4
+
+# Number of epochs to wait for improvement on the validation set before terminating training.
+stop_after_epochs: 40
+
+# Value at which to clip the total gradient norm in order to
+# prevent exploding gradients. Use None for no clipping.
+clip_max_norm: 5.0
+
+# Number of transforms in the normalizing flow.
+num_transforms: 5
+
+# Number of hidden features in the model.
+hidden_features: 50
 
 ###################################################################################
 ###################################################################################
@@ -89,7 +105,6 @@ halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps'
 cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' 
 
 # Path to folder to store outputs
-# n.b. see note in README about setting this variable
 output_dir: '/scratch/09334/ksurrao/NILC/outputs' 
 
 ###################################################################################

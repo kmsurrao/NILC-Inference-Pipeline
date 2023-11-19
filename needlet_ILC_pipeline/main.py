@@ -48,7 +48,7 @@ def main():
         Clpq = np.asarray(Clpq, dtype=np.float32)
         if inp.save_files:
             pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
-            print(f'saved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
+            print(f'\nsaved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
         acmb_array, atsz_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, HILC=False)
     
     else:
