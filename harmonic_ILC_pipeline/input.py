@@ -81,17 +81,14 @@ class Info(object):
         if self.use_lfi:
             self.tune_hyperparameters = p['tune_hyperparameters']
             if self.tune_hyperparameters:
-                assert 'wandb_project_name' in p, 'Must provide wandb_project_name if tune_hyperparameters is True'
-                self.wandb_project_name = p['wandb_project_name']
+                if 'wandb_project_name' in p:
+                    self.wandb_project_name = p['wandb_project_name']
+                else:
+                    self.wandb_project_name = None
                 try:
                     wandb.login()
                 except Exception:
                     print('Could not log into wandb. See instructions in README for configuring your login before running the program.')
-                    raise
-                try:
-                    wandb.init(project=self.wandb_project_name)
-                except Exception:
-                    print('Could not access wandb project given by wandb_project_name.')
                     raise
             else:
                 self.learning_rate = p['learning_rate']

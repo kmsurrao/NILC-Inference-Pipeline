@@ -150,8 +150,7 @@ def get_posterior(inp, pipeline, env):
                                                     stop_after_epochs=inp.stop_after_epochs,
                                                     clip_max_norm=inp.clip_max_norm,
                                                     num_transforms=inp.num_transforms,
-                                                    hidden_features=inp.hidden_features,
-                                                    sweep=False)
+                                                    hidden_features=inp.hidden_features)
     acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
     
     pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{pipeline}_lfi.p', 'wb'))

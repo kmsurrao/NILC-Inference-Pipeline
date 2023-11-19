@@ -23,7 +23,7 @@ Nbins: 10
 tSZ_amp: 150. 
 
 # noise level in uK arcmin
-noise: 3500 
+noise: 2500 
 
 # frequencies for maps, in GHz
 freqs: [90., 150.] 
@@ -47,12 +47,12 @@ use_Gaussian_tSZ: True
 # Whether to tune hyperparameters in likelihood-free inference.
 # If use_lfi is False, this input is ignored if provided.
 # Set to True to use wandb to tune hyperparameters. 
-# (See note in README about setting up and logging into wandb before 
-# running the program. In this case, the wandb_project_name variable must be provided.)
+# (See note in README about setting up and logging into wandb before running the program.) 
 # Set to False to manually set hyperparameters.
 tune_hyperparameters: True
 
 # Name of wandb project (note that the project must be created already)
+# Set to None or omit this input to use an uncategorized project
 wandb_project_name: 'cmb_sbi'
 
 ###################################################################################

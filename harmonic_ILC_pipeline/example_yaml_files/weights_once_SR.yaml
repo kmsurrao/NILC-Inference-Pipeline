@@ -27,7 +27,7 @@ tSZ_amp: 150.
 use_Gaussian_tSZ: True 
 
 # white noise level in uK arcmin
-noise: 3500 
+noise: 2500 
 
 # frequencies for maps, in GHz
 freqs: [90., 150.] 

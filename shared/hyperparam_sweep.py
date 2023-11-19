@@ -58,34 +58,36 @@ def build_sweep_config():
 
 
 def run_sweep(inp, prior, simulator, observation):
-    '''
-    ARGUMENTS
-    ---------
-    inp: Info object containing input parameter specifications
-    prior: prior on parameters to use for likelihood-free inference
-        (for example, sbi.utils.BoxUniform or torch tensor such as Gaussian)
-    simulator: function that generates simulations of the data vector
-    observation: torch tensor, contains "observation" of data vector
-
-    RETURNS
-    -------
-    curr_best_samples: (Nsims, Ndim) torch tensor containing samples drawn from posterior
-        of the trained network that resulted in the highest validation log probability
+    '''                                                                                                                                            
+    ARGUMENTS                                                                                                                                      
+    ---------                                                                                                                                      
+    inp: Info object containing input parameter specifications                                                                                     
+    prior: prior on parameters to use for likelihood-free inference                                                                                
+        (for example, sbi.utils.BoxUniform or torch tensor such as Gaussian)                                                                       
+    simulator: function that generates simulations of the data vector                                                                              
+    observation: torch tensor, contains "observation" of data vector                                                                               
+                                                                                                                                                   
+    RETURNS                                                                                                                                        
+    -------                                                                                                                                        
+    curr_best_samples: (Nsims, Ndim) torch tensor containing samples drawn from posterior                                                          
+        of the trained network that resulted in the highest validation log probability                                                             
     '''
     curr_best_val_log_prob = 0
     curr_best_samples = None
+    theta, x = sbi_utils.generate_samples(inp, prior, simulator)
+    config = build_sweep_config()
 
     def run_one_sweep_iter():
+        '''                                                                                                                                        
+        Runs single round NPE with one set of hyperparameters                                                                                      
         '''
-        Runs single round NPE with one set of hyperparameters
-        '''
+        wandb.init()
         nonlocal curr_best_val_log_prob
         nonlocal curr_best_samples
-        config = wandb.config
-        samples, best_val_log_prob = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation, 
-                                    learning_rate=config.learning_rate, stop_after_epochs=config.stop_after_epochs, 
-                                    clip_max_norm=config.clip_max_norm, num_transforms=config.num_transforms, 
-                                    hidden_features=config.hidden_features, sweep=True)
+        samples, best_val_log_prob = sbi_utils.train_network(theta, x, inp, prior, observation,
+                                    learning_rate=wandb.config.learning_rate, stop_after_epochs=wandb.config.stop_after_epochs,
+                                    clip_max_norm=wandb.config.clip_max_norm, num_transforms=wandb.config.num_transforms,
+                                    hidden_features=wandb.config.hidden_features)
         wandb.log({'best_validation_log_prob': best_val_log_prob})
         acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
         wandb.log({'Acmb_std': np.std(acmb_array), 'Atsz_std': np.std(atsz_array)})
@@ -94,6 +96,6 @@ def run_sweep(inp, prior, simulator, observation):
             curr_best_samples = samples
         return
     
-    sweep_id = wandb.sweep(sweep=build_sweep_config(), project=inp.wandb_project_name)
-    wandb.agent(sweep_id, function=run_one_sweep_iter, count=10)
+    sweep_id = wandb.sweep(sweep=config, project=inp.wandb_project_name)
+    wandb.agent(sweep_id, function=run_one_sweep_iter, project=inp.wandb_project_name, count=10)
     return curr_best_samples
