@@ -8,7 +8,7 @@ import pickle
 import time
 import argparse
 import tqdm
-from utils import setup_output_dir
+from utils import setup_output_dir, get_naming_str
 import param_cov_SR
 from nilc_data_vecs import get_scaled_data_vectors_star
 from likelihood_free_inference import get_posterior
@@ -47,8 +47,9 @@ def main():
         pool.close()
         Clpq = np.asarray(Clpq, dtype=np.float32)
         if inp.save_files:
-            pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq.p', 'wb'), protocol=4)
-            print(f'\nsaved {inp.output_dir}/data_vecs/Clpq.p', flush=True)
+            naming_str = get_naming_str(inp, 'NILC')
+            pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_{naming_str}.p', 'wb'), protocol=4)
+            print(f'\nsaved {inp.output_dir}/data_vecs/Clpq_{naming_str}.p', flush=True)
         acmb_array, atsz_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, HILC=False)
     
     else:

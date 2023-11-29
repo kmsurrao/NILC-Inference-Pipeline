@@ -4,6 +4,9 @@ import emcee
 import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
+import sys
+sys.path.append('../shared')
+from utils import get_naming_str
 
 ##############################################
 #####  POWER SPECTRUM COVARIANCE MATRIX  #####
@@ -166,11 +169,12 @@ def get_MLE_arrays(inp, Clij_all_sims, PScov_sim_Inv, use_analytic=True):
     param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 2 for Acmb Atsz)
     acmb_array = param_array[:,0]
     atsz_array = param_array[:,1]
-    
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{string}.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{string}.p', 'wb'))
-    if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_{string}.p and atsz', flush=True)
+    if not use_analytic:
+        naming_str = get_naming_str(inp, 'multifrequency')
+        pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{naming_str}.p', 'wb'))
+        pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{naming_str}.p', 'wb'))
+        if inp.verbose:
+            print(f'created {inp.output_dir}/acmb_array_{naming_str}.p and atsz', flush=True)
     final_cov = np.cov(np.array([acmb_array, atsz_array]))
     print(f'Results from maximum likelihood estimation using {string} MLEs', flush=True)
     print('---------------------------------------------------------------', flush=True)
@@ -269,11 +273,6 @@ def MCMC(inp, Clij_all_sims, PScov_sim_Inv, sim=0):
     sampler.reset()
     sampler.run_mcmc(state, 1000)
     samples = sampler.get_chain() #dimensions (1000, nwalkers, Ncomps=4)
-
-    if inp.save_files:
-        pickle.dump(samples, open(f'{inp.output_dir}/MCMC_chains_multifrequency.p', 'wb'))
-        if inp.verbose:
-            print(f'saved {inp.output_dir}/MCMC_chains_multifrequency.p', flush=True)
     
     acmb_std = np.mean(np.array([np.std(samples[:,walker,0]) for walker in range(nwalkers)]))
     atsz_std = np.mean(np.array([np.std(samples[:,walker,1]) for walker in range(nwalkers)]))

@@ -2,7 +2,7 @@
 ###################################################################################
 
 # number of simulations to run
-Nsims: 1000 
+Nsims: 2000 
 
 # number of sims to run in parallel
 num_parallel: 20 
@@ -36,7 +36,7 @@ use_lfi: False
 # Set to True (not recommended, use only for testing) 
 # to use Gaussian tSZ realizations
 # If False, uses standard non-Gaussian tSZ realizations
-use_Gaussian_tSZ: True 
+use_Gaussian_tSZ: False 
 
 ###################################################################################
 ###################################################################################

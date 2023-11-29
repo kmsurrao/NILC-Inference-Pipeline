@@ -1,7 +1,7 @@
 import numpy as np
 import pickle
 from pysr import PySRRegressor 
-from utils import get_scalings
+from utils import get_scalings, get_naming_str
 
 def symbolic_regression(inp, x_vals, y_vals):
     '''
@@ -88,10 +88,9 @@ def get_parameter_dependence(inp, Clpq, HILC=False):
             if inp.verbose: print(f'estimated parameter dependence for p,q,bin={p},{q},{bin}', flush=True)
 
     if inp.save_files:
-        if HILC:
-            filename = f'{inp.output_dir}/data_vecs/best_fits_HILC.p'
-        else:
-            filename = f'{inp.output_dir}/data_vecs/best_fits_NILC.p'
+        pipeline = 'HILC' if HILC else 'NILC'
+        naming_str = get_naming_str(inp, pipeline)
+        filename = f'{inp.output_dir}/data_vecs/best_fits_{naming_str}.p'
         pickle.dump(best_fits, open(filename, 'wb'), protocol=4)
         print(f'saved {filename}', flush=True)
     

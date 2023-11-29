@@ -1,4 +1,5 @@
 import torch
+from utils import get_naming_str
 from sbi import utils as utils
 import multiprocessing as mp
 import numpy as np
@@ -49,7 +50,7 @@ def get_observation(inp, pipeline, env):
 
     if pipeline == 'HILC':
 
-        fname = 'Clpq_HILC_LFI.p'
+        fname = 'Clpq'
 
         pool = mp.Pool(inp.num_parallel)
         args = [(inp, sim) for sim in range(sims_for_obs)]
@@ -81,13 +82,14 @@ def get_observation(inp, pipeline, env):
         pool.close()
 
         if pipeline == 'NILC':
-            fname = 'Clpq_NILC_LFI.p'
+            fname = 'Clpq'
             data_vec = np.asarray(data_vec, dtype=np.float32) # shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins)
         else:
-            fname = 'Clij_LFI.p'
+            fname = 'Clij'
             data_vec = np.asarray(data_vec, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, Nfreqs, Nfreqs, Nbins)
     
-    pickle.dump(data_vec, open(f'{inp.output_dir}/data_vecs/{fname}', 'wb'), protocol=4)
+    naming_str = get_naming_str(inp, pipeline)
+    pickle.dump(data_vec, open(f'{inp.output_dir}/data_vecs/{fname}_{naming_str}.p', 'wb'), protocol=4)
     print(f'\nsaved {inp.output_dir}/data_vecs/{fname}', flush=True)
     return data_vec
 
@@ -143,7 +145,10 @@ def get_posterior(inp, pipeline, env):
         return data_vec
     
     if inp.tune_hyperparameters:
-        samples = hyperparam_sweep.run_sweep(inp, prior, simulator, observation, pipeline)
+        samples, mean_stds, error_of_stds = hyperparam_sweep.run_sweep(inp, prior, simulator, observation, pipeline)
+        for i, par in enumerate(['Acmb', 'Atsz']):
+            print(f'mean of {par} posterior standard deviations over top 25% of sweeps: ', mean_stds[i], flush=True)
+            print(f'standard deviation of {par} posterior standard deviations ("error of errors") over top 25% of sweeps: ', error_of_stds[i], flush=True)
     else:
         samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation,
                                                     learning_rate=inp.learning_rate, 
@@ -153,7 +158,8 @@ def get_posterior(inp, pipeline, env):
                                                     hidden_features=inp.hidden_features)
     acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
     
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{pipeline}_lfi.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{pipeline}_lfi.p', 'wb'))
-    print(f'\nsaved {inp.output_dir}/acmb_array_{pipeline}_lfi.p and likewise for atsz')
+    naming_str = get_naming_str(inp, pipeline)
+    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{naming_str}.p', 'wb'))
+    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{naming_str}.p', 'wb'))
+    print(f'\nsaved {inp.output_dir}/acmb_array_{naming_str}.p and likewise for atsz')
     return samples

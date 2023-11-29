@@ -1,5 +1,6 @@
 import wandb
-import numpy as np
+import torch
+import heapq
 import sbi_utils
 
 def build_sweep_config(inp, pipeline):
@@ -90,11 +91,15 @@ def run_sweep(inp, prior, simulator, observation, pipeline):
                                                                                                                                                    
     RETURNS                                                                                                                                        
     -------                                                                                                                                        
-    curr_best_samples: (Nsims, Ndim) torch tensor containing samples drawn from posterior                                                          
-        of the trained network that resulted in the highest validation log probability                                                             
+    final_samples: (k*Nsims, Ndim) torch tensor containing samples drawn from posterior                                                          
+        of the trained network that resulted in the highest validation log probability.
+        Here, k is Nsweeps//4
+    mean_stds: list of length 2 containing mean of Acmb and Atsz standard deviations
+        obtained from k highest hyperparameter sweeps
+    error_of_stds: list of length 2 containing standard deviation of Acmb and Atsz 
+        standard deviations ("erorr of errors") obtained from k highest hyperparameter sweeps                                                           
     '''
-    curr_best_val_log_prob = 0
-    curr_best_samples = None
+    sweep_results = []
     theta, x = sbi_utils.generate_samples(inp, prior, simulator)
     config = build_sweep_config(inp, pipeline)
 
@@ -103,20 +108,38 @@ def run_sweep(inp, prior, simulator, observation, pipeline):
         Runs single round NPE with one set of hyperparameters                                                                                      
         '''
         wandb.init()
-        nonlocal curr_best_val_log_prob
-        nonlocal curr_best_samples
+        nonlocal sweep_results
         samples, best_val_log_prob = sbi_utils.train_network(theta, x, inp, prior, observation,
                                     learning_rate=wandb.config.learning_rate, stop_after_epochs=wandb.config.stop_after_epochs,
                                     clip_max_norm=wandb.config.clip_max_norm, num_transforms=wandb.config.num_transforms,
                                     hidden_features=wandb.config.hidden_features)
         wandb.log({'best_validation_log_prob': best_val_log_prob})
-        acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
-        wandb.log({'Acmb_std': np.std(acmb_array), 'Atsz_std': np.std(atsz_array)})
-        if best_val_log_prob > curr_best_val_log_prob:
-            curr_best_val_log_prob = best_val_log_prob
-            curr_best_samples = samples
+        acmb_array, atsz_array = torch.transpose(samples, 0, 1)
+        wandb.log({'Acmb_std': torch.std(acmb_array), 'Atsz_std': torch.std(atsz_array)})
+        sweep_results.append((best_val_log_prob, samples))
         return
     
+    # run the wandb tuning
     sweep_id = wandb.sweep(sweep=config, project=inp.wandb_project_name)
     wandb.agent(sweep_id, function=run_one_sweep_iter, project=inp.wandb_project_name, count=inp.Nsweeps)
-    return curr_best_samples
+
+    # take the top 25% of results (in terms of validation log probability)
+    nsweeps_to_use = inp.Nsweeps//4
+    if nsweeps_to_use < 1:
+        nsweeps_to_use = 1
+    best_sweep_results = heapq.nlargest(nsweeps_to_use, sweep_results, key=lambda x: x[0])
+    best_samples = [s[1] for s in best_sweep_results]
+    acmb_stds, atsz_stds = [], []
+    for sample in best_samples:
+        acmb_arr, atsz_arr = torch.transpose(sample, 0, 1)
+        acmb_stds.append(torch.std(acmb_arr))
+        atsz_stds.append(torch.std(atsz_arr))
+
+    # get final samples, average std dev over top 25% of sweeps, and std dev of std devs of 25% of sweeps
+    final_samples = torch.cat(best_samples, 0)
+    acmb_stds = torch.tensor(acmb_stds)
+    atsz_stds = torch.tensor(atsz_stds)
+    mean_stds = [torch.mean(acmb_stds), torch.mean(atsz_stds)]
+    error_of_stds = [torch.std(acmb_stds), torch.std(atsz_stds)]
+
+    return final_samples, mean_stds, error_of_stds

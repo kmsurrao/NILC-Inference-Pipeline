@@ -11,6 +11,7 @@ from scipy.optimize import minimize
 import multiprocessing as mp
 import emcee
 from sym_reg import call_fit, get_parameter_dependence
+from utils import get_naming_str
 
 ##############################################
 #####  POWER SPECTRUM COVARIANCE MATRIX  #####
@@ -149,11 +150,12 @@ def get_MLE_arrays(inp, Clpq, PScov_sim_Inv, best_fits, HILC=False):
     acmb_array = param_array[:,0]
     atsz_array = param_array[:,1]
     
-    string = 'HILC' if HILC else 'NILC'
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{string}.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{string}.p', 'wb'))
+    pipeline = 'HILC' if HILC else 'NILC'
+    naming_str = get_naming_str(inp, pipeline)
+    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{naming_str}.p', 'wb'))
+    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{naming_str}.p', 'wb'))
     if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_{string}.p, atsz_array_{string}.p', flush=True)
+        print(f'created {inp.output_dir}/acmb_array_{naming_str}.p, atsz_array_{naming_str}.p', flush=True)
     print('Results from maximum likelihood estimation', flush=True)
     print('----------------------------------------------', flush=True)
     print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)

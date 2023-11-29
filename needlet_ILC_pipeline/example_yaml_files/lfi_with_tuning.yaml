@@ -2,7 +2,7 @@
 ###################################################################################
 
 # number of simulations to run
-Nsims: 1000 
+Nsims: 20000 
 
 #number of sims to run in parallel
 num_parallel: 20 
@@ -25,7 +25,7 @@ tSZ_amp: 150.
 # Set to True to use Gaussian tSZ realizations
 # (not recommended, use only for testing)
 # If False, uses standard non-Gaussian tSZ realizations
-use_Gaussian_tSZ: True 
+use_Gaussian_tSZ: False 
 
 # noise level in uK arcmin
 noise: 2500 
@@ -54,7 +54,7 @@ use_lfi: True
 # The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
 # Only need to be provided if use_lfi is True; otherwise this input is ignored
 # Should be list of 2 elements (prior half-widths for Acmb, Atsz)
-prior_half_widths: [0.04, 0.02]
+prior_half_widths: [0.085, 0.8]
 
 # Whether to tune hyperparameters in likelihood-free inference.
 # If use_lfi is False, this input is ignored if provided.

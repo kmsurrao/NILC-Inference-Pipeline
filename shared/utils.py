@@ -1,10 +1,8 @@
 import numpy as np
 import os
-import sys
 import subprocess
 import healpy as hp
 import itertools
-import multiprocessing.pool as mpp
 
 
 def setup_output_dir(inp, env, scaling=False):
@@ -180,3 +178,39 @@ def get_scalings(inp):
             scalings.append([i]+s)
     return scalings
 
+
+def get_naming_str(inp, pipeline):
+    '''
+    ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+    pipeline: str, pipeline being run ('multifrequency', 'HILC', or 'NILC')
+
+    RETURNS
+    -------
+    name: str, string to add on at the end of file names, providing information about the run
+    '''
+    assert pipeline in {'multifrequency', 'HILC', 'NILC'}, "pipeline must be 'multifrequency', 'HILC', or 'NILC'"
+    name = f'{pipeline}_'
+    gaussian_str = 'gaussiantsz_' if inp.use_Gaussian_tSZ else 'nongaussiantsz_'
+    name += gaussian_str
+    if pipeline == 'HILC':
+        wts_str = 'weightsonce_' if inp.compute_weights_once else 'weightsvary_'
+        name += wts_str
+    if inp.Nsims % 1000 == 0:
+        sims_str = f'{inp.Nsims//1000}ksims_'
+    else:
+        sims_str = f'{int(inp.Nsims)}sims_'
+    name += sims_str
+    name += f'noise{int(inp.noise)}_'
+    name += f'tszamp{int(inp.tsz_amp)}_'
+    if inp.use_lfi:
+        name += 'lfi'
+    else:
+        name += 'gaussianlkl'
+        if pipeline == 'HILC':
+            if inp.compute_weights_once and not inp.use_symbolic_regression:
+                name += '_analytic'
+            else:
+                name += '_sr'
+    return name

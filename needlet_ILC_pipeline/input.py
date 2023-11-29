@@ -73,13 +73,14 @@ class Info(object):
         self.save_files = p['save_files']
 
         if not self.use_Gaussian_tSZ and not self.use_lfi:
-            warnings.warn("You are using a Gaussian likelihood with a non-Gaussian tSZ component. For\
-                          more accurate posteriors, switch use_lfi to True to use likelihood-free inference.")
+            warnings.warn('''You are using a Gaussian likelihood with a non-Gaussian tSZ component. For
+                          more accurate posteriors, switch use_lfi to True to use likelihood-free inference.''')
         
         if self.use_lfi:
             self.tune_hyperparameters = p['tune_hyperparameters']
             if self.tune_hyperparameters:
                 self.Nsweeps = p['Nsweeps']
+                assert type(self.Nsweeps) is int and self.Nsweeps >= 1, "Nsweeps must be integer >= 1"
                 if 'wandb_project_name' in p:
                     self.wandb_project_name = p['wandb_project_name']
                 else:
@@ -91,15 +92,15 @@ class Info(object):
                         try:
                             wandb.login()
                         except Exception:
-                            print('Could not log into wandb. Either configure your login prior to running the program (see instructions in README), or\
-                            specify a valid API key in the wandb_api_key field of the yaml file.')
+                            print('''Could not log into wandb. Either configure your login prior to running the program (see instructions in README), or
+                            specify a valid API key in the wandb_api_key field of the yaml file.''')
                             raise
                 else:
                     try:
                         wandb.login()
                     except Exception:
-                        print('Could not log into wandb. Either configure your login prior to running the program (see instructions in README), or\
-                        specify a valid API key in the wandb_api_key field of the yaml file.')
+                        print('''Could not log into wandb. Either configure your login prior to running the program (see instructions in README), or
+                        specify a valid API key in the wandb_api_key field of the yaml file.''')
                         raise
             else:
                 self.learning_rate = p['learning_rate']

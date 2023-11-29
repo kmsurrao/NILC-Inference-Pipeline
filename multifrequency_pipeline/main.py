@@ -9,7 +9,7 @@ import time
 import argparse
 import tqdm
 import healpy as hp
-from utils import setup_output_dir
+from utils import setup_output_dir, get_naming_str
 from param_cov import get_all_acmb_atsz
 from multifrequency_data_vecs import get_data_vectors_star
 from likelihood_free_inference import get_posterior
@@ -49,9 +49,10 @@ def main():
         pool.close()
         Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
         if inp.save_files:
-            pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij.p', 'wb'), protocol=4)
-            print(f'\nsaved {inp.output_dir}/data_vecs/Clij.p')
-        #Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb')) #remove and uncomment above
+            naming_str = get_naming_str(inp, 'multifrequency')
+            pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij_{naming_str}.p', 'wb'), protocol=4)
+            print(f'\nsaved {inp.output_dir}/data_vecs/Clij_{naming_str}.p')
+        #Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij_{naming_str}.p', 'rb')) #remove and uncomment above
         acmb_array, atsz_array = get_all_acmb_atsz(inp, Clij)
     
     else:

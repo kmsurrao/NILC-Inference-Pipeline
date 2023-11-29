@@ -2,7 +2,7 @@
 ###################################################################################
 
 # number of simulations to run
-Nsims: 1000 
+Nsims: 2000 
 
 # number of sims to run in parallel
 num_parallel: 20 
@@ -24,7 +24,7 @@ tSZ_amp: 150.
 
 # Set to True to use Gaussian tSZ realizations (not recommended, use only for testing) 
 # Set to False to use regular non-Gaussian tSZ realizations
-use_Gaussian_tSZ: True 
+use_Gaussian_tSZ: False 
 
 # white noise level in uK arcmin
 noise: 2500 
