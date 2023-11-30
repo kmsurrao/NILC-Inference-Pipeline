@@ -159,7 +159,7 @@ def get_posterior(inp, pipeline, env):
     acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
     
     naming_str = get_naming_str(inp, pipeline)
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{naming_str}.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{naming_str}.p', 'wb'))
-    print(f'\nsaved {inp.output_dir}/acmb_array_{naming_str}.p and likewise for atsz')
+    pickle.dump(acmb_array, open(f'{inp.output_dir}/posteriors/acmb_array_{naming_str}.p', 'wb'))
+    pickle.dump(atsz_array, open(f'{inp.output_dir}/posteriors/atsz_array_{naming_str}.p', 'wb'))
+    print(f'\nsaved {inp.output_dir}/posteriors/acmb_array_{naming_str}.p and likewise for atsz')
     return samples

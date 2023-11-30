@@ -3,7 +3,7 @@ import numpy as np
 from utils import tsz_spectral_response
 
 
-def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, pars=None, include_noise=True):
+def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, pars=None, include_noise=True, map_tmpdir=None):
 
     '''
     ARGUMENTS
@@ -11,7 +11,7 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
     inp: Info object containing input parameter specifications
     sim: int, simulation number (if None, will generate a random simulation number)
     save: Bool, whether to save frequency map files
-    scaling: None or list of length 5
+    scaling: None or list of length 3
             idx0: takes on values from 0 to len(inp.scaling_factors)-1,
                 indicating by which scaling factor the input maps are scaled
             idx1: 0 for unscaled CMB, 1 for scaled CMB
@@ -20,6 +20,7 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
             (currently, if False, sets the noise in the higher frequency channel to be slightly higher)
     pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
     include_noise: Bool, whether to include noise in the simulations (if False, same_noise is ignored)
+    map_tmpdir: str, temporary directory in which to save maps. Must be defined if save is True.
 
     RETURNS
     -------
@@ -29,6 +30,9 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
     noise_maps: (Nfreqs, Nsplits, Npix) ndarray of noise maps
 
     '''
+    if save:
+        assert map_tmpdir is not None, "map_tmpdir must be defined if save=True in generate_freq_maps"
+
     if sim is None:
         sim = np.random.randint(0, high=inp.Nsims, size=None, dtype=int)
     np.random.seed(sim)
@@ -104,13 +108,64 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
                     pars_str = f'_pars{old_pars[0]:.3f}_{old_pars[1]:.3f}_'
                 else:
                     pars_str = ''
-                if not scaling:
-                    map_fname = f'{inp.output_dir}/maps/sim{sim}_freq{i+1}_split{s+1}{pars_str}.fits'
-                else:
-                    scaling_str = ''.join(str(e) for e in scaling) 
-                    map_fname = f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq{i+1}_split{s+1}{pars_str}.fits'
+                map_fname = f'{map_tmpdir}/sim{sim}_freq{i+1}_split{s+1}{pars_str}.fits'
                 hp.write_map(map_fname, sim_maps[i,s], overwrite=True, dtype=np.float32)
     if inp.verbose and save and pars is None:
         print(f'created {map_fname} and similarly for other freqs and splits', flush=True)
 
     return cmb_cl, tsz_cl, cmb_map, tsz_map, noise_maps
+
+
+
+def save_scaled_freq_maps(inp, sim, scaling, map_tmpdir, CMB_map_unscaled, tSZ_map_unscaled, noise_maps_unscaled):
+
+    '''
+    Given unscaled maps, save frequency maps containing scaled versions of those same realizations
+   
+     ARGUMENTS
+    ---------
+    inp: Info object containing input parameter specifications
+    sim: int, simulation number 
+    scaling: None or list of length 3
+            idx0: takes on values from 0 to len(inp.scaling_factors)-1,
+                indicating by which scaling factor the input maps are scaled
+            idx1: 0 for unscaled CMB, 1 for scaled CMB
+            idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+    map_tmpdir: str, temporary directory in which to save maps. Must be defined if save is True.
+    CMB_map_unscaled: unscaled map of CMB 
+    tSZ_map_unscaled: unscaled map of tSZ (but amplified according to input yaml) 
+    noise_maps_unscaled: unscaled maps of noise
+
+    RETURNS
+    -------
+    cmb_map, tsz_map: healpix galactic coordinate maps of CMB and tSZ
+        (maps are amplified depending on scaling and pars)
+    noise_maps: (Nfreqs, Nsplits, Npix) ndarray of noise maps
+
+    '''
+    #Determine which components to scale
+    CMB_amp, tSZ_amp_extra= 1, 1
+    if scaling is not None:
+        scale_factor = inp.scaling_factors[scaling[0]]
+        if scaling[1]: CMB_amp = scale_factor
+        if scaling[2]: tSZ_amp_extra = scale_factor
+    
+    cmb_map = CMB_amp*CMB_map_unscaled
+    tsz_map = tSZ_amp_extra*tSZ_map_unscaled
+    noise_maps = noise_maps_unscaled
+
+    #tSZ spectral response
+    g1, g2 = tsz_spectral_response(inp.freqs)
+    g_vec = [g1, g2]
+
+    #create maps at freq1 and freq2 (in GHz) and 2 splits 
+    sim_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32)
+    for i in range(2):
+        for s in range(2):
+            sim_maps[i,s] = cmb_map + g_vec[i]*tsz_map + noise_maps[i,s]
+            map_fname = f'{map_tmpdir}/sim{sim}_freq{i+1}_split{s+1}.fits'
+            hp.write_map(map_fname, sim_maps[i,s], overwrite=True, dtype=np.float32)
+    if inp.verbose:
+        print(f'created {map_fname} and similarly for other freqs and splits', flush=True)
+
+    return cmb_map, tsz_map, noise_maps

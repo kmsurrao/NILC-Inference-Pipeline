@@ -145,10 +145,10 @@ def get_MLE_arrays(inp, Clpq, PScov_sim_Inv):
     atsz_array = param_array[:,1]
     
     naming_str = get_naming_str(inp, 'HILC')
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{naming_str}.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{naming_str}.p', 'wb'))
+    pickle.dump(acmb_array, open(f'{inp.output_dir}/posteriors/acmb_array_{naming_str}.p', 'wb'))
+    pickle.dump(atsz_array, open(f'{inp.output_dir}/posteriors/atsz_array_{naming_str}.p', 'wb'))
     if inp.verbose:
-        print(f'created {inp.output_dir}/acmb_array_{naming_str}.p and similarly for atsz', flush=True)
+        print(f'created {inp.output_dir}/posteriors/acmb_array_{naming_str}.p and similarly for atsz', flush=True)
     print('Results from maximum likelihood estimation', flush=True)
     print('----------------------------------------------', flush=True)
     print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)

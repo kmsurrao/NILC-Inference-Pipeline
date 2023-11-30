@@ -5,7 +5,7 @@ import tempfile
 import healpy as hp
 import numpy as np
 
-def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, pars=None):
+def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scaling=None, pars=None):
     '''
     Sets up yaml files for pyilc and runs the code
 
@@ -15,6 +15,7 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, par
     split: int, split number (1 or 2)
     inp: Info object containing input parameter specifications
     env: environment object
+    map_tmpdir: str, directory in which maps are saved
     suppress_printing: Bool, whether to suppress outputs and errors from pyilc code itself
     scaling: None or list of length 3
             idx0: takes on values from 0 to len(inp.scaling_factors)-1,
@@ -60,10 +61,7 @@ def setup_pyilc(sim, split, inp, env, suppress_printing=False, scaling=None, par
     pyilc_input_params['N_deproj'] = 0
     pyilc_input_params['N_SED_params'] = 0
     pyilc_input_params['N_maps_xcorr'] = 0
-    if scaling is None:
-        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/sim{sim}_freq1_split{split}{pars_str}.fits', f'{inp.output_dir}/maps/sim{sim}_freq2_split{split}{pars_str}.fits']
-    else:
-        pyilc_input_params['freq_map_files'] = [f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq1_split{split}{pars_str}.fits', f'{inp.output_dir}/maps/{scaling_str}/sim{sim}_freq2_split{split}{pars_str}.fits']
+    pyilc_input_params['freq_map_files'] = [f'{map_tmpdir}/sim{sim}_freq1_split{split}{pars_str}.fits', f'{map_tmpdir}/sim{sim}_freq2_split{split}{pars_str}.fits']
     pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)

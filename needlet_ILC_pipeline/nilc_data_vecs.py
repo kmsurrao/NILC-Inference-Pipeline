@@ -2,9 +2,10 @@ import sys
 sys.path.append('../shared')
 import numpy as np
 import shutil
+import tempfile
 import healpy as hp
 from scipy import stats
-from generate_maps import generate_freq_maps
+from generate_maps import generate_freq_maps, save_scaled_freq_maps
 from pyilc_interface import setup_pyilc, load_wt_maps
 from utils import tsz_spectral_response, GaussianNeedlets, build_NILC_maps, get_scalings
 
@@ -39,22 +40,27 @@ def get_scaled_maps_and_wts(sim, inp, env):
 
     for s, scaling in enumerate(scalings):
 
-        #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)
-        if s==0:
-            CC, T, CMB_map_unscaled, tSZ_map_unscaled, noise_maps_unscaled = generate_freq_maps(inp, sim, scaling=scaling)
+        #create temporary directory to place maps
+        map_tmpdir = tempfile.mkdtemp(dir=inp.output_dir)
         
         #get NILC weight maps for preserved component CMB and preserved component tSZ using pyilc
         for split in [1,2]:
                 
             #generate and save files containing frequency maps and then run pyilc
-            if split == 1: #generate_freq_maps gets maps for both splits, so only need to generate once
-                generate_freq_maps(inp, sim, scaling=scaling)
-            tmpdir = setup_pyilc(sim, split, inp, env, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
+            if split == 1: #generate_freq_maps gets maps for both splits, so only need to generate once 
+                #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N1, N2)     
+                if s==0: 
+                    CC, T, CMB_map_unscaled, tSZ_map_unscaled, noise_maps_unscaled = generate_freq_maps(inp, sim, scaling=scaling, map_tmpdir=map_tmpdir)
+                else:
+                    save_scaled_freq_maps(inp, sim, scaling, map_tmpdir, CMB_map_unscaled, tSZ_map_unscaled, noise_maps_unscaled)
+            pyilc_tmpdir = setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=True, scaling=scaling) #set suppress_printing=False to debug pyilc runs
 
             #load weight maps
-            CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split, tmpdir)
+            CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split, pyilc_tmpdir)
             all_wt_maps[scaling[0], scaling[1], scaling[2], split-1] = np.array([CMB_wt_maps, tSZ_wt_maps])
-            shutil.rmtree(tmpdir)
+            shutil.rmtree(pyilc_tmpdir)
+        
+        shutil.rmtree(map_tmpdir)
 
         if sim >= inp.Nsims_for_fits:
             break #only need unscaled version after getting Nsims_for_fits scaled maps and weights
@@ -187,6 +193,8 @@ def get_maps_and_wts(sim, inp, env, pars=None):
     all_wt_maps: (Nsplits, N_preserved_comps, Nscales, Nfreqs, Npix) ndarray containing all weight maps
 
     '''
+    #create temporary directory to place maps
+    map_tmpdir = tempfile.mkdtemp(dir=inp.output_dir)
 
     #array for all weight maps
     Nsplits = 2
@@ -194,15 +202,16 @@ def get_maps_and_wts(sim, inp, env, pars=None):
     all_wt_maps = np.zeros((Nsplits, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
 
     #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T)
-    CC, T, CMB_map, tSZ_map, noise_maps = generate_freq_maps(inp, sim, pars=pars)
+    CC, T, CMB_map, tSZ_map, noise_maps = generate_freq_maps(inp, sim, pars=pars, map_tmpdir=map_tmpdir)
        
     #generate and save files containing frequency maps and then run pyilc
     for split in [1,2]:
-
-        tmpdir = setup_pyilc(sim, split, inp, env, suppress_printing=True, pars=pars) #set suppress_printing=False to debug pyilc runs
-        CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split, tmpdir, pars=pars) #load weight maps
+        pyilc_tmpdir = setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=True, pars=pars) #set suppress_printing=False to debug pyilc runs
+        CMB_wt_maps, tSZ_wt_maps = load_wt_maps(inp, sim, split, pyilc_tmpdir, pars=pars) #load weight maps
         all_wt_maps[split-1] = np.array([CMB_wt_maps, tSZ_wt_maps])
-        shutil.rmtree(tmpdir)
+        shutil.rmtree(pyilc_tmpdir)
+    
+    shutil.rmtree(map_tmpdir)
 
     return CMB_map, tSZ_map, noise_maps, all_wt_maps
 

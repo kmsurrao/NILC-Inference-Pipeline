@@ -171,10 +171,10 @@ def get_MLE_arrays(inp, Clij_all_sims, PScov_sim_Inv, use_analytic=True):
     atsz_array = param_array[:,1]
     if not use_analytic:
         naming_str = get_naming_str(inp, 'multifrequency')
-        pickle.dump(acmb_array, open(f'{inp.output_dir}/acmb_array_{naming_str}.p', 'wb'))
-        pickle.dump(atsz_array, open(f'{inp.output_dir}/atsz_array_{naming_str}.p', 'wb'))
+        pickle.dump(acmb_array, open(f'{inp.output_dir}/posteriors/acmb_array_{naming_str}.p', 'wb'))
+        pickle.dump(atsz_array, open(f'{inp.output_dir}/posteriors/atsz_array_{naming_str}.p', 'wb'))
         if inp.verbose:
-            print(f'created {inp.output_dir}/acmb_array_{naming_str}.p and atsz', flush=True)
+            print(f'created {inp.output_dir}/posteriors/acmb_array_{naming_str}.p and atsz', flush=True)
     final_cov = np.cov(np.array([acmb_array, atsz_array]))
     print(f'Results from maximum likelihood estimation using {string} MLEs', flush=True)
     print('---------------------------------------------------------------', flush=True)

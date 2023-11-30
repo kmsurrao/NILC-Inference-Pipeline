@@ -3,6 +3,7 @@ import os
 import subprocess
 import healpy as hp
 import itertools
+import tempfile
 
 
 def setup_output_dir(inp, env, scaling=False):
@@ -21,18 +22,10 @@ def setup_output_dir(inp, env, scaling=False):
     '''
     if not os.path.isdir(inp.output_dir):
         subprocess.call(f'mkdir {inp.output_dir}', shell=True, env=env)
-    if not os.path.isdir(f'{inp.output_dir}/maps'):
-        subprocess.call(f'mkdir {inp.output_dir}/maps', shell=True, env=env)
     if not os.path.isdir(f'{inp.output_dir}/data_vecs'):
         subprocess.call(f'mkdir {inp.output_dir}/data_vecs', shell=True, env=env)
-    if scaling:
-        scalings = get_scalings(inp)
-        for s in scalings:
-            scaling_str = ''.join(str(e) for e in s)
-            new_dir_maps = f'{inp.output_dir}/maps/{scaling_str}'
-            if not os.path.isdir(new_dir_maps):
-                subprocess.call(f'mkdir {new_dir_maps}', shell=True, env=env)
-
+    if not os.path.isdir(f'{inp.output_dir}/posteriors'):
+        subprocess.call(f'mkdir {inp.output_dir}/posteriors', shell=True, env=env)
     return 
 
 
