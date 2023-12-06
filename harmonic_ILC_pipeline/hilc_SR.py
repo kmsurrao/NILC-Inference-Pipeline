@@ -40,7 +40,7 @@ def get_freq_power_spec(sim, inp):
     
     #fill in array of data vectors
     for scaling in scalings:
-        CMB_amp, tSZ_amp_extra, noise1_amp, noise2_amp = 1,1,1,1
+        CMB_amp, tSZ_amp_extra = 1,1
         scale_factor = inp.scaling_factors[scaling[0]]
         if scaling[1]: CMB_amp = scale_factor
         if scaling[2]: tSZ_amp_extra = scale_factor

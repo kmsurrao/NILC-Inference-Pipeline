@@ -2,7 +2,7 @@
 ###################################################################################
 
 # number of simulations to run
-Nsims: 20000 
+Nsims: 30000 
 
 # number of sims to run in parallel
 num_parallel: 20 

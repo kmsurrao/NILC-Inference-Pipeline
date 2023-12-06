@@ -5,6 +5,7 @@ import multiprocessing as mp
 import numpy as np
 import pickle
 import tqdm
+from getdist import MCSamples
 import sys
 sys.path.append('../multifrequency_pipeline')
 sys.path.append('../harmonic_ILC_pipeline')
@@ -113,7 +114,6 @@ def get_posterior(inp, pipeline, env):
     prior = get_prior(inp)
 
     observation_all_sims = get_observation(inp, pipeline, env)
-    #observation_all_sims = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb'))[:,:,:,0,:] #remove and uncomment above
     observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,0], observation_all_sims[:,1,1]]) #shape (4,Nsims,Nbins)
     observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 4*inp.Nbins))
     mean_vec = np.mean(observation_all_sims, axis=0)
@@ -162,4 +162,12 @@ def get_posterior(inp, pipeline, env):
     pickle.dump(acmb_array, open(f'{inp.output_dir}/posteriors/acmb_array_{naming_str}.p', 'wb'))
     pickle.dump(atsz_array, open(f'{inp.output_dir}/posteriors/atsz_array_{naming_str}.p', 'wb'))
     print(f'\nsaved {inp.output_dir}/posteriors/acmb_array_{naming_str}.p and likewise for atsz')
+
+    print('Results from Likelihood-Free Inference', flush=True)
+    print('----------------------------------------------', flush=True)
+    names = ['Acmb', 'Atsz']
+    samples_MC = MCSamples(samples=[acmb_array, atsz_array], names = names, labels = names)
+    for par in ['Acmb', 'Atsz']:
+        print(samples_MC.getInlineLatex(par,limit=1), flush=True)
+
     return samples

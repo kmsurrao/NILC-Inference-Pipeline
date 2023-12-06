@@ -2,7 +2,7 @@
 ###################################################################################
 
 # number of simulations to run
-Nsims: 20000 
+Nsims: 30000 
 
 #number of sims to run in parallel
 num_parallel: 20 
@@ -70,7 +70,7 @@ wandb_project_name: 'cmb_sbi'
 
 # Number of hyperparameter sweeps to run
 # This input is ignored if use_lfi is False or tune_hyperparameters is False
-Nsweeps: 20
+Nsweeps: 40
 
 # wandb API key (can use this input if you have not logged into wandb prior to running the program)
 # This input can be omitted if you've already configured your wandb login information.

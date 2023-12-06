@@ -55,10 +55,6 @@ def main():
     else:
         samples = get_posterior(inp, 'NILC', env)
         acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
-        print('Results from Likelihood-Free Inference', flush=True)
-        print('----------------------------------------------', flush=True)
-        print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
-        print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
 
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)

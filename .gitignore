@@ -1,7 +1,8 @@
 harmonic_ILC_pipeline/tests/plot_weight_comp_variants.ipynb
 multifrequency_pipeline/sbi-logs/
 multifrequency_pipeline/tests/sbi_test.ipynb
-plotting_notebooks/
+plotting_notebooks/paper*
+plotting_notebooks/old
 toy_model/sbi-logs/
 toy_model/toy_model.ipynb
 jupyter_notebooks/pipeline_plotting_examples.ipynb

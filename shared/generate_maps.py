@@ -139,7 +139,7 @@ def save_scaled_freq_maps(inp, sim, scaling, map_tmpdir, CMB_map_unscaled, tSZ_m
     RETURNS
     -------
     cmb_map, tsz_map: healpix galactic coordinate maps of CMB and tSZ
-        (maps are amplified depending on scaling and pars)
+        (maps are amplified depending on scaling)
     noise_maps: (Nfreqs, Nsplits, Npix) ndarray of noise maps
 
     '''
