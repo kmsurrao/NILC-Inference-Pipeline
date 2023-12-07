@@ -37,7 +37,7 @@ def main():
     env = os.environ.copy()
 
     #set up output directory
-    setup_output_dir(inp, env, scaling=(not inp.use_lfi))
+    setup_output_dir(inp, env)
 
     if not inp.use_lfi:
         pool = mp.Pool(inp.num_parallel)

@@ -91,7 +91,7 @@ def get_observation(inp, pipeline, env):
     
     naming_str = get_naming_str(inp, pipeline)
     pickle.dump(data_vec, open(f'{inp.output_dir}/data_vecs/{fname}_{naming_str}.p', 'wb'), protocol=4)
-    print(f'\nsaved {inp.output_dir}/data_vecs/{fname}', flush=True)
+    print(f'\nsaved {inp.output_dir}/data_vecs/{fname}_{naming_str}.p', flush=True)
     return data_vec
 
 

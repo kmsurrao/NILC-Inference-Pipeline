@@ -3,10 +3,9 @@ import os
 import subprocess
 import healpy as hp
 import itertools
-import tempfile
 
 
-def setup_output_dir(inp, env, scaling=False):
+def setup_output_dir(inp, env):
     '''
     Sets up directory for output files
 
@@ -14,7 +13,6 @@ def setup_output_dir(inp, env, scaling=False):
     ---------
     inp: Info() object containing input specifications
     env: environment object
-    scaling: Bool, whether multiplicative scale factors are used to fit parameter dependence
 
     RETURNS
     -------
