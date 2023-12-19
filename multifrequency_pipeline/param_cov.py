@@ -4,6 +4,7 @@ import emcee
 import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
+from getdist import MCSamples
 import sys
 sys.path.append('../shared')
 from utils import get_naming_str
@@ -174,11 +175,12 @@ def get_MLE_arrays(inp, Clij_all_sims, PScov_sim_Inv, use_analytic=True):
         pickle.dump(acmb_array, open(f'{inp.output_dir}/posteriors/acmb_array_{naming_str}.p', 'wb'))
         pickle.dump(atsz_array, open(f'{inp.output_dir}/posteriors/atsz_array_{naming_str}.p', 'wb'))
         print(f'created {inp.output_dir}/posteriors/acmb_array_{naming_str}.p and atsz', flush=True)
-    final_cov = np.cov(np.array([acmb_array, atsz_array]))
     print(f'Results from maximum likelihood estimation using {string} MLEs', flush=True)
     print('---------------------------------------------------------------', flush=True)
-    print(f'Acmb = {np.mean(acmb_array)} +/- {np.sqrt(final_cov[0,0])}', flush=True)
-    print(f'Atsz = {np.mean(atsz_array)} +/- {np.sqrt(final_cov[1,1])}', flush=True)
+    names = ['Acmb', 'Atsz']
+    samples_MC = MCSamples(samples=[acmb_array, atsz_array], names = names, labels = names)
+    for par in ['Acmb', 'Atsz']:
+        print(samples_MC.getInlineLatex(par,limit=1), flush=True)
 
     return acmb_array, atsz_array
 
@@ -248,11 +250,10 @@ def pos_lnL(pars, f, sim, Clij_all_sims, PScov_sim_Inv):
     return -neg_lnL(pars, f, sim, Clij_all_sims, PScov_sim_Inv)
 
 
-def MCMC(inp, Clij_all_sims, PScov_sim_Inv, sim=0):
+def MCMC(Clij_all_sims, PScov_sim_Inv, sim=0):
     '''
     ARGUMENTS
     ---------
-    inp: Info object containing input parameter specifications 
     Clij_all_sims: (Nsims, Nfreqs, Nfreqs, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
     PScov_sim_Inv: (Nbins, Nbins, Nfreqs, Nfreqs, Nfreqs, Nfreqs) ndarray;
         contains inverse power spectrum covariance matrix in tensor form
@@ -260,7 +261,7 @@ def MCMC(inp, Clij_all_sims, PScov_sim_Inv, sim=0):
 
     RETURNS
     -------
-    acmb_std, atsz_std: predicted standard deviations of Acmb, Atsz found from MCMC
+    None
     '''
 
     np.random.seed(0)
@@ -271,17 +272,15 @@ def MCMC(inp, Clij_all_sims, PScov_sim_Inv, sim=0):
     state = sampler.run_mcmc(p0, 100)
     sampler.reset()
     sampler.run_mcmc(state, 1000)
-    samples = sampler.get_chain() #dimensions (1000, nwalkers, Ncomps=4)
-    
-    acmb_std = np.mean(np.array([np.std(samples[:,walker,0]) for walker in range(nwalkers)]))
-    atsz_std = np.mean(np.array([np.std(samples[:,walker,1]) for walker in range(nwalkers)]))
-
+    samples = sampler.get_chain(flat=True) #dimensions (1000*nwalkers, Ncomps=2)
     print('Results from MCMC', flush=True)
     print('------------------------------------', flush=True)
-    print('Acmb std dev: ', acmb_std, flush=True)
-    print('Atsz std dev: ', atsz_std, flush=True)
+    names = ['Acmb', 'Atsz']
+    samples_MC = MCSamples(samples=samples.T, names = names, labels = names)
+    for par in ['Acmb', 'Atsz']:
+        print(samples_MC.getInlineLatex(par,limit=1), flush=True)
     print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)), flush=True)
-    return acmb_std, atsz_std
+    return None
 
 
 ##############################################
@@ -325,7 +324,7 @@ def get_all_acmb_atsz(inp, Clij):
     Fisher_inversion(inp, Clij, PScov_sim_Inv)
 
     print(flush=True)
-    MCMC(inp, Clij, PScov_sim_Inv, sim=0)
+    MCMC(Clij, PScov_sim_Inv, sim=0)
    
     return acmb_array, atsz_array
 

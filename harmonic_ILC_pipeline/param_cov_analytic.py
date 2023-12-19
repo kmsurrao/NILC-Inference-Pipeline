@@ -9,6 +9,7 @@ import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
 import emcee
+from getdist import MCSamples
 import sys
 sys.path.append('../shared')
 from utils import get_naming_str
@@ -150,8 +151,10 @@ def get_MLE_arrays(inp, Clpq, PScov_sim_Inv):
     print(f'created {inp.output_dir}/posteriors/acmb_array_{naming_str}.p and similarly for atsz', flush=True)
     print('Results from maximum likelihood estimation', flush=True)
     print('----------------------------------------------', flush=True)
-    print(f'Acmb = {np.mean(acmb_array)} +/- {np.std(acmb_array)}', flush=True)
-    print(f'Atsz = {np.mean(atsz_array)} +/- {np.std(atsz_array)}', flush=True)
+    names = ['Acmb', 'Atsz']
+    samples_MC = MCSamples(samples=[acmb_array, atsz_array], names = names, labels = names)
+    for par in ['Acmb', 'Atsz']:
+        print(samples_MC.getInlineLatex(par,limit=1), flush=True)
 
     return acmb_array, atsz_array
 
@@ -237,7 +240,7 @@ def MCMC(inp, Clpq, PScov_sim_Inv, sim=0):
 
     RETURNS
     -------
-    acmb_std, atsz_std: predicted standard deviations of Acmb, Atsz found from MCMC
+    None
     '''
 
     np.random.seed(0)
@@ -248,17 +251,15 @@ def MCMC(inp, Clpq, PScov_sim_Inv, sim=0):
     state = sampler.run_mcmc(p0, 100)
     sampler.reset()
     sampler.run_mcmc(state, 1000)
-    samples = sampler.get_chain() #dimensions (1000, nwalkers, Ncomps=2)
-    
-    acmb_std = np.mean(np.array([np.std(samples[:,walker,0]) for walker in range(nwalkers)]))
-    atsz_std = np.mean(np.array([np.std(samples[:,walker,1]) for walker in range(nwalkers)]))
-
+    samples = sampler.get_chain(flat=True) #dimensions (1000*nwalkers, Ncomps=2)
     print('Results from MCMC', flush=True)
     print('------------------------------------', flush=True)
-    print('Acmb std dev: ', acmb_std, flush=True)
-    print('Atsz std dev: ', atsz_std, flush=True)
+    names = ['Acmb', 'Atsz']
+    samples_MC = MCSamples(samples=samples.T, names = names, labels = names)
+    for par in ['Acmb', 'Atsz']:
+        print(samples_MC.getInlineLatex(par,limit=1), flush=True)
     print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)), flush=True)
-    return acmb_std, atsz_std
+    return None
 
 
 ##############################################

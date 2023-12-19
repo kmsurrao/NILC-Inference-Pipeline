@@ -32,6 +32,8 @@ def build_sweep_config(inp, pipeline):
     name += sims_str
     name += f'noise{int(inp.noise)}_'
     name += f'tsz_amp{int(inp.tsz_amp)}'
+    if pipeline == 'NILC':
+        name += f'_{inp.Nscales}scales'
 
     # choose random configurations of hyperparameters
     sweep_config = {

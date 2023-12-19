@@ -158,7 +158,7 @@ def HILC_spectrum(inp, Clij, spectral_response, spectral_response2=None):
 
     '''
     if inp.compute_weights_once:
-        Rlij_inv = get_Rlij_inv(inp, inp.Clij_theory[0,1])
+        Rlij_inv = get_Rlij_inv(inp, inp.Clij_theory)
     else:
         Rlij_inv = get_Rlij_inv(inp, Clij)
     w1, w2 = weights(Rlij_inv, spectral_response, spectral_response2=spectral_response2)

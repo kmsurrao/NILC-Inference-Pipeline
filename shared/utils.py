@@ -204,4 +204,6 @@ def get_naming_str(inp, pipeline):
                 name += '_analytic'
             else:
                 name += '_sr'
+    if pipeline == 'NILC':
+        name += f'_{inp.Nscales}scales'
     return name
