@@ -43,7 +43,7 @@ def get_maps_and_wts(sim, inp, env, pars=None):
     all_wt_maps = np.zeros((Nsplits, N_preserved_comps, inp.Nscales, len(inp.freqs), 12*inp.nside**2))
 
     #create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T)
-    cib_path = '/scratch/09334/ksurrao/ACT_sims/agora/agora_act_150ghz_lcibNG_uk.fits'
+    cib_path = '/scratch/09334/ksurrao/ACT_sims/agora/agora_act_150ghz_lcibNG_uk_nside128.fits'
     CC, T, CIB, CMB_map, tSZ_map, CIB_map, noise_maps = generate_freq_maps(inp, sim, pars=pars, map_tmpdir=map_tmpdir, cib_path=cib_path)
        
     #generate and save files containing frequency maps and then run pyilc
@@ -177,7 +177,7 @@ def main():
 
     # main input file containing most specifications 
     parser = argparse.ArgumentParser(description="Covariance from NILC approach.")
-    parser.add_argument("--config", default="example_yaml_files/lfi.yaml")
+    parser.add_argument("--config", default="../example_yaml_files/gaussian_likelihood.yaml")
     args = parser.parse_args()
     input_file = args.config
 
@@ -194,7 +194,7 @@ def main():
     setup_output_dir(inp, env)
 
     pool = mp.Pool(inp.num_parallel)
-    inputs = [(sim, inp, env) for sim in range(inp.Nsims)]
+    inputs = [(inp, env, sim) for sim in range(inp.Nsims)]
     print(f'Running {inp.Nsims} simulations...', flush=True)
     Clpq = list(tqdm.tqdm(pool.imap(get_data_vectors_star, inputs), total=inp.Nsims))
     pool.close()
