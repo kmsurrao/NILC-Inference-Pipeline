@@ -272,11 +272,11 @@ def MCMC(Clij_all_sims, PScov_sim_Inv, sim=0):
     state = sampler.run_mcmc(p0, 100)
     sampler.reset()
     sampler.run_mcmc(state, 1000)
-    samples = sampler.get_chain(flat=True) #dimensions (1000*nwalkers, Ncomps=2)
+    samples = sampler.get_chain(flat=True) #dimensions (Ncomps=2, 1000*nwalkers)
     print('Results from MCMC', flush=True)
     print('------------------------------------', flush=True)
     names = ['Acmb', 'Atsz']
-    samples_MC = MCSamples(samples=samples.T, names = names, labels = names)
+    samples_MC = MCSamples(samples=samples, names = names, labels = names)
     for par in ['Acmb', 'Atsz']:
         print(samples_MC.getInlineLatex(par,limit=1), flush=True)
     print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)), flush=True)

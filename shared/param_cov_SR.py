@@ -25,7 +25,6 @@ def get_PScov_sim(inp, Clpq):
     inp: Info object containing input paramter specifications
     Clpq: (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins) ndarray 
         containing binned auto- and cross-spectra of harmonic ILC maps p and q
-        dim3: index0 is total power in Clpq, other indices are power from each component
     
     RETURNS
     -------
@@ -269,11 +268,11 @@ def MCMC(inp, Clpq, PScov_sim_Inv, best_fits, sim=0):
     state = sampler.run_mcmc(p0, 100)
     sampler.reset()
     sampler.run_mcmc(state, 1000)
-    samples = sampler.get_chain(flat=True) #dimensions (1000*nwalkers, Ncomps=2)
+    samples = sampler.get_chain(flat=True) #dimensions (Ncomps=2, 1000*nwalkers)
     print('Results from MCMC', flush=True)
     print('------------------------------------', flush=True)
     names = ['Acmb', 'Atsz']
-    samples_MC = MCSamples(samples=samples.T, names = names, labels = names)
+    samples_MC = MCSamples(samples=samples, names = names, labels = names)
     for par in ['Acmb', 'Atsz']:
         print(samples_MC.getInlineLatex(par,limit=1), flush=True)
     print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)), flush=True)

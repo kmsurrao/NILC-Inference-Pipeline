@@ -5,7 +5,7 @@ import tempfile
 import healpy as hp
 import numpy as np
 
-def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scaling=None, pars=None):
+def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scaling=None, pars=None, cib=False):
     '''
     Sets up yaml files for pyilc and runs the code for needlet ILC
 
@@ -23,6 +23,7 @@ def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scali
             idx1: 0 for unscaled CMB, 1 for scaled CMB
             idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
     pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
+    cib: Bool, whether to build CIB NILC maps in addition to CMB and ftSZ
 
     RETURNS
     -------
@@ -66,6 +67,9 @@ def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scali
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)
     pyilc_input_params_preserved_tsz.update(pyilc_input_params)
+    if cib:
+        pyilc_input_params_preserved_cib = {'ILC_preserved_comp': 'CIB'}
+        pyilc_input_params_preserved_cib.update(pyilc_input_params)
 
     #dump yaml files
     CMB_yaml = f'{tmpdir}/sim{sim}_split{split}_CMB_preserved.yml'
@@ -74,6 +78,10 @@ def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scali
         yaml.dump(pyilc_input_params_preserved_cmb, outfile, default_flow_style=None)
     with open(tSZ_yaml, 'w') as outfile:
         yaml.dump(pyilc_input_params_preserved_tsz, outfile, default_flow_style=None)
+    if cib:
+        CIB_yaml = f'{tmpdir}/sim{sim}_split{split}_CIB_preserved.yml'
+        with open(CIB_yaml, 'w') as outfile:
+            yaml.dump(pyilc_input_params_preserved_cib, outfile, default_flow_style=None)
 
     #run pyilc for preserved CMB and preserved tSZ
     stdout = subprocess.DEVNULL if suppress_printing else None
@@ -85,6 +93,11 @@ def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scali
     subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {tSZ_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
     if inp.verbose:
         print(f'generated NILC weight maps for preserved component tSZ, sim {sim}{scaling_str}, pars={pars}', flush=True)
+    if cib:
+        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {CIB_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
+        if inp.verbose:
+            print(f'generated NILC weight maps for preserved component CIB, sim {sim}{scaling_str}, pars={pars}', flush=True)
+
     
     return tmpdir
 
@@ -204,7 +217,7 @@ def weight_maps_exist(sim, split, inp, tmpdir, pars=None):
     return True
 
 
-def load_wt_maps(inp, sim, split, tmpdir, pars=None):
+def load_wt_maps(inp, sim, split, tmpdir, pars=None, cib=False):
     '''
     ARGUMENTS
     ---------
@@ -213,6 +226,7 @@ def load_wt_maps(inp, sim, split, tmpdir, pars=None):
     split: int, split number (1 or 2)
     tmpdir: str, temporary directory in which pyilc outputs were placed
     pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
+    cib: Bool, whether to load CIB weight maps
 
     RETURNS
     --------
@@ -224,7 +238,12 @@ def load_wt_maps(inp, sim, split, tmpdir, pars=None):
     '''
     CMB_wt_maps = np.zeros((inp.Nscales, len(inp.freqs), 12*inp.nside**2))
     tSZ_wt_maps = np.zeros((inp.Nscales, len(inp.freqs), 12*inp.nside**2))
-    for comp in ['CMB', 'tSZ']:
+    if cib:
+       CIB_wt_maps = np.zeros((inp.Nscales, len(inp.freqs), 12*inp.nside**2)) 
+       comps = ['CMB', 'tSZ', 'CIB']
+    else:
+        comps = ['CMB', 'tSZ']
+    for comp in comps:
         for scale in range(inp.Nscales):
             for freq in range(2):
                 if pars is not None:
@@ -236,6 +255,10 @@ def load_wt_maps(inp, sim, split, tmpdir, pars=None):
                 wt_map = hp.ud_grade(wt_map, inp.nside)
                 if comp=='CMB':
                     CMB_wt_maps[scale][freq] = wt_map*10**(-6) #since pyilc outputs CMB map in uK
-                else:
+                elif comp=='tSZ':
                     tSZ_wt_maps[scale][freq] = wt_map
+                else:
+                    CIB_wt_maps[scale][freq] = wt_map
+    if cib:
+        return CMB_wt_maps, tSZ_wt_maps, CIB_wt_maps
     return CMB_wt_maps, tSZ_wt_maps

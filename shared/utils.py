@@ -90,7 +90,7 @@ def GaussianNeedlets(inp, taper_width=0):
     return ell, filters
 
 
-def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None, split=None):
+def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, CIB_wt_maps=None, freq_maps=None, split=None):
     '''
     Note that pyilc checks which frequencies to use for every filter scale
     We include all freqs for all filter scales here
@@ -104,6 +104,9 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None, split
                 contains NILC weight maps for preserved CMB
     tSZ_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
                 contains NILC weight maps for preserved tSZ
+    CIB_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
+                contains NILC weight maps for preserved CIB
+                (only provide this input if you want to build CIB NILC maps)
     freq_maps: (Nfreqs=2, 12*nside**2) ndarray containing simulated map at 
                 each frequency to use in NILC map construction
     split: None or int, either 1 or 2 representing which split of data is used
@@ -120,11 +123,14 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=None, split
         freq_maps = [freq_map1, freq_map2]
     
     NILC_maps = []
-    for p in range(2):
+    N_preserved_comps = 3 if CIB_wt_maps is not None else 2
+    for p in range(N_preserved_comps):
         if p==0:
             wt_maps = CMB_wt_maps
-        else:
+        elif p==1:
             wt_maps = tSZ_wt_maps
+        else:
+            wt_maps = CIB_wt_maps
         all_maps = np.zeros((inp.Nscales, 12*inp.nside**2)) #index as all_maps[scale][pixel]
         for i in range(len(inp.freqs)):
             map_ = freq_maps[i]
@@ -207,3 +213,50 @@ def get_naming_str(inp, pipeline):
     if pipeline == 'NILC':
         name += f'_{inp.Nscales}scales'
     return name
+
+
+def cib_spectral_response(freqs):
+    '''
+    ARGUMENTS
+    ---------
+    freqs: array-like of frequencies in GHz
+
+    RETURNS
+    -------
+    resp: array-like of length Nfreqs containing spectral response vector
+    '''
+    # CIB = modified blackbody here
+    # N.B. overall amplitude is not meaningful here; output ILC map (if you tried to preserve this component) would not be in sensible units
+
+    TCMB = 2.726 #Kelvin
+    TCMB_uK = 2.726e6 #micro-Kelvin
+    hplanck=6.626068e-34 #MKS
+    kboltz=1.3806503e-23 #MKS
+    clight=299792458.0 #MKS
+
+    # function needed for Planck bandpass integration/conversion following approach in Sec. 3.2 of https://arxiv.org/pdf/1303.5070.pdf
+    # blackbody derivative
+    # units are 1e-26 Jy/sr/uK_CMB
+    def dBnudT(nu_ghz):
+        nu = 1.e9*np.asarray(nu_ghz)
+        X = hplanck*nu/(kboltz*TCMB)
+        return (2.*hplanck*nu**3.)/clight**2. * (np.exp(X))/(np.exp(X)-1.)**2. * X/TCMB_uK
+
+    # conversion from specific intensity to Delta T units (i.e., 1/dBdT|T_CMB)
+    #   i.e., from W/m^2/Hz/sr (1e-26 Jy/sr) --> uK_CMB
+    #   i.e., you would multiply a map in 1e-26 Jy/sr by this factor to get an output map in uK_CMB
+    def ItoDeltaT(nu_ghz):
+        return 1./dBnudT(nu_ghz)
+
+    Tdust_CIB = 20.0       #CIB effective dust temperature [K] (Table 9 of http://www.aanda.org/articles/aa/pdf/2014/11/aa22093-13.pdf)
+    beta_CIB = 1.45         #CIB modified blackbody spectral index (Table 9 of http://www.aanda.org/articles/aa/pdf/2014/11/aa22093-13.pdf ; Table 10 of that paper contains CIB monopoles)
+    nu0_CIB_ghz = 353.0    #CIB pivot frequency [GHz]
+
+    nu_ghz = freqs
+    nu = 1.e9*np.asarray(nu_ghz).astype(float)
+    X_CIB = hplanck*nu/(kboltz*Tdust_CIB)
+    nu0_CIB = nu0_CIB_ghz*1.e9
+    X0_CIB = hplanck*nu0_CIB/(kboltz*Tdust_CIB)
+    resp = (nu/nu0_CIB)**(3.0+(beta_CIB)) * ((np.exp(X0_CIB) - 1.0) / (np.exp(X_CIB) - 1.0)) * (ItoDeltaT(np.asarray(nu_ghz).astype(float))/ItoDeltaT(nu0_CIB_ghz))
+    resp[np.where(nu_ghz == None)] = 0. #this case is appropriate for HI or other maps that contain no CMB-relevant signals (and also no CIB); they're assumed to be denoted by None in nu_ghz
+    return resp

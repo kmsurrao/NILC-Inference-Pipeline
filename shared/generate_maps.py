@@ -1,9 +1,9 @@
 import healpy as hp
 import numpy as np
-from utils import tsz_spectral_response
+from utils import tsz_spectral_response, cib_spectral_response
 
 
-def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, pars=None, include_noise=True, map_tmpdir=None):
+def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, pars=None, include_noise=True, map_tmpdir=None, cib_path=None):
 
     '''
     ARGUMENTS
@@ -21,6 +21,9 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
     pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
     include_noise: Bool, whether to include noise in the simulations (if False, same_noise is ignored)
     map_tmpdir: str, temporary directory in which to save maps. Must be defined if save is True.
+    cib_path: str, path to CIB map file (assumed in uK) at 150 GHz. If this is provided, it assumed that 
+            a Gaussian CIB realization will be added to the maps. If not provided, the map will consist 
+            only of CMB and tSZ.
 
     RETURNS
     -------
@@ -93,16 +96,25 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
             for s in range(2): #iterate over splits
                 noise_cl[i,s] = W_arr[i]**2*np.exp(ells*(ells+1)*sigma**2)*10**(-12)
                 noise_maps[i,s] = hp.synfast(noise_cl[i,s], inp.nside)
+    
+    #Gaussian CIB map realization (if including CIB)
+    if cib_path is not None:
+        cib_map = 10**(-6)*hp.ud_grade(hp.read_map(cib_path), inp.nside) #convert uK to K
+        cib_map /= cib_spectral_response([150])
 
-    #tSZ spectral response
+    #tSZ spectral response (and CIB if included)
     g1, g2 = tsz_spectral_response(inp.freqs)
     g_vec = [g1, g2]
+    h1, h2 = cib_spectral_response(inp.freqs)
+    h_vec = [h1, h2]
 
     #create maps at freq1 and freq2 (in GHz) and 2 splits 
     sim_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32)
     for i in range(2):
         for s in range(2):
             sim_maps[i,s] = cmb_map + g_vec[i]*tsz_map + noise_maps[i,s]
+            if cib_path is not None:
+                sim_maps[i,s] += h_vec[i]*cib_map
             if save:
                 if pars is not None:
                     pars_str = f'_pars{old_pars[0]:.3f}_{old_pars[1]:.3f}_'
@@ -113,6 +125,10 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
     if inp.verbose and save and pars is None:
         print(f'created {map_fname} and similarly for other freqs and splits', flush=True)
 
+    if cib_path is not None:
+        cib_cl = hp.anafast(cib_map, lmax=inp.ellmax)
+        return cmb_cl, tsz_cl, cib_cl, cmb_map, tsz_map, cib_map, noise_maps
+    
     return cmb_cl, tsz_cl, cmb_map, tsz_map, noise_maps
 
 
