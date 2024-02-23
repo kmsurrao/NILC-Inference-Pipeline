@@ -204,9 +204,18 @@ def main():
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_{naming_str}.p', 'wb'), protocol=4)
         print(f'\nsaved {inp.output_dir}/data_vecs/Clpq_{naming_str}.p', flush=True)
     
-    cov = get_PScov_sim(inp, Clpq)
-    cov_inv = scipy.linalg.inv(cov)
-    print('cov x cov_inv: ', cov @ cov_inv, flush=True)
+    determinants = []
+    eigenvals = []
+    for Nsims in range(100, inp.Nsims, 50):
+        cov = get_PScov_sim(inp, Clpq[:Nsims])
+        determinants.append(np.linalg.det(cov))
+        eigenvalues, eigenvectors = np.linalg.eig(cov)
+        eigenvals.append(eigenvalues)
+    pickle.dump(determinants, open(f'{inp.output_dir}/determinants_{naming_str}.p', 'wb'))
+    pickle.dump(eigenvals, open(f'{inp.output_dir}/eigenvals_{naming_str}.p', 'wb'))
+    print(f'saved {inp.output_dir}/determinants_{naming_str}.p', flush=True)
+    print(f'saved {inp.output_dir}/eigenvals_{naming_str}.p', flush=True)
+    print('determinants: ', determinants, flush=True)
     
 
     print('PROGRAM FINISHED RUNNING')

@@ -64,6 +64,7 @@ def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scali
     pyilc_input_params['N_maps_xcorr'] = 0
     pyilc_input_params['freq_map_files'] = [f'{map_tmpdir}/sim{sim}_freq1_split{split}{pars_str}.fits', f'{map_tmpdir}/sim{sim}_freq2_split{split}{pars_str}.fits'] 
     pyilc_input_params['param_dict_file'] = f'{inp.pyilc_path}/input/fg_SEDs_default_params.yml'
+    pyilc_input_params['save_as'] = 'fits'
     pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
     pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
     pyilc_input_params_preserved_cmb.update(pyilc_input_params)
