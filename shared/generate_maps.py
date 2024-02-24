@@ -39,6 +39,7 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
     if sim is None:
         sim = np.random.randint(0, high=inp.Nsims, size=None, dtype=int)
     np.random.seed(sim)
+    Nfreqs = len(inp.freqs)
 
     #Determine which components to scale
     CMB_amp, tSZ_amp_extra= 1, 1
@@ -79,7 +80,7 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
 
     #noise map realizations
     if not include_noise or inp.noise==0:
-        noise_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32) #shape Nfreqs, Nsplits, Npix
+        noise_maps = np.zeros((Nfreqs, 2, 12*inp.nside**2), dtype=np.float32) #shape Nfreqs, Nsplits, Npix
     else:
         theta_fwhm = (1.4/60.)*(np.pi/180.)
         sigma = theta_fwhm/np.sqrt(8.*np.log(2.))
@@ -89,8 +90,8 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
         else:
             W2 = (inp.noise*np.sqrt(1.5)/60.)*(np.pi/180.)
         ells = np.arange(3*inp.nside)
-        noise_cl = np.zeros((2,2,len(ells)), dtype=np.float32) #shape Nfreqs, Nsplits, len(ells)
-        noise_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32) #shape Nfreqs, Nsplits, Npix
+        noise_cl = np.zeros((Nfreqs, 2, len(ells)), dtype=np.float32) #shape Nfreqs, Nsplits, len(ells)
+        noise_maps = np.zeros((Nfreqs, 2, 12*inp.nside**2), dtype=np.float32) #shape Nfreqs, Nsplits, Npix
         W_arr = [W1, W2]
         for i in range(2): #iterate over frequencies
             for s in range(2): #iterate over splits
@@ -103,14 +104,12 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, same_noise=True, 
         cib_map /= cib_spectral_response([150])
 
     #tSZ spectral response (and CIB if included)
-    g1, g2 = tsz_spectral_response(inp.freqs)
-    g_vec = [g1, g2]
-    h1, h2 = cib_spectral_response(inp.freqs)
-    h_vec = [h1, h2]
+    g_vec = tsz_spectral_response(inp.freqs)
+    h_vec = cib_spectral_response(inp.freqs)
 
-    #create maps at freq1 and freq2 (in GHz) and 2 splits 
-    sim_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32)
-    for i in range(2):
+    #create maps at freqs (in GHz) and 2 splits 
+    sim_maps = np.zeros((Nfreqs, Nfreqs, 12*inp.nside**2), dtype=np.float32)
+    for i in range(Nfreqs):
         for s in range(2):
             sim_maps[i,s] = cmb_map + g_vec[i]*tsz_map + noise_maps[i,s]
             if cib_path is not None:
@@ -171,12 +170,12 @@ def save_scaled_freq_maps(inp, sim, scaling, map_tmpdir, CMB_map_unscaled, tSZ_m
     noise_maps = noise_maps_unscaled
 
     #tSZ spectral response
-    g1, g2 = tsz_spectral_response(inp.freqs)
-    g_vec = [g1, g2]
+    g_vec = tsz_spectral_response(inp.freqs)
+    Nfreqs = len(inp.freqs)
 
-    #create maps at freq1 and freq2 (in GHz) and 2 splits 
-    sim_maps = np.zeros((2,2,12*inp.nside**2), dtype=np.float32)
-    for i in range(2):
+    #create maps at each freq (in GHz) and 2 splits 
+    sim_maps = np.zeros((Nfreqs, Nfreqs, 12*inp.nside**2), dtype=np.float32)
+    for i in range(Nfreqs):
         for s in range(2):
             sim_maps[i,s] = cmb_map + g_vec[i]*tsz_map + noise_maps[i,s]
             map_fname = f'{map_tmpdir}/sim{sim}_freq{i+1}_split{s+1}.fits'

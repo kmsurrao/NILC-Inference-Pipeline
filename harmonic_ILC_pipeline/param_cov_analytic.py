@@ -29,8 +29,8 @@ def get_PScov_sim(inp, Clpq):
     
     RETURNS
     -------
-    cov: (4*Nbins, 4*Nbins) ndarray containing covariance matrix Cov_{pq,rs}
-        index as cov[(0-4 for ClTT ClTy ClyT Clyy)*Nbins + bin1, (0-3 for ClTT ClTy ClyT Clyy)*Nbins + bin2]
+    cov: (Ncomps**2*Nbins, Ncomps**2*Nbins) ndarray containing covariance matrix Cov_{pq,rs}
+        index as cov[(0 to Ncomps**2)*Nbins + bin1, (0 to Ncomps**2)*Nbins + bin2]
     '''
     Clpq_tmp = np.array([Clpq[:,0,0], Clpq[:,0,1], Clpq[:,1,0], Clpq[:,1,1]])
     Clpq_tmp = np.transpose(Clpq_tmp, axes=(0,2,1)) #shape (4 for ClTT ClTy ClyT Clyy, Nbins Nsims)

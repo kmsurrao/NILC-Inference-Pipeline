@@ -16,7 +16,7 @@ def get_data_vectors(inp, sim=None, pars=None):
 
     RETURNS
     -------
-    Clij: (Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
+    Clij: (Nfreqs, Nfreqs, 1+Ncomps, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
         dim2: index0 is total power in Clij, other indices are power from each component

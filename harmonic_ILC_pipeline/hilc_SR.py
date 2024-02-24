@@ -18,7 +18,7 @@ def get_freq_power_spec(sim, inp):
 
     RETURNS
     -------
-    Clij: (Nscalings, 2, 2, Nsplits=2, Nsplits=2, Nfreqs=2, Nfreqs=2, ellmax+1) ndarray 
+    Clij: (Nscalings, 2, 2, Nsplits=2, Nsplits=2, Nfreqs, Nfreqs, ellmax+1) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
         dim0: idx0 if "scaled" means maps are scaled according to scaling factor 0 from input, 
@@ -79,18 +79,18 @@ def get_Rlij_inv(inp, Clij):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications
-    Clij: (Nsplits=2, Nsplits=2, Nfreqs=2, Nfreqs=2, ellmax+1) ndarray 
+    Clij: (Nsplits=2, Nsplits=2, Nfreqs, Nfreqs, ellmax+1) ndarray 
         containing auto- and cross- spectra of freq maps at freqs i and j
     
     RETURNS
     -------
-    Rlij_inv: (Nsplits=2, Nsplits=2, ellmax+1, Nfreqs=2, Nfreqs=2) ndarray 
+    Rlij_inv: (Nsplits=2, Nsplits=2, ellmax+1, Nfreqs, Nfreqs) ndarray 
         containing inverse Rij matrix at each ell
     '''
     ells = np.arange(inp.ellmax+1)
     prefactor = (2*ells+1)/(4*np.pi)
     Nsplits = 2
-    Nfreqs = 2
+    Nfreqs = len(inp.freqs)
     Rlij_inv = np.zeros((Nsplits, Nsplits, inp.ellmax+1, Nfreqs, Nfreqs), dtype=np.float32)
     for s0 in range(Nsplits):
         for s1 in range(Nsplits):
@@ -98,9 +98,9 @@ def get_Rlij_inv(inp, Clij):
             if not inp.delta_l:
                 Rlij = Rlij_no_binning
             else:
-                Rlij = np.zeros((len(inp.freqs), len(inp.freqs), inp.ellmax+1)) 
-                for i in range(len(inp.freqs)):
-                    for j in range(len(inp.freqs)):
+                Rlij = np.zeros((Nfreqs, Nfreqs, inp.ellmax+1), dtype=np.float32)
+                for i in range(Nfreqs):
+                    for j in range(Nfreqs):
                         Rlij_no_binning[i][j][:2] = 0
                         convolution_factor = np.ones(2*inp.delta_l+1)
                         if inp.omit_central_ell:
@@ -114,7 +114,7 @@ def weights(Rlij_inv, spectral_response, spectral_response2=None):
     '''
     ARGUMENTS
     ---------
-    Rlij_inv: (Nsplits=2, Nsplits=2, ellmax+1, Nfreqs=2, Nfreqs=2) 
+    Rlij_inv: (Nsplits=2, Nsplits=2, ellmax+1, Nfreqs, Nfreqs) 
         ndarray containing inverse Rij matrix at each ell
     spectral_response: array-like of length Nfreqs containing spectral response
         of component of interest at each frequency
@@ -144,7 +144,7 @@ def HILC_spectrum(inp, Clij, spectral_response, spectral_response2=None):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications
-    Clij: (Nsplits=2, Nsplits=2, Nfreqs=2, Nfreqs=2, ellmax+1) ndarray 
+    Clij: (Nsplits=2, Nsplits=2, Nfreqs, Nfreqs, ellmax+1) ndarray 
         containing auto- and cross- spectra of freq maps at freqs i and j
     spectral_response: array-like of length Nfreqs containing spectral response
         of component of interest at each frequency
@@ -171,7 +171,7 @@ def get_data_vecs(inp, Clij, sim):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications
-    Clij: (Nscalings, 2, 2, Nfreqs=2, Nfreqs=2, ellmax+1) ndarray 
+    Clij: (Nscalings, 2, 2, Nfreqs, Nfreqs, ellmax+1) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
         dim0: idx0 if "scaled" means maps are scaled according to scaling factor 0 from input, 

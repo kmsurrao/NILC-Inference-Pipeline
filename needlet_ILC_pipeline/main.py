@@ -9,7 +9,7 @@ import time
 import argparse
 import tqdm
 from utils import setup_output_dir, get_naming_str
-import param_cov_SR
+# import param_cov_SR
 from nilc_data_vecs import get_scaled_data_vectors_star
 from likelihood_free_inference import get_posterior
 

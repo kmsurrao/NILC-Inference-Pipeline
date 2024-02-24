@@ -47,7 +47,7 @@ def main():
         print(f'Running {inp.Nsims} simulations...', flush=True)
         Clij = list(tqdm.tqdm(pool.imap(get_data_vectors_star, inputs), total=inp.Nsims))
         pool.close()
-        Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins)
+        Clij = np.asarray(Clij, dtype=np.float32) #shape (Nsims, Nfreqs, Nfreqs, 1+Ncomps, Nbins)
         if inp.save_files:
             naming_str = get_naming_str(inp, 'multifrequency')
             pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij_{naming_str}.p', 'wb'), protocol=4)

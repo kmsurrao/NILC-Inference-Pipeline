@@ -5,6 +5,7 @@ import multiprocessing as mp
 import numpy as np
 import pickle
 import tqdm
+import itertools
 from getdist import MCSamples
 import sys
 sys.path.append('../multifrequency_pipeline')
@@ -114,11 +115,12 @@ def get_posterior(inp, pipeline, env):
     prior = get_prior(inp)
 
     observation_all_sims = get_observation(inp, pipeline, env)
-    observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,0], observation_all_sims[:,1,1]]) #shape (4,Nsims,Nbins)
-    observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 4*inp.Nbins))
+    N = observation_all_sims.shape[1]
+    observation_all_sims = np.array([observation_all_sims[:,i,j] for (i,j) in list(itertools.product(range(N), range(N)))])
+    observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, len(observation_all_sims)*inp.Nbins))
     mean_vec = np.mean(observation_all_sims, axis=0)
     std_dev_vec = np.std(observation_all_sims, axis=0)
-    observation = torch.zeros(4*inp.Nbins)
+    observation = np.zeros_like(mean_vec)
 
     def simulator(pars):
         '''
@@ -136,11 +138,11 @@ def get_posterior(inp, pipeline, env):
         if pipeline == 'multifrequency':
             data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
         elif pipeline == 'HILC':
-            Clij = hilc_analytic.get_freq_power_spec(inp, sim=None, pars=pars) # shape (Nfreqs=, Nfreqs, 1+Ncomps, ellmax+1)
+            Clij = hilc_analytic.get_freq_power_spec(inp, sim=None, pars=pars) # shape (Nfreqs, Nfreqs, 1+Ncomps, ellmax+1)
             data_vec = hilc_analytic.get_data_vecs(inp, Clij)[:,:,0,:] # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
         elif pipeline == 'NILC':
             data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
-        data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,0], data_vec[1,1]]).flatten()
+        data_vec = np.array([data_vec[i,j] for (i,j) in list(itertools.product(range(N), range(N)))]).flatten()
         data_vec = torch.tensor((data_vec-mean_vec)/std_dev_vec)
         return data_vec
     

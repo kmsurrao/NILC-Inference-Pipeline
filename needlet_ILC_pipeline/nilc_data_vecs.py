@@ -116,12 +116,13 @@ def get_scaled_data_vectors(sim, inp, env):
 
         for split in [1,2]:
 
-            map_0 = CMB_amp*CMB_map + tSZ_amp_extra*g_tsz[0]*tSZ_map + noise_maps[0,split-1]
-            map_1 = CMB_amp*CMB_map + tSZ_amp_extra*g_tsz[1]*tSZ_map + noise_maps[1,split-1]
+            maps = []
+            for i in range(len(inp.freqs)):
+                maps.append(CMB_map + g_tsz[i]*tSZ_map + noise_maps[i,split-1])
             
             CMB_wt_maps, tSZ_wt_maps = all_wt_maps[scaling[0], scaling[1], scaling[2], split-1]
 
-            CMB_preserved, tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[map_0, map_1])
+            CMB_preserved, tSZ_preserved = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=maps)
             all_map_level_prop[scaling[0], scaling[1], scaling[2], split-1, 0] = CMB_preserved
             all_map_level_prop[scaling[0], scaling[1], scaling[2], split-1, 1] = tSZ_preserved
 
@@ -251,10 +252,11 @@ def get_data_vectors(inp, env, sim=None, pars=None):
     all_map_level_prop = np.zeros((Nsplits, N_preserved_comps, Npix)) 
 
     for split in [1,2]:
-        map_0 = CMB_map + g_tsz[0]*tSZ_map + noise_maps[0,split-1]
-        map_1 = CMB_map + g_tsz[1]*tSZ_map + noise_maps[1,split-1]
+        maps = []
+        for i in range(len(inp.freqs)):
+            maps.append(CMB_map + g_tsz[i]*tSZ_map + noise_maps[i,split-1])
         CMB_wt_maps, tSZ_wt_maps = all_wt_maps[split-1]
-        all_map_level_prop[split-1] = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=[map_0, map_1])
+        all_map_level_prop[split-1] = build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, freq_maps=maps)
 
     #define and fill in array of data vectors
     Clpq_tmp = np.zeros((N_preserved_comps, N_preserved_comps, inp.ellmax+1)) #unbinned

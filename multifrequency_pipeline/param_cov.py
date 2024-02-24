@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 import emcee
+import itertools
 import scipy
 from scipy.optimize import minimize
 import multiprocessing as mp
@@ -18,19 +19,25 @@ def get_PScov_sim(inp, Clij):
     ARGUMENTS
     ---------
     inp: Info object containing input paramter specifications
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
+    Clij: (Nsims, Nfreqs, Nfreqs, 1+Ncomps, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
     
     RETURNS
     -------
-    cov: (4*Nbins, 4*Nbins) ndarray containing covariance matrix Cov_{ij b1, kl b2}
-        index as cov[(0-3 for Cl00 Cl01 Cl10 Cl11)*Nbins + bin1, (0-3 for Cl00 Cl01 Cl10 Cl11)*Nbins + bin2]
+    cov: (Nfreqs**2*Nbins, Nfreqs**2*Nbins) ndarray containing covariance matrix Cov_{ij b1, kl b2}
+        index as cov[(0 to Nfreqs**2) * Nbins + bin1, (0 to Nfreqs**2) * Nbins + bin2],
     '''
-    Clij_tmp = Clij[:,:,:,0] #shape (Nsims, Nfreqs=2, Nfreqs=2, Nbins)
-    Clij_tmp = np.array([Clij_tmp[:,0,0], Clij_tmp[:,0,1], Clij_tmp[:,1,0], Clij_tmp[:,1,1]]) #shape (4, Nsims, Nbins)
-    Clij_tmp = np.transpose(Clij_tmp, axes=(0,2,1)) #shape (4 for Cl00 Cl01 Cl10 and Cl11, Nbins, Nsims)
-    Clij_tmp = np.reshape(Clij_tmp, (inp.Nbins*4, -1))
+    Clij = Clij[:,:,:,0] #shape (Nsims, Nfreqs, Nfreqs, Nbins)
+    Nfreqs = len(inp.freqs)
+    Clij_tmp = np.zeros((Nfreqs**2, Clij.shape[0], Clij.shape[-1]), dtype=np.float32) #shape (Nfreqs**2, Nsims, Nbins)
+    idx = 0
+    for i in range(Nfreqs):
+        for j in range(Nfreqs):
+            Clij_tmp[idx] = Clij[:,i,j]
+            idx += 1
+    Clij_tmp = np.transpose(Clij_tmp, axes=(0,2,1)) #shape (Nfreqs**2, Nbins, Nsims)
+    Clij_tmp = np.reshape(Clij_tmp, (inp.Nbins*Nfreqs**2, -1))
     cov = np.cov(Clij_tmp)
     return cov
 
@@ -196,7 +203,7 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
+    Clij: (Nsims, Nfreqs, Nfreqs, 1+Ncomps, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
     PScov_sim_Inv: (Nbins, Nbins, Nfreqs, Nfreqs, Nfreqs, Nfreqs) ndarray;
@@ -209,11 +216,12 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv):
     '''
 
     Ncomps = 2
+    Nfreqs = len(inp.freqs)
     Clij_mean = np.mean(Clij, axis=0)
-    deriv_vec = np.zeros((Ncomps, 2, 2, inp.Nbins))
+    deriv_vec = np.zeros((Ncomps, Nfreqs, Nfreqs, inp.Nbins))
     for A in range(Ncomps):
-        for i in range(2):
-            for j in range(2):
+        for i in range(Nfreqs):
+            for j in range(Nfreqs):
                 deriv_vec[A,i,j] = Clij_mean[i,j,1+A]
     Fisher = np.einsum('Aijb,bcijkl,Bklc->AB', deriv_vec, PScov_sim_Inv, deriv_vec)
     final_cov = np.linalg.inv(Fisher)
@@ -293,7 +301,7 @@ def get_all_acmb_atsz(inp, Clij):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications 
-    Clij: (Nsims, Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
+    Clij: (Nsims, Nfreqs, Nfreqs, 1+Ncomps, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
 
@@ -305,16 +313,14 @@ def get_all_acmb_atsz(inp, Clij):
 
     PScov_sim = get_PScov_sim(inp, Clij)
     PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim)
-    PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, 2,2,2,2), dtype=np.float32)
-    idx_mapping = {(0,0):0, (0,1):1, (1,0):2, (1,1):3}
+    Nfreqs = len(inp.freqs)
+    PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, Nfreqs, Nfreqs, Nfreqs, Nfreqs), dtype=np.float32)
     for b1 in range(inp.Nbins):
         for b2 in range(inp.Nbins):
-            for i,j in [(0,0), (0,1), (1,0), (1,1)]:
-                for k,l in [(0,0), (0,1), (1,0), (1,1)]:
-                    ij = idx_mapping[(i,j)]
-                    kl = idx_mapping[(k,l)]
+            for ij, (i,j) in enumerate(list(itertools.product(range(Nfreqs), range(Nfreqs)))):
+                for kl, (k,l) in enumerate(list(itertools.product(range(Nfreqs), range(Nfreqs)))):
                     PScov_sim_Inv[b1,b2,i,j,k,l] = PScov_sim_alt_Inv[ij*inp.Nbins+b1, kl*inp.Nbins+b2]
-    PScov_sim_Inv *= (inp.Nsims-(inp.Nbins*3)-2)/(inp.Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
+    PScov_sim_Inv *= (inp.Nsims-(inp.Nbins*Nfreqs**2)-2)/(inp.Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
 
     acmb_array, atsz_array = get_MLE_arrays(inp, Clij, PScov_sim_Inv, use_analytic=True)
     print(flush=True)

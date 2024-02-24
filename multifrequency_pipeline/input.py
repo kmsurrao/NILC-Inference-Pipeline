@@ -37,6 +37,7 @@ class Info(object):
         self.noise = p['noise']
         assert self.noise >= 0, 'noise'
         self.freqs = p['freqs']
+        assert len(self.freqs) >= 2, "Must have at least 2 frequency channels for 2 sky components"
         self.use_lfi = p['use_lfi']
         if self.use_lfi:
             assert 'prior_half_widths' in p, "prior_half_widths must be defined if use_lfi is True"

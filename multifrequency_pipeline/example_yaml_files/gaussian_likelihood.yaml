@@ -26,7 +26,7 @@ tSZ_amp: 150.
 noise: 2500 
 
 # frequencies for maps, in GHz
-freqs: [90., 150.] 
+freqs: [90., 150., 220.] 
 
 # Set to True to use likelihood-free inference (recommended)
 # If set to False, will use analytic Gaussian likelihood, which is only accurate if 
