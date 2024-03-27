@@ -25,9 +25,9 @@ def get_prior(inp):
 
     RETURNS
     -------
-    prior on Acmb, Atsz to use for likelihood-free inference
+    prior on Acomp1, etc. to use for likelihood-free inference
     '''
-    num_dim = 2
+    num_dim = len(inp.comps)
     mean_tensor = torch.ones(num_dim)
     prior = utils.BoxUniform(low=mean_tensor-torch.tensor(inp.prior_half_widths) , high=mean_tensor+torch.tensor(inp.prior_half_widths))
     return prior
@@ -44,7 +44,7 @@ def get_observation(inp, pipeline, env):
     RETURNS
     -------
     data_vec: ndarray containing outputs from simulation
-            Clpq of shape (Nsims, N_preserved_comps, N_preserved_comps, Nbins) if HILC or NILC
+            Clpq of shape (Nsims, Ncomps, Ncomps, Nbins) if HILC or NILC
             Clij of shape (Nsims, Nfreqs, Nfreqs, Nbins) if multifrequency
     
     '''
@@ -67,7 +67,7 @@ def get_observation(inp, pipeline, env):
         print(f'Running {sims_for_obs} simulations to average together for observation vector...', flush=True)
         Clpq = list(tqdm.tqdm(pool.imap(hilc_analytic.get_data_vecs_star, args), total=sims_for_obs))
         pool.close()
-        data_vec = np.asarray(Clpq, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins)
+        data_vec = np.asarray(Clpq, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, Ncomps, Ncomps, Nbins)
 
     else:
         pool = mp.Pool(inp.num_parallel)
@@ -85,7 +85,7 @@ def get_observation(inp, pipeline, env):
 
         if pipeline == 'NILC':
             fname = 'Clpq'
-            data_vec = np.asarray(data_vec, dtype=np.float32) # shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins)
+            data_vec = np.asarray(data_vec, dtype=np.float32) # shape (Nsims, Ncomps, Ncomps, Nbins)
         else:
             fname = 'Clij'
             data_vec = np.asarray(data_vec, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, Nfreqs, Nfreqs, Nbins)
@@ -107,7 +107,7 @@ def get_posterior(inp, pipeline, env):
 
     RETURNS
     -------
-    samples: torch tensor of shape (Nsims, 2) containing Acmb, Atsz posteriors
+    samples: torch tensor of shape (Nsims, Ncomps) containing Acomp1, etc. posteriors
     
     '''
 
@@ -131,7 +131,7 @@ def get_posterior(inp, pipeline, env):
         RETURNS
         -------
         data_vec: torch tensor containing outputs from simulation
-            Clpq of shape (N_preserved_comps*N_preserved_comps*Nbins,) if HILC or NILC
+            Clpq of shape (Ncomps*Ncomps*Nbins,) if HILC or NILC
             Clij of shape (Nfreqs*Nfreqs*Nbins, ) if multifrequency
         
         '''
@@ -139,16 +139,16 @@ def get_posterior(inp, pipeline, env):
             data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
         elif pipeline == 'HILC':
             Clij = hilc_analytic.get_freq_power_spec(inp, sim=None, pars=pars) # shape (Nfreqs, Nfreqs, 1+Ncomps, ellmax+1)
-            data_vec = hilc_analytic.get_data_vecs(inp, Clij)[:,:,0,:] # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
+            data_vec = hilc_analytic.get_data_vecs(inp, Clij)[:,:,0,:] # shape (Ncomps, Ncomps, Nbins)
         elif pipeline == 'NILC':
-            data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
+            data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (Ncomps, Ncomps, Nbins)
         data_vec = np.array([data_vec[i,j] for (i,j) in list(itertools.product(range(N), range(N)))]).flatten()
         data_vec = torch.tensor((data_vec-mean_vec)/std_dev_vec)
         return data_vec
     
     if inp.tune_hyperparameters:
         samples, mean_stds, error_of_stds = hyperparam_sweep.run_sweep(inp, prior, simulator, observation, pipeline)
-        for i, par in enumerate(['Acmb', 'Atsz']):
+        for i, par in enumerate([f'A{comp}' for comp in inp.comps]):
             print(f'mean of {par} posterior standard deviations over top 25% of sweeps: ', mean_stds[i], flush=True)
             print(f'standard deviation of {par} posterior standard deviations ("error of errors") over top 25% of sweeps: ', error_of_stds[i], flush=True)
     else:
@@ -158,18 +158,17 @@ def get_posterior(inp, pipeline, env):
                                                     clip_max_norm=inp.clip_max_norm,
                                                     num_transforms=inp.num_transforms,
                                                     hidden_features=inp.hidden_features)
-    acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
+    a_array = np.array(samples, dtype=np.float32).T
     
     naming_str = get_naming_str(inp, pipeline)
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/posteriors/acmb_array_{naming_str}.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/posteriors/atsz_array_{naming_str}.p', 'wb'))
-    print(f'\nsaved {inp.output_dir}/posteriors/acmb_array_{naming_str}.p and likewise for atsz')
+    pickle.dump(a_array, open(f'{inp.output_dir}/posteriors/a_array_{naming_str}.p', 'wb'))
+    print(f'\nsaved {inp.output_dir}/posteriors/a_array_{naming_str}.p')
 
     print('Results from Likelihood-Free Inference', flush=True)
     print('----------------------------------------------', flush=True)
-    names = ['Acmb', 'Atsz']
-    samples_MC = MCSamples(samples=[acmb_array, atsz_array], names = names, labels = names)
-    for par in ['Acmb', 'Atsz']:
+    names = [f'A{comp}' for comp in inp.comps]
+    samples_MC = MCSamples(samples=a_array, names = names, labels = names)
+    for par in names:
         print(samples_MC.getInlineLatex(par,limit=1), flush=True)
 
     return samples

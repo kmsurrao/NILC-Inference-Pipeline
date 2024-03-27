@@ -20,8 +20,7 @@ def main():
     '''
     RETURNS
     -------
-    acmb_array: array of length Nsims containing best fit Acmb for each simulation
-    atsz_array: array of length Nsims containing best fit Atsz for each simulation
+    a_array: (Ncomps, Nsims) ndarray containing best fit parameters for each simulation
     '''
 
     # main input file containing most specifications 
@@ -76,17 +75,17 @@ def main():
             print(f'\nsaved {inp.output_dir}/data_vecs/Clpq_{naming_str}.p', flush=True)
         
         if inp.use_symbolic_regression:
-            acmb_array, atsz_array = param_cov_SR.get_all_acmb_atsz(inp, Clpq, HILC=True)
+            a_array = param_cov_SR.get_all_a_vec(inp, Clpq, HILC=True)
         else:
-            acmb_array, atsz_array = param_cov_analytic.get_all_acmb_atsz(inp, Clpq)
+            a_array = param_cov_analytic.get_all_a_vec(inp, Clpq)
     
     else:
         samples = get_posterior(inp, 'HILC', my_env)
-        acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
+        a_array = np.array(samples, dtype=np.float32).T
         
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
-    return acmb_array, atsz_array
+    return a_array
 
 
 if __name__ == '__main__':

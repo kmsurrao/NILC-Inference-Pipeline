@@ -5,7 +5,7 @@ import tempfile
 import healpy as hp
 import numpy as np
 
-def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scaling=None, pars=None, cib=False):
+def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scaling=None, pars=None):
     '''
     Sets up yaml files for pyilc and runs the code for needlet ILC
 
@@ -17,13 +17,11 @@ def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scali
     env: environment object
     map_tmpdir: str, directory in which maps are saved
     suppress_printing: Bool, whether to suppress outputs and errors from pyilc code itself
-    scaling: None or list of length 3
+    scaling: None or list of length 1+Ncomps
             idx0: takes on values from 0 to len(inp.scaling_factors)-1,
                   indicating by which scaling factor the input maps are scaled
-            idx1: 0 for unscaled CMB, 1 for scaled CMB
-            idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
-    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
-    cib: Bool, whether to build CIB NILC maps in addition to CMB and ftSZ
+            idx i: 0 for unscaled component i-1, 1 for scaled component i-1
+    pars: array of floats [Acomp1, Acomp2, etc.] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
@@ -65,42 +63,28 @@ def setup_pyilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, scali
     pyilc_input_params['freq_map_files'] = [f'{map_tmpdir}/sim{sim}_freq{i+1}_split{split}{pars_str}.fits' for i in range(len(inp.freqs))] 
     pyilc_input_params['param_dict_file'] = f'{inp.pyilc_path}/input/fg_SEDs_default_params.yml'
     pyilc_input_params['save_as'] = 'fits'
-    pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
-    pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
-    pyilc_input_params_preserved_cmb.update(pyilc_input_params)
-    pyilc_input_params_preserved_tsz.update(pyilc_input_params)
-    if cib:
-        pyilc_input_params_preserved_cib = {'ILC_preserved_comp': 'CIB'}
-        pyilc_input_params_preserved_cib.update(pyilc_input_params)    
+
+    comp_mapping = {'cmb':'CMB', 'tsz':'tSZ', 'cib':'CIB'}
+    all_param_dicts = []
+    for c, comp in enumerate(inp.comps):
+        all_param_dicts.append({'ILC_preserved_comp': comp_mapping[comp]})
+        all_param_dicts[c].update(pyilc_input_params)  
 
     #dump yaml files
-    CMB_yaml = f'{tmpdir}/sim{sim}_split{split}_CMB_preserved.yml'
-    tSZ_yaml = f'{tmpdir}/sim{sim}_split{split}_tSZ_preserved.yml'
-    with open(CMB_yaml, 'w') as outfile:
-        yaml.dump(pyilc_input_params_preserved_cmb, outfile, default_flow_style=None)
-    with open(tSZ_yaml, 'w') as outfile:
-        yaml.dump(pyilc_input_params_preserved_tsz, outfile, default_flow_style=None)
-    if cib:
-        CIB_yaml = f'{tmpdir}/sim{sim}_split{split}_CIB_preserved.yml'
-        with open(CIB_yaml, 'w') as outfile:
-            yaml.dump(pyilc_input_params_preserved_cib, outfile, default_flow_style=None)
+    all_yaml_files = [f'{tmpdir}/sim{sim}_split{split}_{comp}_preserved.yml' for comp in inp.comps]
+    for c, comp in enumerate(inp.comps):
+        with open(all_yaml_files[c], 'w') as outfile:
+            yaml.dump(all_param_dicts[c], outfile, default_flow_style=None)
 
-    #run pyilc for preserved CMB and preserved tSZ
+    #run pyilc for each preserved component
     stdout = subprocess.DEVNULL if suppress_printing else None
     if scaling is not None:
         scaling_str = f', scaling {scaling_str}'
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {CMB_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
-    if inp.verbose:
-        print(f'generated NILC weight maps for preserved component CMB, sim {sim}{scaling_str}, pars={pars}', flush=True)
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {tSZ_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
-    if inp.verbose:
-        print(f'generated NILC weight maps for preserved component tSZ, sim {sim}{scaling_str}, pars={pars}', flush=True)
-    if cib:
-        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {CIB_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
+    for c, comp in enumerate(inp.comps):
+        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {all_yaml_files[c]}"], shell=True, env=env, stdout=stdout, stderr=stdout)
         if inp.verbose:
-            print(f'generated NILC weight maps for preserved component CIB, sim {sim}{scaling_str}, pars={pars}', flush=True)
-
-    
+            print(f'generated NILC weight maps for preserved component {comp}, sim {sim}{scaling_str}, pars={pars}', flush=True)
+        
     return tmpdir
 
 
@@ -118,12 +102,11 @@ def setup_pyilc_hilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, 
     env: environment object
     map_tmpdir: str, directory in which maps are saved
     suppress_printing: Bool, whether to suppress outputs and errors from pyilc code itself
-    scaling: None or list of length 3
+    scaling: None or list of length 1+Ncomps
             idx0: takes on values from 0 to len(inp.scaling_factors)-1,
                   indicating by which scaling factor the input maps are scaled
-            idx1: 0 for unscaled CMB, 1 for scaled CMB
-            idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
-    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
+            idx i: 0 for unscaled component i-1, 1 for scaled component i-1
+    pars: array of floats [Acomp1, Acomp2, etc.] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
@@ -161,30 +144,29 @@ def setup_pyilc_hilc(sim, split, inp, env, map_tmpdir, suppress_printing=False, 
     pyilc_input_params['N_deproj'] = 0
     pyilc_input_params['N_SED_params'] = 0
     pyilc_input_params['N_maps_xcorr'] = 0
-    pyilc_input_params['freq_map_files'] = [f'{map_tmpdir}/sim{sim}_freq1_split{split}{pars_str}.fits', f'{map_tmpdir}/sim{sim}_freq2_split{split}{pars_str}.fits']
-    pyilc_input_params_preserved_cmb = {'ILC_preserved_comp': 'CMB'}
-    pyilc_input_params_preserved_tsz = {'ILC_preserved_comp': 'tSZ'}
-    pyilc_input_params_preserved_cmb.update(pyilc_input_params)
-    pyilc_input_params_preserved_tsz.update(pyilc_input_params)
+    pyilc_input_params['freq_map_files'] = [f'{map_tmpdir}/sim{sim}_freq{i+1}_split{split}{pars_str}.fits' for i in range(len(inp.freqs))] 
+    pyilc_input_params['save_as'] = 'fits'
+    
+    comp_mapping = {'cmb':'CMB', 'tsz':'tSZ', 'cib':'CIB'}
+    all_param_dicts = []
+    for c, comp in enumerate(inp.comps):
+        all_param_dicts.append({'ILC_preserved_comp': comp_mapping[comp]})
+        all_param_dicts[c].update(pyilc_input_params) 
 
     #dump yaml files
-    CMB_yaml = f'{tmpdir}/sim{sim}_split{split}_CMB_preserved.yml'
-    tSZ_yaml = f'{tmpdir}/sim{sim}_split{split}_tSZ_preserved.yml'
-    with open(CMB_yaml, 'w') as outfile:
-        yaml.dump(pyilc_input_params_preserved_cmb, outfile, default_flow_style=None)
-    with open(tSZ_yaml, 'w') as outfile:
-        yaml.dump(pyilc_input_params_preserved_tsz, outfile, default_flow_style=None)
+    all_yaml_files = [f'{tmpdir}/sim{sim}_split{split}_{comp}_preserved.yml' for comp in inp.comps]
+    for c, comp in enumerate(inp.comps):
+        with open(all_yaml_files[c], 'w') as outfile:
+            yaml.dump(all_param_dicts[c], outfile, default_flow_style=None)
 
-    #run pyilc for preserved CMB and preserved tSZ
+    #run pyilc for each preserved component
     stdout = subprocess.DEVNULL if suppress_printing else None
     if scaling is not None:
         scaling_str = f', scaling {scaling_str}'
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {CMB_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
-    if inp.verbose:
-        print(f'generated HILC weight maps for preserved component CMB, sim {sim}{scaling_str}, pars={pars}', flush=True)
-    subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {tSZ_yaml}"], shell=True, env=env, stdout=stdout, stderr=stdout)
-    if inp.verbose:
-        print(f'generated HILC weight maps for preserved component tSZ, sim {sim}{scaling_str}, pars={pars}', flush=True)
+    for c, comp in enumerate(inp.comps):
+        subprocess.run([f"python {inp.pyilc_path}/pyilc/main.py {all_yaml_files[c]}"], shell=True, env=env, stdout=stdout, stderr=stdout)
+        if inp.verbose:
+            print(f'generated NILC weight maps for preserved component {comp}, sim {sim}{scaling_str}, pars={pars}', flush=True)
     
     return tmpdir
 
@@ -210,8 +192,9 @@ def weight_maps_exist(sim, split, inp, tmpdir, pars=None):
         pars_str = f'_pars{pars[0]:.3f}_{pars[1]:.3f}_'
     else:
         pars_str = ''
-    
-    for comp in ['CMB', 'tSZ']:
+    comp_mapping = {'cmb':'CMB', 'tsz':'tSZ', 'cib':'CIB'}
+    for orig_comp in inp.comps:
+        comp = comp_mapping[orig_comp]
         for freq in range(len(inp.freqs)):
             for scale in range(inp.Nscales):
                 if not os.path.exists(f"{tmpdir}/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits"):
@@ -219,7 +202,7 @@ def weight_maps_exist(sim, split, inp, tmpdir, pars=None):
     return True
 
 
-def load_wt_maps(inp, sim, split, tmpdir, pars=None, cib=False):
+def load_wt_maps(inp, sim, split, tmpdir, pars=None):
     '''
     ARGUMENTS
     ---------
@@ -227,40 +210,25 @@ def load_wt_maps(inp, sim, split, tmpdir, pars=None, cib=False):
     sim: int, simulation number
     split: int, split number (1 or 2)
     tmpdir: str, temporary directory in which pyilc outputs were placed
-    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
-    cib: Bool, whether to load CIB weight maps
+    pars: array of floats [Acomp1, Acomp2, etc.] (if not provided, all assumed to be 1)
 
     RETURNS
     --------
-    CMB_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
-                contains NILC weight maps for preserved CMB
-    tSZ_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
-                contains NILC weight maps for preserved tSZ
+    wt_maps: (Ncomps, Nscales, Nfreqs, Npix) ndarray containing NILC weight maps for each component
 
     '''
-    CMB_wt_maps = np.zeros((inp.Nscales, len(inp.freqs), 12*inp.nside**2))
-    tSZ_wt_maps = np.zeros((inp.Nscales, len(inp.freqs), 12*inp.nside**2))
-    if cib:
-       CIB_wt_maps = np.zeros((inp.Nscales, len(inp.freqs), 12*inp.nside**2)) 
-       comps = ['CMB', 'tSZ', 'CIB']
-    else:
-        comps = ['CMB', 'tSZ']
-    for comp in comps:
+    comp_mapping = {'cmb':'CMB', 'tsz':'tSZ', 'cib':'CIB'}
+    wt_maps = np.zeros((len(inp.comps), inp.Nscales, len(inp.freqs), 12*inp.nside**2))
+    for c, comp in enumerate(inp.comps):
         for scale in range(inp.Nscales):
-            for freq in range(2):
+            for freq in range(len(inp.freqs)):
                 if pars is not None:
                     pars_str = f'_pars{pars[0]:.3f}_{pars[1]:.3f}_'
                 else:
                     pars_str = ''
-                wt_map_path = f'{tmpdir}/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp}.fits'
+                wt_map_path = f'{tmpdir}/sim{sim}_split{split}{pars_str}weightmap_freq{freq}_scale{scale}_component_{comp_mapping[comp]}.fits'
                 wt_map = hp.read_map(wt_map_path)
-                wt_map = hp.ud_grade(wt_map, inp.nside)
-                if comp=='CMB':
-                    CMB_wt_maps[scale][freq] = wt_map*10**(-6) #since pyilc outputs CMB map in uK
-                elif comp=='tSZ':
-                    tSZ_wt_maps[scale][freq] = wt_map
-                else:
-                    CIB_wt_maps[scale][freq] = wt_map
-    if cib:
-        return CMB_wt_maps, tSZ_wt_maps, CIB_wt_maps
-    return CMB_wt_maps, tSZ_wt_maps
+                if comp == 'cmb':
+                    wt_map *= 10**(-6) #since pyilc outputs CMB map in uK
+                wt_maps[c,scale,freq] = hp.ud_grade(wt_map, inp.nside)
+    return wt_maps

@@ -46,28 +46,24 @@ def get_PScov_sim(inp, Clij):
 #########      NUMERICAL MLE      ############
 ##############################################
 
-def ClijA(Acmb, Atsz, Clij):
+def ClijA(Clij, *pars):
     '''
     Model for theoretical spectra Clij including amplitude parameters
 
     ARGUMENTS
     ---------
-    USED BY MINIMIZER
-    Acmb: float, scaling parameter for CMB power spectrum
-    Atsz: float, scaling parameter for tSZ power spectrum
-
     CONSTANT ARGS
     Clij: (Nfreqs, Nfreqs, 1+Ncomps, Nbins) ndarray containing contribution of components to Clij
 
+    USED BY MINIMIZER
+    Acomp1, etc.: float, scaling parameter for comp1, etc. power spectrum
+
     RETURNS
     -------
-    model: (Nbins, Nfreqs, Nfreqs) ndarray containing theoretical model given some paramters
-        Acmb and Atsz
+    (Nbins, Nfreqs, Nfreqs) ndarray containing theoretical model given some paramters Acomp1, etc.
 
     '''
-    pars = np.array([Acmb, Atsz])
-    model = np.einsum('a,ijab->ijb', pars, Clij[:,:,1:])
-    return model
+    return np.einsum('a,ijab->ijb', np.array(pars), Clij[:,:,1:])
 
 
 def neg_lnL(pars, f, sim, Clij_all_sims, PScov_sim_Inv): 
@@ -91,29 +87,30 @@ def neg_lnL(pars, f, sim, Clij_all_sims, PScov_sim_Inv):
     bin1, bin2 = b, c
     frequencies: i,j,k,l
     '''
-    model = f(*pars, np.mean(Clij_all_sims, axis=0))
+    model = f(np.mean(Clij_all_sims, axis=0), *pars)
     Clijd = Clij_all_sims[sim, :, :, 0]
     neg_log_lkl = 1/2*np.einsum('ijb,bcijkl,klc->', model-Clijd, PScov_sim_Inv, model-Clijd)
     return neg_log_lkl
 
 
-def acmb_atsz_numerical(sim, Clij_all_sims, PScov_sim_Inv):
+def a_vec_numerical(inp, sim, Clij_all_sims, PScov_sim_Inv):
     '''
-    Maximize likelihood with respect to Acmb, Atsz for one sim using numerical minimization routine
+    Maximize likelihood with respect to Acomp1, etc. for one sim using numerical minimization routine
 
     ARGUMENTS
     ---------
+    inp: Info object containing input parameter specifications
     sim: int, simulation number
     Clij_all_sims: (Nsims, Nfreqs, Nfreqs, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
     PScov_sim_Inv: (Nbins, Nbins, Nfreqs, Nfreqs, Nfreqs, Nfreqs) ndarray containing inverse of power spectrum covariance matrix
 
     RETURNS
     -------
-    best fit Acmb, Atsz (floats)
+    best fit Acomp1, etc. (floats)
     '''
     all_res = []
     for start in [0.5, 1.0, 1.5]:
-        start_array = [start, start] #acmb_start, atsz_start
+        start_array = [start]*len(inp.comps)
         res = minimize(neg_lnL, x0 = start_array, args = (ClijA, sim, Clij_all_sims, PScov_sim_Inv), method='Nelder-Mead', bounds=None) #default method is BFGS
         all_res.append(res)
     return (min(all_res, key=lambda res:res.fun)).x
@@ -123,19 +120,20 @@ def acmb_atsz_numerical(sim, Clij_all_sims, PScov_sim_Inv):
 #########       ANALYTIC MLE      ############
 ##############################################
 
-def acmb_atsz_analytic(sim, Clij_all_sims, PScov_sim_Inv):
+def a_vec_analytic(inp, sim, Clij_all_sims, PScov_sim_Inv):
     '''
     Maximize likelihood with respect to Acmb, Atsz for one sim analytically 
 
     ARGUMENTS
     ---------
+    inp: Info object containing input parameter specifications
     sim: int, simulation number
     Clij_all_sims: (Nsims, Nfreqs, Nfreqs, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
     PScov_sim_Inv: (Nbins, Nbins, Nfreqs, Nfreqs, Nfreqs, Nfreqs) ndarray containing inverse of power spectrum covariance matrix
 
     RETURNS
     -------
-    best fit Acmb, Atsz (floats)
+    best fit Acomp1, etc. (floats)
 
     INDEX MAPPING IN EINSUM
     -----------------------
@@ -165,31 +163,28 @@ def get_MLE_arrays(inp, Clij_all_sims, PScov_sim_Inv, use_analytic=True):
 
     RETURNS
     -------
-    acmb_array: array of length Nsims containing best fit Acmb for each simulation
-    atsz_array: array of length Nsims containing best fit Atsz for each simulation
+    a_array: (Ncomps, Nsims) ndarray containing best fit parameters for each simulation
     '''
 
-    func = acmb_atsz_analytic if use_analytic else acmb_atsz_numerical
+    func = a_vec_analytic if use_analytic else a_vec_numerical
     string = 'analytic' if use_analytic else 'numerical'
     pool = mp.Pool(inp.num_parallel)
-    param_array = pool.starmap(func, [(sim, Clij_all_sims, PScov_sim_Inv) for sim in range(len(Clij_all_sims))])
+    param_array = pool.starmap(func, [(inp, sim, Clij_all_sims, PScov_sim_Inv) for sim in range(len(Clij_all_sims))])
     pool.close()
-    param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, 2 for Acmb Atsz)
-    acmb_array = param_array[:,0]
-    atsz_array = param_array[:,1]
+    param_array = np.asarray(param_array, dtype=np.float32) #shape (Nsims, Ncomps)
+    a_array = param_array.T #shape (Ncomps, Nsims)
     if not use_analytic:
         naming_str = get_naming_str(inp, 'multifrequency')
-        pickle.dump(acmb_array, open(f'{inp.output_dir}/posteriors/acmb_array_{naming_str}.p', 'wb'))
-        pickle.dump(atsz_array, open(f'{inp.output_dir}/posteriors/atsz_array_{naming_str}.p', 'wb'))
-        print(f'created {inp.output_dir}/posteriors/acmb_array_{naming_str}.p and atsz', flush=True)
+        pickle.dump(a_array, open(f'{inp.output_dir}/posteriors/a_array_{naming_str}.p', 'wb'))
+        print(f'created {inp.output_dir}/posteriors/a_array_{naming_str}.p', flush=True)
     print(f'Results from maximum likelihood estimation using {string} MLEs', flush=True)
     print('---------------------------------------------------------------', flush=True)
-    names = ['Acmb', 'Atsz']
-    samples_MC = MCSamples(samples=[acmb_array, atsz_array], names = names, labels = names)
-    for par in ['Acmb', 'Atsz']:
+    names = [f'A{comp}' for comp in inp.comps]
+    samples_MC = MCSamples(samples=list(a_array), names = names, labels = names)
+    for par in names:
         print(samples_MC.getInlineLatex(par,limit=1), flush=True)
 
-    return acmb_array, atsz_array
+    return a_array
 
 
 
@@ -211,11 +206,11 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv):
 
     RETURNS
     -------
-    acmb_std, atsz_std: predicted standard deviations of Acmb, Atsz
+    a_std_arr: list of length Ncomps containing predicted standard deviations of each parameter
         found by computing the Fisher matrix and inverting
     '''
 
-    Ncomps = 2
+    Ncomps = len(inp.comps)
     Nfreqs = len(inp.freqs)
     Clij_mean = np.mean(Clij, axis=0)
     deriv_vec = np.zeros((Ncomps, Nfreqs, Nfreqs, inp.Nbins))
@@ -225,14 +220,13 @@ def Fisher_inversion(inp, Clij, PScov_sim_Inv):
                 deriv_vec[A,i,j] = Clij_mean[i,j,1+A]
     Fisher = np.einsum('Aijb,bcijkl,Bklc->AB', deriv_vec, PScov_sim_Inv, deriv_vec)
     final_cov = np.linalg.inv(Fisher)
-    acmb_std = np.sqrt(final_cov[0,0])
-    atsz_std = np.sqrt(final_cov[1,1])
+    a_std_arr = [np.sqrt(final_cov[i,i]) for i in range(len(final_cov))]
 
     print('Results from inverting Fisher matrix', flush=True)
     print('----------------------------------------', flush=True)
-    print('Acmb std dev: ', acmb_std, flush=True)
-    print('Atsz std dev: ', atsz_std, flush=True)
-    return acmb_std, atsz_std
+    for c, comp in enumerate(inp.comps):
+        print(f'A{comp} std dev: ', a_std_arr[c], flush=True)
+    return a_std_arr
 
 
 ##############################################
@@ -258,10 +252,11 @@ def pos_lnL(pars, f, sim, Clij_all_sims, PScov_sim_Inv):
     return -neg_lnL(pars, f, sim, Clij_all_sims, PScov_sim_Inv)
 
 
-def MCMC(Clij_all_sims, PScov_sim_Inv, sim=0):
+def MCMC(inp, Clij_all_sims, PScov_sim_Inv, sim=0):
     '''
     ARGUMENTS
     ---------
+    inp: Info object containing input parameter specifications
     Clij_all_sims: (Nsims, Nfreqs, Nfreqs, 1+N_comps, Nbins) ndarray containing contribution of components to Clij
     PScov_sim_Inv: (Nbins, Nbins, Nfreqs, Nfreqs, Nfreqs, Nfreqs) ndarray;
         contains inverse power spectrum covariance matrix in tensor form
@@ -273,19 +268,19 @@ def MCMC(Clij_all_sims, PScov_sim_Inv, sim=0):
     '''
 
     np.random.seed(0)
-    ndim = 2
+    ndim = len(inp.comps)
     nwalkers = 10
     p0 = np.random.random((nwalkers, ndim))*(1.2-0.8)+0.8
     sampler = emcee.EnsembleSampler(nwalkers, ndim, pos_lnL, args=[ClijA, sim, Clij_all_sims, PScov_sim_Inv])
     state = sampler.run_mcmc(p0, 100)
     sampler.reset()
     sampler.run_mcmc(state, 1000)
-    samples = sampler.get_chain(flat=True) #dimensions (Ncomps=2, 1000*nwalkers)
+    samples = sampler.get_chain(flat=True) #dimensions (Ncomps, 1000*nwalkers)
     print('Results from MCMC', flush=True)
     print('------------------------------------', flush=True)
-    names = ['Acmb', 'Atsz']
+    names = [f'A{comp}' for comp in inp.comps]
     samples_MC = MCSamples(samples=samples, names = names, labels = names)
-    for par in ['Acmb', 'Atsz']:
+    for par in names:
         print(samples_MC.getInlineLatex(par,limit=1), flush=True)
     print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)), flush=True)
     return None
@@ -296,7 +291,7 @@ def MCMC(Clij_all_sims, PScov_sim_Inv, sim=0):
 ##############################################
 
 
-def get_all_acmb_atsz(inp, Clij):
+def get_all_a_vec(inp, Clij):
     '''
     ARGUMENTS
     ---------
@@ -307,8 +302,7 @@ def get_all_acmb_atsz(inp, Clij):
 
     RETURNS
     -------
-    acmb_array: array of length Nsims containing best fit Acmb for each simulation
-    atsz_array: array of length Nsims containing best fit Atsz for each simulation
+    a_array: (Ncomps, Nsims) ndarray containing best fit parameters for each simulation
     '''
 
     PScov_sim = get_PScov_sim(inp, Clij)
@@ -322,15 +316,15 @@ def get_all_acmb_atsz(inp, Clij):
                     PScov_sim_Inv[b1,b2,i,j,k,l] = PScov_sim_alt_Inv[ij*inp.Nbins+b1, kl*inp.Nbins+b2]
     PScov_sim_Inv *= (inp.Nsims-(inp.Nbins*Nfreqs**2)-2)/(inp.Nsims-1) #correction factor from https://arxiv.org/pdf/astro-ph/0608064.pdf
 
-    acmb_array, atsz_array = get_MLE_arrays(inp, Clij, PScov_sim_Inv, use_analytic=True)
+    a_array = get_MLE_arrays(inp, Clij, PScov_sim_Inv, use_analytic=True)
     print(flush=True)
-    acmb_array, atsz_array = get_MLE_arrays(inp, Clij, PScov_sim_Inv, use_analytic=False)
+    a_array = get_MLE_arrays(inp, Clij, PScov_sim_Inv, use_analytic=False)
     
     print(flush=True)
     Fisher_inversion(inp, Clij, PScov_sim_Inv)
 
     print(flush=True)
-    MCMC(Clij, PScov_sim_Inv, sim=0)
+    MCMC(inp, Clij, PScov_sim_Inv, sim=0)
    
-    return acmb_array, atsz_array
+    return a_array
 

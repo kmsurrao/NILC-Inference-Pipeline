@@ -6,7 +6,7 @@
 import numpy as np
 from scipy import stats
 import healpy as hp
-from utils import tsz_spectral_response
+from utils import tsz_spectral_response, cib_spectral_response
 from generate_maps import generate_freq_maps
 
 def get_freq_power_spec(inp, sim=None, pars=None):
@@ -15,11 +15,11 @@ def get_freq_power_spec(inp, sim=None, pars=None):
     ---------
     inp: Info object containing input parameter specifications
     sim: int, simulation number (if sim is None, a random simulation number will be used)
-    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
+    pars: array of floats [Acomp1, etc.] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
-    Clij: (Nsplits=2, Nsplits=2, Nfreqs=2, Nfreqs=2, 1+Ncomps, ellmax+1) ndarray 
+    Clij: (Nsplits=2, Nsplits=2, Nfreqs, Nfreqs, 1+Ncomps, ellmax+1) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
         dim4: index0 is total power in Clij, other indices are power from each component
@@ -28,18 +28,20 @@ def get_freq_power_spec(inp, sim=None, pars=None):
     if sim is None:
         sim = np.random.randint(0, high=inp.Nsims, size=None, dtype=int)
 
-    Ncomps = 2 #CMB, tSZ
+    Ncomps = len(inp.comps)
     Nfreqs = len(inp.freqs)
     Nsplits = 2
 
-    #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, CMB_map, tSZ_map, noise_maps = generate_freq_maps(inp, sim, save=False, pars=pars)
-    all_spectra = [CC, T]
+    #Create frequency maps (GHz) consisting of sky components and noise. Get power spectra of component maps.
+    comp_spectra, comp_maps, noise_maps = generate_freq_maps(inp, sim, save=False, pars=pars)
 
     #get spectral responses
-    g_cmb = np.ones(len(inp.freqs))
-    g_tsz = tsz_spectral_response(inp.freqs)
-    all_g_vecs = np.array([g_cmb, g_tsz])
+    all_g_vecs = np.ones((Ncomps, Nfreqs), dtype=np.float32)
+    for c, comp in enumerate(inp.comps):
+        if comp == 'tsz':
+            all_g_vecs[c] = tsz_spectral_response(inp.freqs)
+        elif comp == 'cib':
+            all_g_vecs[c] = cib_spectral_response(inp.freqs)
 
     #define and fill in array of data vectors
     Clij = np.zeros((Nsplits, Nsplits, Nfreqs, Nfreqs, 1+Ncomps, inp.ellmax+1))
@@ -47,12 +49,12 @@ def get_freq_power_spec(inp, sim=None, pars=None):
       for j in range(Nfreqs):
         for s1 in range(Nsplits):
             for s2 in range(Nsplits):
-                map_i = CMB_map + g_tsz[i]*tSZ_map + noise_maps[i,s1]
-                map_j = CMB_map + g_tsz[j]*tSZ_map + noise_maps[j,s2]
+                map_i = np.sum(np.array([all_g_vecs[c,i]*comp_maps[c] for c in range(Ncomps)]), axis=0) + noise_maps[i,s1]
+                map_j = np.sum(np.array([all_g_vecs[c,j]*comp_maps[c] for c in range(Ncomps)]), axis=0) + noise_maps[j,s2]
                 spectrum = hp.anafast(map_i, map_j, lmax=inp.ellmax)
                 Clij[s1,s2,i,j,0] = spectrum
                 for y in range(Ncomps):
-                    Clij[s1,s2,i,j,1+y] = all_g_vecs[y,i]*all_g_vecs[y,j]*all_spectra[y]
+                    Clij[s1,s2,i,j,1+y] = all_g_vecs[y,i]*all_g_vecs[y,j]*comp_spectra[y]
     
     return Clij
 
@@ -173,37 +175,40 @@ def get_data_vecs(inp, Clij):
     ARGUMENTS
     ---------
     inp: Info object containing input parameter specifications
-    Clij: (Nsplits=2, Nsplits=2, Nfreqs=2, Nfreqs=2, 1+Ncomps, ellmax+1) ndarray 
+    Clij: (Nsplits=2, Nsplits=2, Nfreqs, Nfreqs, 1+Ncomps, ellmax+1) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
         dim4: index0 is total power in Clij, other indices are power from each component
 
     RETURNS
     -------
-    Clpq: (N_preserved_comps=2, N_preserved_comps=2, 1+Ncomps, Nbins) ndarray 
+    Clpq: (Ncomps, Ncomps, 1+Ncomps, Nbins) ndarray 
         containing binned auto- and cross-spectra of harmonic ILC maps p and q
         dim2: index0 is total power in Clpq, other indices are power from each component
     '''
 
-    N_preserved_comps = 2
-    Ncomps = 2
-    
+    Ncomps = len(inp.comps)
+    Nfreqs = len(inp.freqs)
+
     #get spectral responses
-    g_cmb = np.ones(len(inp.freqs))
-    g_tsz = tsz_spectral_response(inp.freqs)
-    all_g_vecs = np.array([g_cmb, g_tsz])
+    all_g_vecs = np.ones((Ncomps, Nfreqs), dtype=np.float32)
+    for c, comp in enumerate(inp.comps):
+        if comp == 'tsz':
+            all_g_vecs[c] = tsz_spectral_response(inp.freqs)
+        elif comp == 'cib':
+            all_g_vecs[c] = cib_spectral_response(inp.freqs)
 
     #HILC auto- and cross-spectra
-    Clpq_orig = np.zeros((N_preserved_comps, N_preserved_comps, 1+Ncomps, inp.ellmax+1))
-    for p in range(N_preserved_comps):
-        for q in range(N_preserved_comps):
+    Clpq_orig = np.zeros((Ncomps, Ncomps, 1+Ncomps, inp.ellmax+1))
+    for p in range(Ncomps):
+        for q in range(Ncomps):
             Clpq_orig[p,q] = HILC_spectrum(inp, Clij, all_g_vecs[p], spectral_response2=all_g_vecs[q])
     
     #binning
-    Clpq = np.zeros((N_preserved_comps, N_preserved_comps, 1+Ncomps, inp.Nbins))
+    Clpq = np.zeros((Ncomps, Ncomps, 1+Ncomps, inp.Nbins))
     ells = np.arange(inp.ellmax+1)
-    for p in range(N_preserved_comps):
-        for q in range(N_preserved_comps):
+    for p in range(Ncomps):
+        for q in range(Ncomps):
             for y in range(1+Ncomps):
                 Dl = ells*(ells+1)/2/np.pi*Clpq_orig[p,q,y]
                 res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)

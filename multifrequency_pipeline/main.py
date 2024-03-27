@@ -8,9 +8,8 @@ import pickle
 import time
 import argparse
 import tqdm
-import healpy as hp
 from utils import setup_output_dir, get_naming_str
-from param_cov import get_all_acmb_atsz
+from param_cov import get_all_a_vec
 from multifrequency_data_vecs import get_data_vectors_star
 from likelihood_free_inference import get_posterior
 
@@ -19,8 +18,7 @@ def main():
     '''
     RETURNS
     -------
-    acmb_array: array of length Nsims containing best fit Acmb for each simulation
-    atsz_array: array of length Nsims containing best fit Atsz for each simulation
+    a_array: (Ncomps, Nsims) ndarray containing best fit parameters for each simulation
     '''
 
     # main input file containing most specifications 
@@ -52,16 +50,17 @@ def main():
             naming_str = get_naming_str(inp, 'multifrequency')
             pickle.dump(Clij, open(f'{inp.output_dir}/data_vecs/Clij_{naming_str}.p', 'wb'), protocol=4)
             print(f'\nsaved {inp.output_dir}/data_vecs/Clij_{naming_str}.p')
-        #Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij_{naming_str}.p', 'rb')) #remove and uncomment above
-        acmb_array, atsz_array = get_all_acmb_atsz(inp, Clij)
+        # naming_str = get_naming_str(inp, 'multifrequency') #remove and uncomment above
+        # Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij_{naming_str}.p', 'rb')) #remove and uncomment above
+        a_array = get_all_a_vec(inp, Clij)
     
     else:
         samples = get_posterior(inp, 'multifrequency', my_env)
-        acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
+        a_array = np.array(samples, dtype=np.float32).T
     
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
-    return acmb_array, atsz_array
+    return a_array
 
 
 if __name__ == '__main__':

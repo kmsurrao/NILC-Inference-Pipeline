@@ -19,18 +19,36 @@ ellmax: 250
 # number of ell-space bins
 Nbins: 10 
 
-# amplification factor for tSZ map
-tSZ_amp: 150. 
-
-# Set to True to use Gaussian tSZ realizations (not recommended, use only for testing) 
-# Set to False to use regular non-Gaussian tSZ realizations
-use_Gaussian_tSZ: False 
-
-# white noise level in uK arcmin
-noise: 2500 
+# noise level in uK arcmin for each frequency channel
+noise: [2500., 2500., 2500.] 
 
 # frequencies for maps, in GHz
-freqs: [90., 150., 220.] 
+freqs: [90., 150., 220.]
+
+# components in the sky model (not including instrumental noise)
+# e.g. comps: ['cmb', 'tsz']
+comps: ['cmb', 'tsz']
+
+# amplification factor for each component map
+# e.g. if the second component is tsz and the second element of amp_factors is 150.,
+# the fiducial tsz map will be multiplied by a factor of 150.
+amp_factors: [1., 150.]
+
+# List of paths to files or directories containing maps of each component in
+# comps list (in the same order). For each component, if the corresponding
+# path is a file, the code will use that file to generate several Gaussian 
+# realizations with the same power spectrum. If the corresponding path is a 
+# directory, the code will search for files in that directory of the form 
+# {comp}_00000.fits, {comp}_00001.fits, etc. In this example, the first path should 
+# correspond to the first component in comps (cmb). Since it's a file, 
+# the code will generate several Gaussian realizations of the power spectrum in the file.
+# The second path should correspond to the second component in comps (tsz).
+# Since the path provided is a directory, the code will look for 
+# tsz_00000.fits, tsz_00001.fits, etc. All maps are assumed to be in units of K_CMB.
+paths_to_comps: [
+  '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits',
+  '/scratch/09334/ksurrao/NILC/inputs/halosky_maps'
+]
 
 ###################################################################################
 ###################################################################################
@@ -56,7 +74,7 @@ use_lfi: True
 # Half widths of prior to use for LFI
 # The prior will be set to [1.0-prior_half_width, 1.0+prior_half_width]
 # Only need to be provided if use_lfi is True; otherwise this input is ignored
-# Should be list of 2 elements (prior half-widths for Acmb, Atsz)
+# Should be list of Ncomps elements (prior half-widths for each component)
 prior_half_widths: [0.085, 0.8]
 
 # Whether to tune hyperparameters in likelihood-free inference.
@@ -88,12 +106,6 @@ verbose: False
 
 # Set to True to save pickle files
 save_files: True 
-
-# Path to folder containing tSZ maps, assumed to be in Kelvin
-halosky_maps_path: '/scratch/09334/ksurrao/NILC/inputs/halosky_maps' 
-
-# File for CMB map in Kelvin, lensed_alm from Websky is in uK
-cmb_map_file: '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits' 
 
 # Path to folder to store outputs
 output_dir: '/scratch/09334/ksurrao/NILC/outputs' 

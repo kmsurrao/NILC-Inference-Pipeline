@@ -90,7 +90,7 @@ def GaussianNeedlets(inp, taper_width=0):
     return ell, filters
 
 
-def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, CIB_wt_maps=None, freq_maps=None, split=None):
+def build_NILC_maps(inp, sim, h, all_wt_maps, freq_maps=None, split=None):
     '''
     Note that pyilc checks which frequencies to use for every filter scale
     We include all freqs for all filter scales here
@@ -100,37 +100,23 @@ def build_NILC_maps(inp, sim, h, CMB_wt_maps, tSZ_wt_maps, CIB_wt_maps=None, fre
     inp: Info object containing input parameter specifications
     sim: int, simulation number
     h: (N_scales, ellmax+1) ndarray containing needlet filters at each scale
-    CMB_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
-                contains NILC weight maps for preserved CMB
-    tSZ_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
-                contains NILC weight maps for preserved tSZ
-    CIB_wt_maps: (Nscales, Nfreqs=2, npix (variable for each scale and freq)) nested list,
-                contains NILC weight maps for preserved CIB
-                (only provide this input if you want to build CIB NILC maps)
+    all_wt_maps: (Ncomps, Nscales, Nfreqs, Npix) ndarray containing NILC weight maps for each component
     freq_maps: (Nfreqs=2, 12*nside**2) ndarray containing simulated map at 
                 each frequency to use in NILC map construction
     split: None or int, either 1 or 2 representing which split of data is used
 
     RETURNS
     -------
-    NILC_maps: (2 for CMB or tSZ preserved NILC map, 12*nside**2) ndarray
+    NILC_maps: (Ncomps, 12*nside**2) ndarray
     '''
-
+    Ncomps = len(inp.comps)
     if freq_maps is None:
         split_str = f'_split{split}' if split is not None else ''
-        freq_map1 = hp.read_map(f'{inp.output_dir}/maps/sim{sim}_freq1{split_str}.fits')
-        freq_map2 = hp.read_map(f'{inp.output_dir}/maps/sim{sim}_freq2{split_str}.fits')
-        freq_maps = [freq_map1, freq_map2]
+        freq_maps = [hp.read_map(f'{inp.output_dir}/maps/sim{sim}_freq{i+1}{split_str}.fits') for i in range(len(inp.freqs))]
     
     NILC_maps = []
-    N_preserved_comps = 3 if CIB_wt_maps is not None else 2
-    for p in range(N_preserved_comps):
-        if p==0:
-            wt_maps = CMB_wt_maps
-        elif p==1:
-            wt_maps = tSZ_wt_maps
-        else:
-            wt_maps = CIB_wt_maps
+    for p in range(Ncomps):
+        wt_maps = all_wt_maps[p]
         all_maps = np.zeros((inp.Nscales, 12*inp.nside**2)) #index as all_maps[scale][pixel]
         for i in range(len(inp.freqs)):
             map_ = freq_maps[i]
@@ -165,10 +151,9 @@ def get_scalings(inp):
     scalings: list of lists, each of length 5
             idx0: takes on values from 0 to len(inp.scaling_factors)-1,
                   indicating by which scaling factor the input maps are scaled
-            idx1: 0 for unscaled CMB, 1 for scaled CMB
-            idx2: 0 for unscaled ftSZ, 1 for scaled ftSZ
+            idx i: 0 for unscaled component i-1, 1 for scaled component i-1
     '''
-    scalings_init = [list(i) for i in itertools.product([0, 1], repeat=2)]
+    scalings_init = [list(i) for i in itertools.product([0, 1], repeat=len(inp.comps))]
     scalings = []
     for i in range(len(inp.scaling_factors)):
         for s in scalings_init:
@@ -189,7 +174,8 @@ def get_naming_str(inp, pipeline):
     '''
     assert pipeline in {'multifrequency', 'HILC', 'NILC'}, "pipeline must be 'multifrequency', 'HILC', or 'NILC'"
     name = f'{pipeline}_'
-    gaussian_str = 'gaussiantsz_' if inp.use_Gaussian_tSZ else 'nongaussiantsz_'
+    tsz_idx = inp.comps.index('tsz')
+    gaussian_str = 'gaussiantsz_' if inp.use_Gaussian[tsz_idx] else 'nongaussiantsz_'
     name += gaussian_str
     if pipeline == 'HILC':
         wts_str = 'weightsonce_' if inp.compute_weights_once else 'weightsvary_'
@@ -199,8 +185,7 @@ def get_naming_str(inp, pipeline):
     else:
         sims_str = f'{int(inp.Nsims)}sims_'
     name += sims_str
-    name += f'noise{int(inp.noise)}_'
-    name += f'tszamp{int(inp.tsz_amp)}_'
+    name += f'tszamp{int(inp.amp_factors[tsz_idx])}_'
     if inp.use_lfi:
         name += 'lfi'
     else:
