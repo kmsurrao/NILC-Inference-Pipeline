@@ -157,7 +157,7 @@ def get_scalings(inp):
     scalings = []
     for i in range(len(inp.scaling_factors)):
         for s in scalings_init:
-            scalings.append([i]+s)
+            scalings.append(np.array([i]+s))
     return scalings
 
 
@@ -245,3 +245,17 @@ def cib_spectral_response(freqs):
     resp = (nu/nu0_CIB)**(3.0+(beta_CIB)) * ((np.exp(X0_CIB) - 1.0) / (np.exp(X_CIB) - 1.0)) * (ItoDeltaT(np.asarray(nu_ghz).astype(float))/ItoDeltaT(nu0_CIB_ghz))
     resp[np.where(nu_ghz == None)] = 0. #this case is appropriate for HI or other maps that contain no CMB-relevant signals (and also no CIB); they're assumed to be denoted by None in nu_ghz
     return resp
+
+
+def sublist_idx(outer_list, sublist):
+    '''
+    ARGUMENTS
+    ---------
+    outer_list: 
+
+    RETURNS
+    -------
+    '''
+    for i, elt in enumerate(outer_list):
+        if np.array_equal(elt, sublist):
+            return i

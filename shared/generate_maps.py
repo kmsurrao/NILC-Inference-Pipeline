@@ -42,7 +42,7 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, pars=None, includ
     extra_amps = np.ones(Ncomps)
     if scaling is not None:
         scale_factor = inp.scaling_factors[scaling[0]]
-        multiplier = scale_factor*inp.scaling_factors[1:]
+        multiplier = scale_factor*scaling[1:]
         multiplier[multiplier==0] = 1.
         extra_amps *= multiplier 
     if pars is not None:
@@ -63,7 +63,7 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, pars=None, includ
         else:
             map_ = hp.ud_grade(hp.read_map(f'{comp_path}/{comp}_{sim:05d}.fits'), inp.nside)
         comp_maps[c] = inp.amp_factors[c]*extra_amps[c]*map_
-        comp_spectra[c] = hp.anafast(map_, lmax=inp.ellmax)
+        comp_spectra[c] = hp.anafast(comp_maps[c], lmax=inp.ellmax)
     
     # noise map realizations
     if not include_noise:
@@ -141,7 +141,7 @@ def save_scaled_freq_maps(inp, sim, scaling, map_tmpdir, comp_maps_unscaled, noi
     extra_amps = np.ones(Ncomps)
     if scaling is not None:
         scale_factor = inp.scaling_factors[scaling[0]]
-        multiplier = scale_factor*inp.scaling_factors[1:]
+        multiplier = scale_factor*scaling[1:]
         multiplier[multiplier==0] = 1.
         extra_amps *= multiplier 
 

@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 from pysr import PySRRegressor 
 import itertools
-from utils import get_scalings, get_naming_str
+from utils import get_scalings, get_naming_str, sublist_idx
 
 def symbolic_regression(inp, x_vals, y_vals):
     '''
@@ -18,13 +18,13 @@ def symbolic_regression(inp, x_vals, y_vals):
     '''
     model = PySRRegressor(
         niterations = 50,  # < Increase me for better results
-        ncyclesperiteration = 1000,
+        ncycles_per_iteration = 1000,
         progress = False, 
         maxsize = 12,
         binary_operators = ["*", "+", "-", "/"],
         unary_operators = ["exp", "square", "cube", "inv(x) = 1/x"],
         extra_sympy_mappings = {"inv": lambda x: 1 / x},
-        loss = "loss(prediction, target) = (prediction - target)^2",
+        elementwise_loss = "loss(prediction, target) = (prediction - target)^2",
         verbosity = 0,
         temp_equation_file = True,
         tempdir = inp.output_dir, 
@@ -84,7 +84,7 @@ def get_parameter_dependence(inp, Clpq, HILC=False):
                     x = np.ones(Ncomps)
                     x[np.array(s[1:])==1] = scaling_factor
                     x_vals.append(x)
-                    y_vals.append(Clpq_mean[s[0],comp_scalings.index(s[1:]),p,q,bin]/Clpq_mean[0,0,p,q,bin])
+                    y_vals.append(Clpq_mean[s[0], sublist_idx(comp_scalings, s[1:]), p, q, bin]/Clpq_mean[0,0,p,q,bin])
                 best_fits[p][q][bin] = symbolic_regression(inp, x_vals, y_vals)
                 if inp.verbose: print(f'estimated parameter dependence for p,q,bin={p},{q},{bin}', flush=True)
 

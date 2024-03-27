@@ -61,7 +61,7 @@ def main():
         pool = mp.Pool(inp.num_parallel)
         print(f'\nRunning {inp.Nsims} simulations for HILC spectra...', flush=True)
         if inp.use_symbolic_regression:
-            inp.Clij_theory = np.mean(Clij[:,0,0,0], axis=0)
+            inp.Clij_theory = np.mean(Clij[:,0,0], axis=0)
             inputs = [(inp, Clij[sim], sim) for sim in range(inp.Nsims)]
             Clpq = list(tqdm.tqdm(pool.imap(hilc_SR.get_data_vecs_star, inputs), total=inp.Nsims))
         else:

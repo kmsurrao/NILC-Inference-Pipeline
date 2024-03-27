@@ -8,7 +8,7 @@ import healpy as hp
 from scipy import stats
 from generate_maps import generate_freq_maps, save_scaled_freq_maps
 from pyilc_interface import setup_pyilc, load_wt_maps
-from utils import tsz_spectral_response, cib_spectral_response, GaussianNeedlets, build_NILC_maps, get_scalings
+from utils import tsz_spectral_response, cib_spectral_response, GaussianNeedlets, build_NILC_maps, get_scalings, sublist_idx
 
 
 def get_scaled_maps_and_wts(sim, inp, env):
@@ -59,7 +59,7 @@ def get_scaled_maps_and_wts(sim, inp, env):
 
             #load weight maps
             wt_maps = load_wt_maps(inp, sim, split, pyilc_tmpdir)
-            all_wt_maps[scaling[0], comp_scalings.index(scaling[1:]), split-1] = wt_maps
+            all_wt_maps[scaling[0], sublist_idx(comp_scalings, scaling[1:]), split-1] = wt_maps
             shutil.rmtree(pyilc_tmpdir)
         
         shutil.rmtree(map_tmpdir)
@@ -121,7 +121,7 @@ def get_scaled_data_vectors(sim, inp, env):
         #Determine which components to scale
         extra_amps = np.ones(Ncomps)
         scale_factor = inp.scaling_factors[scaling[0]]
-        multiplier = scale_factor*inp.scaling_factors[1:]
+        multiplier = scale_factor*scaling[1:]
         multiplier[multiplier==0] = 1.
         extra_amps *= multiplier
 
@@ -132,10 +132,10 @@ def get_scaled_data_vectors(sim, inp, env):
                 comp_total = np.sum(np.array([sed_arr[c,i]*extra_amps[c]*comp_maps_unscaled[c] for c in range(Ncomps)]), axis=0)
                 maps.append(comp_total + noise_maps[i,split-1])
             
-            wt_maps = all_wt_maps[scaling[0], comp_scalings.index(scaling[1:]), split-1]
+            wt_maps = all_wt_maps[scaling[0], sublist_idx(comp_scalings, scaling[1:]), split-1]
 
             NILC_maps = build_NILC_maps(inp, sim, h, wt_maps, freq_maps=maps)
-            all_map_level_prop[scaling[0], comp_scalings.index(scaling[1:]), split-1] = NILC_maps
+            all_map_level_prop[scaling[0], sublist_idx(comp_scalings, scaling[1:]), split-1] = NILC_maps
 
         if sim >= inp.Nsims_for_fits:
             break #only need unscaled version after getting Nsims_for_fits scaled maps and weights
@@ -149,14 +149,14 @@ def get_scaled_data_vectors(sim, inp, env):
 
         for p in range(Ncomps):
             for q in range(Ncomps):
-                map1 = all_map_level_prop[scaling[0], comp_scalings.index(scaling[1:]), 0, p]
-                map2 = all_map_level_prop[scaling[0], comp_scalings.index(scaling[1:]), 1, q]
+                map1 = all_map_level_prop[scaling[0], sublist_idx(comp_scalings, scaling[1:]), 0, p]
+                map2 = all_map_level_prop[scaling[0], sublist_idx(comp_scalings, scaling[1:]), 1, q]
                 PS = hp.anafast(map1, map2, lmax=inp.ellmax)
-                Clpq_tmp[scaling[0], comp_scalings.index(scaling[1:]), p, q] = PS 
+                Clpq_tmp[scaling[0], sublist_idx(comp_scalings, scaling[1:]), p, q] = PS 
                 Dl = ells*(ells+1)/2/np.pi*PS
                 res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
                 mean_ells = (res[1][:-1]+res[1][1:])/2
-                Clpq[scaling[0], comp_scalings.index(scaling[1:]), p, q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
+                Clpq[scaling[0], sublist_idx(comp_scalings, scaling[1:]), p, q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
         
         if sim >= inp.Nsims_for_fits:
             break #only need unscaled version after getting Nsims_for_fits scaled maps and weights

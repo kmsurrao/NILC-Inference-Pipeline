@@ -7,7 +7,7 @@ import numpy as np
 from scipy import stats
 import itertools
 import healpy as hp
-from utils import tsz_spectral_response, cib_spectral_response, get_scalings
+from utils import tsz_spectral_response, cib_spectral_response, get_scalings, sublist_idx
 from generate_maps import generate_freq_maps
 
 def get_freq_power_spec(sim, inp):
@@ -27,7 +27,7 @@ def get_freq_power_spec(sim, inp):
     '''
 
     Nfreqs = len(inp.freqs)
-    Ncomps = len(inp.compos)
+    Ncomps = len(inp.comps)
     Nscalings = len(inp.scaling_factors)
     Nsplits = 2
     scalings = get_scalings(inp)
@@ -49,7 +49,7 @@ def get_freq_power_spec(sim, inp):
     for scaling in scalings:
         extra_amps = np.ones(Ncomps)
         scale_factor = inp.scaling_factors[scaling[0]]
-        multiplier = scale_factor*inp.scaling_factors[1:]
+        multiplier = scale_factor*scaling[1:]
         multiplier[multiplier==0] = 1.
         extra_amps *= multiplier 
         for i in range(Nfreqs):
@@ -59,7 +59,7 @@ def get_freq_power_spec(sim, inp):
                         map_i = np.sum(np.array([extra_amps[c]*sed_arr[c,i]*comp_maps[c] for c in range(Ncomps)]), axis=0) + noise_maps[i,s1]
                         map_j = np.sum(np.array([extra_amps[c]*sed_arr[c,j]*comp_maps[c] for c in range(Ncomps)]), axis=0) + noise_maps[j,s2]
                         spectrum = hp.anafast(map_i, map_j, lmax=inp.ellmax)
-                        Clij[scaling[0],comp_scalings.index(scaling[1:]),s1,s2,i,j] = spectrum
+                        Clij[scaling[0], sublist_idx(comp_scalings, scaling[1:]), s1, s2, i, j] = spectrum
         if sim >= inp.Nsims_for_fits:
             break #only need unscaled version for these cases 
     return Clij
@@ -181,8 +181,7 @@ def get_data_vecs(inp, Clij, sim):
     Clij: (Nscalings, 2**Ncomps, Nfreqs, Nfreqs, ellmax+1) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
-        dim0: idx0 if "scaled" means maps are scaled according to scaling factor 0 from input, 
-              idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
+        dim0: idx i indicates that "scaled" means maps are scaled according to scaling factor i from input, etc. up to idx Nscalings
         dim1: indices correspond to different combinations of scaled and unscaled components
     sim: int, simulation number
 
@@ -190,8 +189,7 @@ def get_data_vecs(inp, Clij, sim):
     -------
     Clpq: (Nscalings, 2**Ncomps, Ncomps, Ncomps, Nbins) ndarray 
         containing binned auto- and cross-spectra of harmonic ILC maps p and q
-        dim0: idx0 if "scaled" means maps are scaled according to scaling factor 0 from input, 
-              idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
+        dim0: idx i indicates that "scaled" means maps are scaled according to scaling factor i from input, etc. up to idx Nscalings
         dim1: indices correspond to different combinations of scaled and unscaled components
     '''
 
@@ -214,7 +212,7 @@ def get_data_vecs(inp, Clij, sim):
     for p in range(Ncomps):
         for q in range(Ncomps):
             for s in scalings:
-                Clpq_orig[s[0],s[1],s[2],p,q] = HILC_spectrum(inp, Clij[s[0],comp_scalings.index(s[1:])], sed_arr[p], spectral_response2=sed_arr[q])
+                Clpq_orig[s[0], sublist_idx(comp_scalings, s[1:]), p, q] = HILC_spectrum(inp, Clij[s[0], sublist_idx(comp_scalings, s[1:])], sed_arr[p], spectral_response2=sed_arr[q])
                 if sim >= inp.Nsims_for_fits:
                     break
     
@@ -227,7 +225,7 @@ def get_data_vecs(inp, Clij, sim):
                 Dl = ells*(ells+1)/2/np.pi*Clpq_orig[s[0],s[1],s[2],p,q]
                 res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
                 mean_ells = (res[1][:-1]+res[1][1:])/2
-                Clpq[s[0],s[1],s[2],p,q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
+                Clpq[s[0],sublist_idx(comp_scalings, s[1:]),p,q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
     
     return Clpq
 
