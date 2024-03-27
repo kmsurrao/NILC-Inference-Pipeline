@@ -296,8 +296,7 @@ def get_all_a_vec(inp, Clpq, HILC=False):
     inp: Info object containing input parameter specifications 
     Clpq: (Nsims, Nscalings, 2**Ncomps, Ncomps, Ncomps, Nbins) ndarray 
         containing binned auto- and cross-spectra of harmonic ILC maps p and q
-        dim1: idx0 if "scaled" means maps are scaled according to scaling factor 0 from input, 
-              idx1 if "scaled" means maps are scaled according to scaling factor 1 from input, etc. up to idx Nscalings
+        dim1: idx i indicates that "scaled" means maps are scaled according to scaling factor i from input, etc. up to idx Nscalings
         dim2: indices correspond to different combinations of scaled and unscaled components
     HILC: Bool, True is using harmonic ILC pipeline, False if using needlet ILC pipeline
 
@@ -307,11 +306,11 @@ def get_all_a_vec(inp, Clpq, HILC=False):
     '''
     Ncomps = len(inp.comps)
     best_fits = get_parameter_dependence(inp, Clpq[:inp.Nsims_for_fits], HILC=HILC)
-    comp_scalings = [list(i) for i in itertools.product([0, 1], repeat=Ncomps)]
-    Clpq_unscaled = Clpq[:,0,comp_scalings.index([0]*Ncomps)]
+    Clpq_unscaled = Clpq[:, 0, 0]
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
     PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim)
+    assert np.allclose(np.matmul(PScov_sim, PScov_sim_alt_Inv), np.eye(len(PScov_sim)), rtol=1.e-3, atol=1.e-3), "PS covmat inversion failed"
     PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, Ncomps, Ncomps, Ncomps, Ncomps), dtype=np.float32)
     for b1 in range(inp.Nbins):
         for b2 in range(inp.Nbins):

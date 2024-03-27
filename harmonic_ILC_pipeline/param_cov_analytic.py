@@ -288,6 +288,7 @@ def get_all_a_vec(inp, Clpq):
 
     PScov_sim = get_PScov_sim(inp, Clpq_unscaled)
     PScov_sim_alt_Inv = scipy.linalg.inv(PScov_sim)
+    assert np.allclose(np.matmul(PScov_sim, PScov_sim_alt_Inv), np.eye(len(PScov_sim)), rtol=1.e-3, atol=1.e-3), "PS covmat inversion failed"
     PScov_sim_Inv = np.zeros((inp.Nbins, inp.Nbins, Ncomps, Ncomps, Ncomps, Ncomps), dtype=np.float32)
     for b1 in range(inp.Nbins):
         for b2 in range(inp.Nbins):

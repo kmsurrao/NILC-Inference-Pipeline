@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 from pysr import PySRRegressor 
 import itertools
+from tqdm import tqdm
 from utils import get_scalings, get_naming_str, sublist_idx
 
 def symbolic_regression(inp, x_vals, y_vals):
@@ -75,9 +76,11 @@ def get_parameter_dependence(inp, Clpq, HILC=False):
 
     best_fits = np.zeros((Ncomps, Ncomps, inp.Nbins)).tolist() #need list to store sympy expressions
     scalings = get_scalings(inp)
+    pbar = tqdm(total=Ncomps**2*inp.Nbins)
     for p in range(Ncomps):
         for q in range(Ncomps):
             for bin in range(inp.Nbins):
+                pbar.update(1)
                 x_vals, y_vals = [], []
                 for s in scalings:
                     scaling_factor = (inp.scaling_factors[s[0]])**2

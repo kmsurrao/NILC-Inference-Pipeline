@@ -222,10 +222,10 @@ def get_data_vecs(inp, Clij, sim):
     for s in scalings:
         for p in range(Ncomps):
             for q in range(Ncomps):
-                Dl = ells*(ells+1)/2/np.pi*Clpq_orig[s[0],s[1],s[2],p,q]
+                Dl = ells*(ells+1)/2/np.pi*Clpq_orig[s[0], sublist_idx(comp_scalings, s[1:]), p, q]
                 res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
                 mean_ells = (res[1][:-1]+res[1][1:])/2
-                Clpq[s[0],sublist_idx(comp_scalings, s[1:]),p,q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
+                Clpq[s[0], sublist_idx(comp_scalings, s[1:]), p, q] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
     
     return Clpq
 
