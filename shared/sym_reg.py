@@ -80,7 +80,6 @@ def get_parameter_dependence(inp, Clpq, HILC=False):
     for p in range(Ncomps):
         for q in range(Ncomps):
             for bin in range(inp.Nbins):
-                pbar.update(1)
                 x_vals, y_vals = [], []
                 for s in scalings:
                     scaling_factor = (inp.scaling_factors[s[0]])**2
@@ -90,6 +89,8 @@ def get_parameter_dependence(inp, Clpq, HILC=False):
                     y_vals.append(Clpq_mean[s[0], sublist_idx(comp_scalings, s[1:]), p, q, bin]/Clpq_mean[0,0,p,q,bin])
                 best_fits[p][q][bin] = symbolic_regression(inp, x_vals, y_vals)
                 if inp.verbose: print(f'estimated parameter dependence for p,q,bin={p},{q},{bin}', flush=True)
+                pbar.update(1)
+    pbar.close()
 
     if inp.save_files:
         pipeline = 'HILC' if HILC else 'NILC'
