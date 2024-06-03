@@ -5,6 +5,7 @@ import multiprocessing as mp
 import numpy as np
 import pickle
 import tqdm
+import itertools
 from getdist import MCSamples
 import sys
 sys.path.append('../multifrequency_pipeline')
@@ -24,9 +25,9 @@ def get_prior(inp):
 
     RETURNS
     -------
-    prior on Acmb, Atsz to use for likelihood-free inference
+    prior on Acomp1, etc. to use for likelihood-free inference
     '''
-    num_dim = 2
+    num_dim = len(inp.comps)
     mean_tensor = torch.ones(num_dim)
     prior = utils.BoxUniform(low=mean_tensor-torch.tensor(inp.prior_half_widths) , high=mean_tensor+torch.tensor(inp.prior_half_widths))
     return prior
@@ -43,7 +44,7 @@ def get_observation(inp, pipeline, env):
     RETURNS
     -------
     data_vec: ndarray containing outputs from simulation
-            Clpq of shape (Nsims, N_preserved_comps, N_preserved_comps, Nbins) if HILC or NILC
+            Clpq of shape (Nsims, Ncomps, Ncomps, Nbins) if HILC or NILC
             Clij of shape (Nsims, Nfreqs, Nfreqs, Nbins) if multifrequency
     
     '''
@@ -66,7 +67,7 @@ def get_observation(inp, pipeline, env):
         print(f'Running {sims_for_obs} simulations to average together for observation vector...', flush=True)
         Clpq = list(tqdm.tqdm(pool.imap(hilc_analytic.get_data_vecs_star, args), total=sims_for_obs))
         pool.close()
-        data_vec = np.asarray(Clpq, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins)
+        data_vec = np.asarray(Clpq, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, Ncomps, Ncomps, Nbins)
 
     else:
         pool = mp.Pool(inp.num_parallel)
@@ -84,7 +85,7 @@ def get_observation(inp, pipeline, env):
 
         if pipeline == 'NILC':
             fname = 'Clpq'
-            data_vec = np.asarray(data_vec, dtype=np.float32) # shape (Nsims, N_preserved_comps=2, N_preserved_comps=2, Nbins)
+            data_vec = np.asarray(data_vec, dtype=np.float32) # shape (Nsims, Ncomps, Ncomps, Nbins)
         else:
             fname = 'Clij'
             data_vec = np.asarray(data_vec, dtype=np.float32)[:,:,:,0,:] # shape (Nsims, Nfreqs, Nfreqs, Nbins)
@@ -106,68 +107,73 @@ def get_posterior(inp, pipeline, env):
 
     RETURNS
     -------
-    samples: torch tensor of shape (Nsims, 2) containing Acmb, Atsz posteriors
+    samples: torch tensor of shape (Nsims, Ncomps) containing Acomp1, etc. posteriors
     
     '''
 
     assert pipeline in {'multifrequency', 'HILC', 'NILC'}, "pipeline must be either 'multifrequency', 'HILC', or 'NILC'"
     prior = get_prior(inp)
 
-    observation_all_sims = get_observation(inp, pipeline, env)
-    observation_all_sims = np.array([observation_all_sims[:,0,0], observation_all_sims[:,0,1], observation_all_sims[:,1,0], observation_all_sims[:,1,1]]) #shape (4,Nsims,Nbins)
-    observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, 4*inp.Nbins))
-    mean_vec = np.mean(observation_all_sims, axis=0)
-    std_dev_vec = np.std(observation_all_sims, axis=0)
-    observation = torch.zeros(4*inp.Nbins)
+    try:
+        naming_str = get_naming_str(inp, pipeline)
+        a_array = pickle.load(open(f'{inp.output_dir}/posteriors/a_array_{naming_str}.p', 'rb'))
 
-    def simulator(pars):
-        '''
-        ARGUMENTS
-        ---------
-        pars: [Acmb, Atsz] parameters (floats)
+    except Exception:
+        observation_all_sims = get_observation(inp, pipeline, env)
+        N = observation_all_sims.shape[1]
+        observation_all_sims = np.array([observation_all_sims[:,i,j] for (i,j) in list(itertools.product(range(N), range(N)))])
+        observation_all_sims = np.transpose(observation_all_sims, axes=(1,0,2)).reshape((-1, len(observation_all_sims)*inp.Nbins))
+        mean_vec = np.mean(observation_all_sims, axis=0)
+        std_dev_vec = np.std(observation_all_sims, axis=0)
+        observation = np.zeros_like(mean_vec)
 
-        RETURNS
-        -------
-        data_vec: torch tensor containing outputs from simulation
-            Clpq of shape (N_preserved_comps*N_preserved_comps*Nbins,) if HILC or NILC
-            Clij of shape (Nfreqs*Nfreqs*Nbins, ) if multifrequency
+        def simulator(pars):
+            '''
+            ARGUMENTS
+            ---------
+            pars: [Acmb, Atsz] parameters (floats)
+
+            RETURNS
+            -------
+            data_vec: torch tensor containing outputs from simulation
+                Clpq of shape (Ncomps*Ncomps*Nbins,) if HILC or NILC
+                Clij of shape (Nfreqs*Nfreqs*Nbins, ) if multifrequency
+            
+            '''
+            if pipeline == 'multifrequency':
+                data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
+            elif pipeline == 'HILC':
+                Clij = hilc_analytic.get_freq_power_spec(inp, sim=None, pars=pars) # shape (Nfreqs, Nfreqs, 1+Ncomps, ellmax+1)
+                data_vec = hilc_analytic.get_data_vecs(inp, Clij)[:,:,0,:] # shape (Ncomps, Ncomps, Nbins)
+            elif pipeline == 'NILC':
+                data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (Ncomps, Ncomps, Nbins)
+            data_vec = np.array([data_vec[i,j] for (i,j) in list(itertools.product(range(N), range(N)))]).flatten()
+            data_vec = torch.tensor((data_vec-mean_vec)/std_dev_vec)
+            return data_vec
         
-        '''
-        if pipeline == 'multifrequency':
-            data_vec = multifrequency_data_vecs.get_data_vectors(inp, sim=None, pars=pars)[:,:,0,:] # shape (Nfreqs, Nfreqs, Nbins)
-        elif pipeline == 'HILC':
-            Clij = hilc_analytic.get_freq_power_spec(inp, sim=None, pars=pars) # shape (Nfreqs=, Nfreqs, 1+Ncomps, ellmax+1)
-            data_vec = hilc_analytic.get_data_vecs(inp, Clij)[:,:,0,:] # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
-        elif pipeline == 'NILC':
-            data_vec = nilc_data_vecs.get_data_vectors(inp, env, sim=None, pars=pars) # shape (N_preserved_comps=2, N_preserved_comps=2, Nbins)
-        data_vec = np.array([data_vec[0,0], data_vec[0,1], data_vec[1,0], data_vec[1,1]]).flatten()
-        data_vec = torch.tensor((data_vec-mean_vec)/std_dev_vec)
-        return data_vec
-    
-    if inp.tune_hyperparameters:
-        samples, mean_stds, error_of_stds = hyperparam_sweep.run_sweep(inp, prior, simulator, observation, pipeline)
-        for i, par in enumerate(['Acmb', 'Atsz']):
-            print(f'mean of {par} posterior standard deviations over top 25% of sweeps: ', mean_stds[i], flush=True)
-            print(f'standard deviation of {par} posterior standard deviations ("error of errors") over top 25% of sweeps: ', error_of_stds[i], flush=True)
-    else:
-        samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation,
-                                                    learning_rate=inp.learning_rate, 
-                                                    stop_after_epochs=inp.stop_after_epochs,
-                                                    clip_max_norm=inp.clip_max_norm,
-                                                    num_transforms=inp.num_transforms,
-                                                    hidden_features=inp.hidden_features)
-    acmb_array, atsz_array = np.array(samples, dtype=np.float32).T
-    
-    naming_str = get_naming_str(inp, pipeline)
-    pickle.dump(acmb_array, open(f'{inp.output_dir}/posteriors/acmb_array_{naming_str}.p', 'wb'))
-    pickle.dump(atsz_array, open(f'{inp.output_dir}/posteriors/atsz_array_{naming_str}.p', 'wb'))
-    print(f'\nsaved {inp.output_dir}/posteriors/acmb_array_{naming_str}.p and likewise for atsz')
+        if inp.tune_hyperparameters:
+            samples, mean_stds, error_of_stds = hyperparam_sweep.run_sweep(inp, prior, simulator, observation, pipeline)
+            for i, par in enumerate([f'A{comp}' for comp in inp.comps]):
+                print(f'mean of {par} posterior standard deviations over top 25% of sweeps: ', mean_stds[i], flush=True)
+                print(f'standard deviation of {par} posterior standard deviations ("error of errors") over top 25% of sweeps: ', error_of_stds[i], flush=True)
+        else:
+            samples = sbi_utils.flexible_single_round_SNPE(inp, prior, simulator, observation,
+                                                        learning_rate=inp.learning_rate, 
+                                                        stop_after_epochs=inp.stop_after_epochs,
+                                                        clip_max_norm=inp.clip_max_norm,
+                                                        num_transforms=inp.num_transforms,
+                                                        hidden_features=inp.hidden_features)
+        a_array = np.array(samples, dtype=np.float32).T
+        
+        naming_str = get_naming_str(inp, pipeline)
+        pickle.dump(a_array, open(f'{inp.output_dir}/posteriors/a_array_{naming_str}.p', 'wb'))
+        print(f'\nsaved {inp.output_dir}/posteriors/a_array_{naming_str}.p')
 
     print('Results from Likelihood-Free Inference', flush=True)
     print('----------------------------------------------', flush=True)
-    names = ['Acmb', 'Atsz']
-    samples_MC = MCSamples(samples=[acmb_array, atsz_array], names = names, labels = names)
-    for par in ['Acmb', 'Atsz']:
+    names = [f'A{comp}' for comp in inp.comps]
+    samples_MC = MCSamples(samples=a_array.T, names = names, labels = names)
+    for par in names:
         print(samples_MC.getInlineLatex(par,limit=1), flush=True)
 
     return samples

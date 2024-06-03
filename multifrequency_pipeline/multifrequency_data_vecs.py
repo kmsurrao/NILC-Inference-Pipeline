@@ -4,7 +4,7 @@ sys.path.append('../shared')
 from scipy import stats
 import healpy as hp
 from generate_maps import generate_freq_maps
-from utils import tsz_spectral_response
+from utils import tsz_spectral_response, cib_spectral_response
 
 def get_data_vectors(inp, sim=None, pars=None):
     '''
@@ -12,11 +12,11 @@ def get_data_vectors(inp, sim=None, pars=None):
     ---------
     inp: Info object containing input parameter specifications
     sim: int, simulation number (if sim is None, a random simulation number will be used)
-    pars: array of floats [Acmb, Atsz] (if not provided, all assumed to be 1)
+    pars: array of floats [Acomp1, Acomp2, etc.] (if not provided, all assumed to be 1)
 
     RETURNS
     -------
-    Clij: (Nfreqs=2, Nfreqs=2, 1+Ncomps, Nbins) ndarray 
+    Clij: (Nfreqs, Nfreqs, 1+Ncomps, Nbins) ndarray 
         containing contributions of each component to the 
         auto- and cross- spectra of freq maps at freqs i and j
         dim2: index0 is total power in Clij, other indices are power from each component
@@ -25,37 +25,39 @@ def get_data_vectors(inp, sim=None, pars=None):
     if sim is None:
         sim = np.random.randint(0, high=inp.Nsims, size=None, dtype=int)
 
-    Ncomps = 2 #CMB, tSZ
+    Ncomps = len(inp.comps)
     Nfreqs = len(inp.freqs)
 
-    #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T, and N)
-    CC, T, CMB_map, tSZ_map, noise_maps = generate_freq_maps(inp, sim, save=False, pars=pars)
-    all_spectra_orig = [CC, T]
-    all_spectra = []
+    #Create frequency maps (GHz) consisting of sky components and noise. Get power spectra of component maps.
+    comp_spectra_orig, comp_maps, noise_maps = generate_freq_maps(inp, sim, save=False, pars=pars)
+    comp_spectra = []
     ells = np.arange(inp.ellmax+1)
-    for Cl in all_spectra_orig:
+    for Cl in comp_spectra_orig:
         Dl = ells*(ells+1)/2/np.pi*Cl
         res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
         mean_ells = (res[1][:-1]+res[1][1:])/2
-        all_spectra.append(res[0]/(mean_ells*(mean_ells+1)/2/np.pi))
+        comp_spectra.append(res[0]/(mean_ells*(mean_ells+1)/2/np.pi))
 
     #get spectral responses
-    g_cmb = np.ones(len(inp.freqs))
-    g_tsz = tsz_spectral_response(inp.freqs)
-    all_g_vecs = np.array([g_cmb, g_tsz])
+    all_g_vecs = np.ones((Ncomps, Nfreqs), dtype=np.float32)
+    for c, comp in enumerate(inp.comps):
+        if comp == 'tsz':
+            all_g_vecs[c] = tsz_spectral_response(inp.freqs)
+        elif comp == 'cib':
+            all_g_vecs[c] = cib_spectral_response(inp.freqs)
 
     #define and fill in array of data vectors
     Clij = np.zeros((Nfreqs, Nfreqs, 1+Ncomps, inp.Nbins))
     for i in range(Nfreqs):
       for j in range(Nfreqs):
-        map_i = CMB_map + g_tsz[i]*tSZ_map + noise_maps[i,0]
-        map_j = CMB_map + g_tsz[j]*tSZ_map + noise_maps[j,1]
+        map_i = np.sum(np.array([all_g_vecs[c,i]*comp_maps[c] for c in range(Ncomps)]), axis=0) + noise_maps[i,0]
+        map_j = np.sum(np.array([all_g_vecs[c,j]*comp_maps[c] for c in range(Ncomps)]), axis=0) + noise_maps[j,1]
         spectrum = hp.anafast(map_i, map_j, lmax=inp.ellmax)
         Dl = ells*(ells+1)/2/np.pi*spectrum
         res = stats.binned_statistic(ells[2:], Dl[2:], statistic='mean', bins=inp.Nbins)
         Clij[i,j,0] = res[0]/(mean_ells*(mean_ells+1)/2/np.pi)
         for y in range(Ncomps):
-            Clij[i,j,1+y] = all_g_vecs[y,i]*all_g_vecs[y,j]*all_spectra[y]
+            Clij[i,j,1+y] = all_g_vecs[y,i]*all_g_vecs[y,j]*comp_spectra[y]
     
     return Clij
 

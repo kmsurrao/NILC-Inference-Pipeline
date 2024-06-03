@@ -20,7 +20,8 @@ def build_sweep_config(inp, pipeline):
 
     # name for sweep
     name = f'{pipeline}_'
-    gaussian_str = 'gaussiantsz_' if inp.use_Gaussian_tSZ else 'nongaussiantsz_'
+    tsz_idx = inp.comps.index('tsz')
+    gaussian_str = 'gaussiantsz_' if inp.use_Gaussian[tsz_idx] else 'nongaussiantsz_'
     name += gaussian_str
     if pipeline == 'HILC':
         wts_str = 'weightsonce_' if inp.compute_weights_once else 'weightsvary_'
@@ -30,8 +31,8 @@ def build_sweep_config(inp, pipeline):
     else:
         sims_str = f'{int(inp.Nsims)}sims_'
     name += sims_str
-    name += f'noise{int(inp.noise)}_'
-    name += f'tsz_amp{int(inp.tsz_amp)}'
+    name += f'tsz_amp{int(inp.amp_factors[tsz_idx])}'
+    name += f'_{len(inp.freqs)}freqs'
     if pipeline == 'NILC':
         name += f'_{inp.Nscales}scales'
 

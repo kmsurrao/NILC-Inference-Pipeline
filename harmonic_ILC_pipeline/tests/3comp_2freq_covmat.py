@@ -301,7 +301,6 @@ def main():
         pickle.dump(Clpq, open(f'{inp.output_dir}/data_vecs/Clpq_{naming_str}.p', 'wb'), protocol=4)
         print(f'\nsaved {inp.output_dir}/data_vecs/Clpq_{naming_str}.p', flush=True)
     
-
     determinants = []
     eigenvals = []
     for Nsims in range(100, inp.Nsims, 50):
@@ -314,7 +313,7 @@ def main():
     print(f'saved {inp.output_dir}/determinants_{naming_str}.p', flush=True)
     print(f'saved {inp.output_dir}/eigenvals_{naming_str}.p', flush=True)
     print('determinants: ', determinants, flush=True)
-
+     
     print('PROGRAM FINISHED RUNNING')
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
     return 

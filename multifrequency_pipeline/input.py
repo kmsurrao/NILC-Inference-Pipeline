@@ -32,32 +32,45 @@ class Info(object):
         assert type(self.ellmax) is int and self.ellmax>0, "ellmax"
         self.Nbins = p['Nbins']
         assert type(self.Nbins) is int and self.Nbins>0, "Nbins"
-        self.tsz_amp = p['tSZ_amp']
-        assert self.tsz_amp >= 0, 'tSZ_amp'
-        self.noise = p['noise']
-        assert self.noise >= 0, 'noise'
+        
         self.freqs = p['freqs']
+        self.noise = p['noise']
+        assert len(self.noise) == len(self.freqs), f"Must provide white noise levels for each of {len(self.freqs)} frequencies"
+        for n in self.noise:
+            assert n >= 0, 'White noise level must be nonnegative'
+        
+        self.comps = p['comps']
+        assert len(self.freqs) >= len(self.comps), "Must have at least as many frequencies as sky components"
+        assert (set(self.comps)).issubset({'cmb', 'tsz', 'cib'}), "Currently the only supported components are cmb, tsz, and cib"
+        self.paths_to_comps = p['paths_to_comps']
+        assert len(self.paths_to_comps) == len(self.comps), f"Need {len(self.comps)} paths to components"
+        self.use_Gaussian = []
+        for c, path in enumerate(self.paths_to_comps):
+            assert os.path.isfile(path) or os.path.isdir(path), f"No such file or directory: {path}"
+            if os.path.isfile(path):
+                self.use_Gaussian.append(True)
+            else:
+                self.use_Gaussian.append(False)
+                assert os.path.isfile(f'{path}/{self.comps[c]}_00000.fits'), f"{path} must contain files of the form {self.comps[c]}_xxxxx.fits"
+                assert os.path.isfile(f'{path}/{self.comps[c]}_{self.Nsims:05d}.fits'), f"{path} must contain files of the form {self.comps[c]}_xxxxx.fits up to {self.comps[c]}_{self.Nsims:05d}.fits"
+        self.amp_factors = p['amp_factors']
+        for amp in self.amp_factors:
+            assert amp > 0, 'amp_factors must all be > 0'
+
+
         self.use_lfi = p['use_lfi']
         if self.use_lfi:
             assert 'prior_half_widths' in p, "prior_half_widths must be defined if use_lfi is True"
             self.prior_half_widths = p['prior_half_widths']
-            assert len(self.prior_half_widths)==2, "prior_half_widths must have length 2 for Acmb, Atsz"
-        self.use_Gaussian_tSZ = p['use_Gaussian_tSZ']
+            assert len(self.prior_half_widths)==len(self.comps), f"prior_half_widths must have same length as number of components ({len(self.comps)})"
 
-        self.halosky_maps_path = p['halosky_maps_path']
-        assert type(self.halosky_maps_path) is str, "TypeError: halosky_maps_path"
-        assert os.path.isdir(self.halosky_maps_path), "halosky maps path does not exist"
-        self.cmb_map_file = p['cmb_map_file']
-        assert type(self.cmb_map_file) is str, "TypeError: cmb_map_file"
-        assert os.path.isfile(self.cmb_map_file), "CMB map file does not exist"
         self.output_dir = p['output_dir']
         assert type(self.output_dir) is str, "TypeError: output_dir" 
-
         self.verbose = p['verbose']
         self.save_files = p['save_files']
 
-        if not self.use_Gaussian_tSZ and not self.use_lfi:
-            warnings.warn('You are using a Gaussian likelihood with a non-Gaussian tSZ component. For more accurate posteriors, switch use_lfi to True to use likelihood-free inference.')
+        if False in self.use_Gaussian and not self.use_lfi:
+            warnings.warn('You are using a Gaussian likelihood with potentially non-Gaussian components. For more accurate posteriors, switch use_lfi to True to use likelihood-free inference.')
         
         if self.use_lfi:
             self.tune_hyperparameters = p['tune_hyperparameters']
