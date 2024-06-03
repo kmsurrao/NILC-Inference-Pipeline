@@ -7,7 +7,7 @@ import sys
 sys.path.append('../../shared')
 sys.path.append('..')
 from input import Info
-from utils import tsz_spectral_response
+from utils import spectral_response
 
 def main():
 
@@ -24,7 +24,7 @@ def main():
    Clij = pickle.load(open(f'{inp.output_dir}/data_vecs/Clij.p', 'rb')) #dim (Nsims, Nfreqs=2, Nfreqs=2, Ncomps=4, ellmax+1)
    Clij_mean = np.mean(Clij, axis=0) #dim (Nfreqs=2, Nfreqs=2, Ncomps=4, ellmax+1)
 
-   g1, g2 = tsz_spectral_response(inp.freqs) #tSZ spectral response at 90 and 150 GHz
+   g1, g2 = spectral_response(inp.freqs, 'tsz') #tSZ spectral response at 90 and 150 GHz
 
    CC = Clij_mean[0,0,0] #CMB
    T = Clij_mean[0,0,1]/g1**2 #tSZ (in Compton-y)

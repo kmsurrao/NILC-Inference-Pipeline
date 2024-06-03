@@ -7,7 +7,7 @@ import numpy as np
 from scipy import stats
 import itertools
 import healpy as hp
-from utils import tsz_spectral_response, cib_spectral_response, get_scalings, sublist_idx
+from utils import spectral_response, get_scalings, sublist_idx
 from generate_maps import generate_freq_maps
 
 def get_freq_power_spec(sim, inp):
@@ -36,10 +36,7 @@ def get_freq_power_spec(sim, inp):
     # spectral response vectors
     sed_arr = np.ones((Ncomps, Nfreqs), dtype=np.float32)
     for c, comp in enumerate(inp.comps):
-        if comp == 'tsz':
-            sed_arr[c] = tsz_spectral_response(inp.freqs)
-        elif comp == 'cib':
-            sed_arr[c] = cib_spectral_response(inp.freqs)
+        sed_arr[c] = spectral_response(inp.freqs, comp)
 
     #Create frequency maps (GHz) consisting of CMB, tSZ, and noise. Get power spectra of component maps (CC, T)
     comp_spectra, comp_maps, noise_maps = generate_freq_maps(inp, sim, save=False, scaling=scalings[0])
@@ -201,10 +198,7 @@ def get_data_vecs(inp, Clij, sim):
     # spectral response vectors
     sed_arr = np.ones((Ncomps, Nfreqs), dtype=np.float32)
     for c, comp in enumerate(inp.comps):
-        if comp == 'tsz':
-            sed_arr[c] = tsz_spectral_response(inp.freqs)
-        elif comp == 'cib':     
-            sed_arr[c] = cib_spectral_response(inp.freqs)
+        sed_arr[c] = spectral_response(inp.freqs, comp)
 
     #HILC auto- and cross-spectra
     comp_scalings = [list(i) for i in itertools.product([0, 1], repeat=Ncomps)]

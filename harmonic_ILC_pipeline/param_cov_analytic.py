@@ -79,7 +79,7 @@ def ClpqA(inp, Clpq, *pars):
     return theory_model
 
 
-def neg_lnL(pars, f, inp, sim, Clpq, PScov_sim_Inv): 
+def neg_lnL(pars, f, inp, Clpq, PScov_sim_Inv, sim=None): 
     '''
     Expression for log likelihood for one sim (actually equal to negative lnL since we have to minimize)
 
@@ -88,18 +88,21 @@ def neg_lnL(pars, f, inp, sim, Clpq, PScov_sim_Inv):
     pars: parameters to function f (not manually inputted but used by minimizer)
     f: function that returns theory model in terms of parameters
     inp: Info object containing input parameter specifications
-    sim: int, simulation number
     Clpq: (Nsims, Ncomps, Ncomps, 1+Ncomps, Nbins) ndarray 
         containing contribution of components to Clpq
     PScov_sim_Inv: (Nbins, Nbins, Ncomps, Ncomps, Ncomps, Ncomps) ndarray 
         containing inverse of power spectrum covariance matrix
+    sim: int, simulation number. If None, takes mean over all sims instead of using a single sim
 
     RETURNS
     -------
     neg_log_lkl: float, negative log likelihood for one simulation, combined over multipole bins
     '''    
     model = f(inp, np.mean(Clpq, axis=0), *pars)
-    Clpqd = Clpq[sim, :, :, 0]
+    if sim is None:
+        Clpqd = np.mean(Clpq[:,:,:,0], axis=0)
+    else:
+        Clpqd = Clpq[sim, :, :, 0]
     neg_log_lkl = 1/2*np.einsum('ijb,bcijkl,klc->', model-Clpqd, PScov_sim_Inv, model-Clpqd)
     return neg_log_lkl
 
@@ -125,7 +128,7 @@ def a_vec(inp, sim, Clpq, PScov_sim_Inv):
     all_res = []
     for start in [0.5, 1.0, 1.5]:
         start_array = [start]*Ncomps
-        res = minimize(neg_lnL, x0 = start_array, args = (ClpqA, inp, sim, Clpq, PScov_sim_Inv), method='Nelder-Mead') #default method is BFGS
+        res = minimize(neg_lnL, x0 = start_array, args = (ClpqA, inp, Clpq, PScov_sim_Inv, sim), method='Nelder-Mead') #default method is BFGS
         all_res.append(res)
     return (min(all_res, key=lambda res:res.fun)).x
 
@@ -208,7 +211,7 @@ def Fisher_inversion(inp, Clpq, PScov_sim_Inv):
 ########   MCMC WITH ONE SIMULATION  #########
 ##############################################
 
-def pos_lnL(pars, f, inp, sim, Clpq, PScov_sim_Inv): 
+def pos_lnL(pars, f, inp, Clpq, PScov_sim_Inv): 
     '''
     Expression for positive log likelihood for one sim
 
@@ -217,7 +220,6 @@ def pos_lnL(pars, f, inp, sim, Clpq, PScov_sim_Inv):
     pars: parameters to function f (not manually inputted but used by minimizer)
     f: function that returns theory model in terms of parameters
     inp: Info object containing input parameter specifications
-    sim: int, simulation number
     Clpq: (Nsims, Ncomps, Ncomps, 1+Ncomps, Nbins) ndarray 
         containing contribution of components to Clpq
     PScov_sim_Inv: (Nbins, Nbins, Ncomps, Ncomps, Ncomps, Ncomps) ndarray 
@@ -227,7 +229,7 @@ def pos_lnL(pars, f, inp, sim, Clpq, PScov_sim_Inv):
     -------
     log likelihood for one simulation, combined over multipoles 
     '''
-    return -neg_lnL(pars, f, inp, sim, Clpq, PScov_sim_Inv)
+    return -neg_lnL(pars, f, inp, Clpq, PScov_sim_Inv, sim=None)
 
 
 def MCMC(inp, Clpq, PScov_sim_Inv, sim=0):
@@ -250,7 +252,7 @@ def MCMC(inp, Clpq, PScov_sim_Inv, sim=0):
     ndim = len(inp.comps)
     nwalkers = 10
     p0 = np.random.random((nwalkers, ndim))*(1.2-0.8)+0.8
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, pos_lnL, args=[ClpqA, inp, sim, Clpq, PScov_sim_Inv])
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, pos_lnL, args=[ClpqA, inp, Clpq, PScov_sim_Inv])
     state = sampler.run_mcmc(p0, 100)
     sampler.reset()
     sampler.run_mcmc(state, 1000)

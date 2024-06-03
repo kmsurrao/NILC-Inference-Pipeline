@@ -12,7 +12,7 @@ import tqdm
 import healpy as hp
 from scipy import stats
 import scipy
-from utils import setup_output_dir, get_naming_str, tsz_spectral_response, cib_spectral_response
+from utils import setup_output_dir, get_naming_str, spectral_response
 from generate_maps import generate_freq_maps
 
 def get_freq_power_spec(inp, sim=None, pars=None):
@@ -45,8 +45,8 @@ def get_freq_power_spec(inp, sim=None, pars=None):
 
     #get spectral responses
     g_cmb = np.ones(len(inp.freqs))
-    g_tsz = tsz_spectral_response(inp.freqs)
-    g_cib = cib_spectral_response(inp.freqs)
+    g_tsz = spectral_response(inp.freqs, 'tsz')
+    g_cib = spectral_response(inp.freqs, 'cib')
     all_g_vecs = np.array([g_cmb, g_tsz, g_cib])
 
     #define and fill in array of data vectors
@@ -197,8 +197,8 @@ def get_data_vecs(inp, Clij):
     
     #get spectral responses
     g_cmb = np.ones(len(inp.freqs))
-    g_tsz = tsz_spectral_response(inp.freqs)
-    g_cib = cib_spectral_response(inp.freqs)
+    g_tsz = spectral_response(inp.freqs, 'tsz')
+    g_cib = spectral_response(inp.freqs, 'cib')
     all_g_vecs = np.array([g_cmb, g_tsz, g_cib])
 
     #HILC auto- and cross-spectra

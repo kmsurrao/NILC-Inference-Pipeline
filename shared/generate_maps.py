@@ -1,6 +1,6 @@
 import healpy as hp
 import numpy as np
-from utils import tsz_spectral_response, cib_spectral_response
+from utils import spectral_response
 
 
 def generate_freq_maps(inp, sim=None, save=True, scaling=None, pars=None, include_noise=True, map_tmpdir=None):
@@ -83,10 +83,7 @@ def generate_freq_maps(inp, sim=None, save=True, scaling=None, pars=None, includ
     # spectral response vectors
     sed_arr = np.ones((Ncomps, Nfreqs), dtype=np.float32)
     for c, comp in enumerate(inp.comps):
-        if comp == 'tsz':
-            sed_arr[c] = tsz_spectral_response(inp.freqs)
-        elif comp == 'cib':
-            sed_arr[c] = cib_spectral_response(inp.freqs)
+        sed_arr[c] = spectral_response(inp.freqs, comp)
 
     #create maps at different freqs (in GHz) and splits 
     sim_maps = np.zeros((Nfreqs, Nsplits, Npix), dtype=np.float32)
@@ -154,10 +151,7 @@ def save_scaled_freq_maps(inp, sim, scaling, map_tmpdir, comp_maps_unscaled, noi
     # spectral response vectors
     sed_arr = np.ones((Ncomps, Nfreqs), dtype=np.float32)
     for c, comp in enumerate(inp.comps):
-        if comp == 'tsz':
-            sed_arr[c] = tsz_spectral_response(inp.freqs)
-        elif comp == 'cib':
-            sed_arr[c] = cib_spectral_response(inp.freqs)
+        sed_arr[c] = spectral_response(inp.freqs, comp)
     
     #create maps at different freqs (in GHz) and splits 
     sim_maps = np.zeros((Nfreqs, Nsplits, Npix), dtype=np.float32)

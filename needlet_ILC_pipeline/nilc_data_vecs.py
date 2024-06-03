@@ -8,7 +8,7 @@ import healpy as hp
 from scipy import stats
 from generate_maps import generate_freq_maps, save_scaled_freq_maps
 from pyilc_interface import setup_pyilc, load_wt_maps
-from utils import tsz_spectral_response, cib_spectral_response, GaussianNeedlets, build_NILC_maps, get_scalings, sublist_idx
+from utils import spectral_response, GaussianNeedlets, build_NILC_maps, get_scalings, sublist_idx
 
 
 def get_scaled_maps_and_wts(sim, inp, env):
@@ -104,10 +104,7 @@ def get_scaled_data_vectors(sim, inp, env):
     # spectral response vectors
     sed_arr = np.ones((Ncomps, Nfreqs), dtype=np.float32)
     for c, comp in enumerate(inp.comps):
-        if comp == 'tsz':
-            sed_arr[c] = tsz_spectral_response(inp.freqs)
-        elif comp == 'cib':
-            sed_arr[c] = cib_spectral_response(inp.freqs)
+        sed_arr[c] = spectral_response(inp.freqs, comp)
 
     #get maps and weight maps
     comp_maps_unscaled, noise_maps, all_wt_maps = get_scaled_maps_and_wts(sim, inp, env)
@@ -250,10 +247,7 @@ def get_data_vectors(inp, env, sim=None, pars=None):
     # spectral response vectors
     sed_arr = np.ones((Ncomps, Nfreqs), dtype=np.float32)
     for c, comp in enumerate(inp.comps):
-        if comp == 'tsz':
-            sed_arr[c] = tsz_spectral_response(inp.freqs)
-        elif comp == 'cib':
-            sed_arr[c] = cib_spectral_response(inp.freqs)
+        sed_arr[c] = spectral_response(inp.freqs, comp)
 
     #get maps and weight maps
     comp_maps, noise_maps, all_wt_maps = get_maps_and_wts(sim, inp, env, pars=pars)

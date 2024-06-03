@@ -16,7 +16,7 @@ from scipy import stats
 import scipy
 from generate_maps import generate_freq_maps
 from pyilc_interface import setup_pyilc, load_wt_maps
-from utils import setup_output_dir, get_naming_str, tsz_spectral_response, GaussianNeedlets, build_NILC_maps, cib_spectral_response
+from utils import setup_output_dir, get_naming_str, spectral_response, GaussianNeedlets, build_NILC_maps
 
 
 def get_maps_and_wts(sim, inp, env, pars=None):
@@ -82,8 +82,8 @@ def get_data_vectors(inp, env, sim=None, pars=None):
 
     #get needlet filters and spectral responses
     h = GaussianNeedlets(inp)[1]
-    g_tsz = tsz_spectral_response(inp.freqs)
-    g_cib = cib_spectral_response(inp.freqs)
+    g_tsz = spectral_response(inp.freqs, 'tsz')
+    g_cib = spectral_response(inp.freqs, 'cib')
 
     #get maps and weight maps
     CMB_map, tSZ_map, CIB_map, noise_maps, all_wt_maps = get_maps_and_wts(sim, inp, env, pars=pars)

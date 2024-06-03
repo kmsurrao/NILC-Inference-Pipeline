@@ -27,25 +27,6 @@ def setup_output_dir(inp, env):
     return 
 
 
-def tsz_spectral_response(freqs):
-    '''
-    ARGUMENTS
-    ---------
-    freqs: 1D numpy array, contains frequencies (GHz) for which to calculate tSZ spectral response
-
-    RETURNS
-    ---------
-    1D array containing tSZ spectral response to each frequency
-    '''
-    T_cmb = 2.726
-    h = 6.62607004*10**(-34)
-    kb = 1.38064852*10**(-23)
-    response = []
-    for freq in freqs:
-        x = h*(freq*10**9)/(kb*T_cmb) #x is v/56.9 GHz
-        response.append(T_cmb*(x*1/np.tanh(x/2)-4))
-    return np.array(response)
-
 
 def GaussianNeedlets(inp, taper_width=0):
     '''
@@ -200,51 +181,71 @@ def get_naming_str(inp, pipeline):
     return name
 
 
-def cib_spectral_response(freqs):
+
+def spectral_response(freqs, comp):
     '''
     ARGUMENTS
     ---------
-    freqs: array-like of frequencies in GHz
+    freqs: 1D numpy array, contains frequencies (GHz) for which to calculate the spectral response
+    comp: str, name of component. Currently only has 'cmb', 'tsz', and 'cib' implemented, but
+            this function can be modified to add others.
 
     RETURNS
-    -------
-    resp: array-like of length Nfreqs containing spectral response vector
+    ---------
+    1D array containing spectral response of comp to each frequency
     '''
-    # CIB = modified blackbody here
-    # N.B. overall amplitude is not meaningful here; output ILC map (if you tried to preserve this component) would not be in sensible units
+    if comp == 'cmb':
+        return np.ones(len(freqs), dtype=np.float32)
 
-    TCMB = 2.726 #Kelvin
-    TCMB_uK = 2.726e6 #micro-Kelvin
-    hplanck=6.626068e-34 #MKS
-    kboltz=1.3806503e-23 #MKS
-    clight=299792458.0 #MKS
 
-    # function needed for Planck bandpass integration/conversion following approach in Sec. 3.2 of https://arxiv.org/pdf/1303.5070.pdf
-    # blackbody derivative
-    # units are 1e-26 Jy/sr/uK_CMB
-    def dBnudT(nu_ghz):
-        nu = 1.e9*np.asarray(nu_ghz)
-        X = hplanck*nu/(kboltz*TCMB)
-        return (2.*hplanck*nu**3.)/clight**2. * (np.exp(X))/(np.exp(X)-1.)**2. * X/TCMB_uK
+    if comp == 'tsz':
+        T_cmb = 2.726
+        h = 6.62607004*10**(-34)
+        kb = 1.38064852*10**(-23)
+        response = []
+        for freq in freqs:
+            x = h*(freq*10**9)/(kb*T_cmb) #x is v/56.9 GHz
+            response.append(T_cmb*(x*1/np.tanh(x/2)-4))
+        return np.array(response)
+    
 
-    # conversion from specific intensity to Delta T units (i.e., 1/dBdT|T_CMB)
-    #   i.e., from W/m^2/Hz/sr (1e-26 Jy/sr) --> uK_CMB
-    #   i.e., you would multiply a map in 1e-26 Jy/sr by this factor to get an output map in uK_CMB
-    def ItoDeltaT(nu_ghz):
-        return 1./dBnudT(nu_ghz)
+    elif comp == 'cib':
+        # CIB = modified blackbody here
+        # N.B. overall amplitude is not meaningful here; output ILC map (if you tried to preserve this component) would not be in sensible units
 
-    Tdust_CIB = 20.0       #CIB effective dust temperature [K] (Table 9 of http://www.aanda.org/articles/aa/pdf/2014/11/aa22093-13.pdf)
-    beta_CIB = 1.45         #CIB modified blackbody spectral index (Table 9 of http://www.aanda.org/articles/aa/pdf/2014/11/aa22093-13.pdf ; Table 10 of that paper contains CIB monopoles)
-    nu0_CIB_ghz = 353.0    #CIB pivot frequency [GHz]
+        TCMB = 2.726 #Kelvin
+        TCMB_uK = 2.726e6 #micro-Kelvin
+        hplanck=6.626068e-34 #MKS
+        kboltz=1.3806503e-23 #MKS
+        clight=299792458.0 #MKS
 
-    nu_ghz = freqs
-    nu = 1.e9*np.asarray(nu_ghz).astype(float)
-    X_CIB = hplanck*nu/(kboltz*Tdust_CIB)
-    nu0_CIB = nu0_CIB_ghz*1.e9
-    X0_CIB = hplanck*nu0_CIB/(kboltz*Tdust_CIB)
-    resp = (nu/nu0_CIB)**(3.0+(beta_CIB)) * ((np.exp(X0_CIB) - 1.0) / (np.exp(X_CIB) - 1.0)) * (ItoDeltaT(np.asarray(nu_ghz).astype(float))/ItoDeltaT(nu0_CIB_ghz))
-    resp[np.where(nu_ghz == None)] = 0. #this case is appropriate for HI or other maps that contain no CMB-relevant signals (and also no CIB); they're assumed to be denoted by None in nu_ghz
-    return resp
+        # function needed for Planck bandpass integration/conversion following approach in Sec. 3.2 of https://arxiv.org/pdf/1303.5070.pdf
+        # blackbody derivative
+        # units are 1e-26 Jy/sr/uK_CMB
+        def dBnudT(nu_ghz):
+            nu = 1.e9*np.asarray(nu_ghz)
+            X = hplanck*nu/(kboltz*TCMB)
+            return (2.*hplanck*nu**3.)/clight**2. * (np.exp(X))/(np.exp(X)-1.)**2. * X/TCMB_uK
+
+        # conversion from specific intensity to Delta T units (i.e., 1/dBdT|T_CMB)
+        #   i.e., from W/m^2/Hz/sr (1e-26 Jy/sr) --> uK_CMB
+        #   i.e., you would multiply a map in 1e-26 Jy/sr by this factor to get an output map in uK_CMB
+        def ItoDeltaT(nu_ghz):
+            return 1./dBnudT(nu_ghz)
+
+        Tdust_CIB = 20.0       #CIB effective dust temperature [K] (Table 9 of http://www.aanda.org/articles/aa/pdf/2014/11/aa22093-13.pdf)
+        beta_CIB = 1.45         #CIB modified blackbody spectral index (Table 9 of http://www.aanda.org/articles/aa/pdf/2014/11/aa22093-13.pdf ; Table 10 of that paper contains CIB monopoles)
+        nu0_CIB_ghz = 353.0    #CIB pivot frequency [GHz]
+
+        nu_ghz = freqs
+        nu = 1.e9*np.asarray(nu_ghz).astype(float)
+        X_CIB = hplanck*nu/(kboltz*Tdust_CIB)
+        nu0_CIB = nu0_CIB_ghz*1.e9
+        X0_CIB = hplanck*nu0_CIB/(kboltz*Tdust_CIB)
+        resp = (nu/nu0_CIB)**(3.0+(beta_CIB)) * ((np.exp(X0_CIB) - 1.0) / (np.exp(X_CIB) - 1.0)) * (ItoDeltaT(np.asarray(nu_ghz).astype(float))/ItoDeltaT(nu0_CIB_ghz))
+        resp[np.where(nu_ghz == None)] = 0. #this case is appropriate for HI or other maps that contain no CMB-relevant signals (and also no CIB); they're assumed to be denoted by None in nu_ghz
+        return resp
+
 
 
 def sublist_idx(outer_list, sublist):

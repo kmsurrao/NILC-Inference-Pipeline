@@ -4,7 +4,7 @@ sys.path.append('../shared')
 from scipy import stats
 import healpy as hp
 from generate_maps import generate_freq_maps
-from utils import tsz_spectral_response, cib_spectral_response
+from utils import spectral_response
 
 def get_data_vectors(inp, sim=None, pars=None):
     '''
@@ -41,10 +41,7 @@ def get_data_vectors(inp, sim=None, pars=None):
     #get spectral responses
     all_g_vecs = np.ones((Ncomps, Nfreqs), dtype=np.float32)
     for c, comp in enumerate(inp.comps):
-        if comp == 'tsz':
-            all_g_vecs[c] = tsz_spectral_response(inp.freqs)
-        elif comp == 'cib':
-            all_g_vecs[c] = cib_spectral_response(inp.freqs)
+        all_g_vecs[c] = spectral_response(inp.freqs, comp)
 
     #define and fill in array of data vectors
     Clij = np.zeros((Nfreqs, Nfreqs, 1+Ncomps, inp.Nbins))
