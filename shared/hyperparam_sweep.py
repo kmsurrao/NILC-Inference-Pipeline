@@ -20,18 +20,20 @@ def build_sweep_config(inp, pipeline):
 
     # name for sweep
     name = f'{pipeline}_'
-    tsz_idx = inp.comps.index('tsz')
-    gaussian_str = 'gaussiantsz_' if inp.use_Gaussian[tsz_idx] else 'nongaussiantsz_'
-    name += gaussian_str
+    if 'tsz' in inp.comps:
+        tsz_idx = inp.comps.index('tsz')
+        gaussian_str = 'gaussiantsz_' if inp.use_Gaussian[tsz_idx] else 'nongaussiantsz_'
+        name += gaussian_str
     if pipeline == 'HILC':
         wts_str = 'weightsonce_' if inp.compute_weights_once else 'weightsvary_'
         name += wts_str
     if inp.Nsims % 1000 == 0:
         sims_str = f'{inp.Nsims//1000}ksims_'
     else:
-        sims_str = f'{int(inp.Nsims)}sims_'
+        sims_str = f'{int(inp.Nsims)}sims'
     name += sims_str
-    name += f'tsz_amp{int(inp.amp_factors[tsz_idx])}'
+    if 'tsz' in inp.comps:
+        name += f'_tsz_amp{int(inp.amp_factors[tsz_idx])}'
     name += f'_{len(inp.freqs)}freqs'
     if pipeline == 'NILC':
         name += f'_{inp.Nscales}scales'
@@ -97,9 +99,9 @@ def run_sweep(inp, prior, simulator, observation, pipeline):
     final_samples: (k*Nsims, Ndim) torch tensor containing samples drawn from posterior                                                          
         of the trained network that resulted in the highest validation log probability.
         Here, k is Nsweeps//4
-    mean_stds: list of length 2 containing mean of Acmb and Atsz standard deviations
+    mean_stds: list of length Ncomps containing mean of amplitude parameter standard deviations
         obtained from k highest hyperparameter sweeps
-    error_of_stds: list of length 2 containing standard deviation of Acmb and Atsz 
+    error_of_stds: list of length Ncomps containing standard deviation of amplitude parameter
         standard deviations ("erorr of errors") obtained from k highest hyperparameter sweeps                                                           
     '''
     sweep_results = []
@@ -117,8 +119,11 @@ def run_sweep(inp, prior, simulator, observation, pipeline):
                                     clip_max_norm=wandb.config.clip_max_norm, num_transforms=wandb.config.num_transforms,
                                     hidden_features=wandb.config.hidden_features)
         wandb.log({'best_validation_log_prob': best_val_log_prob})
-        acmb_array, atsz_array = torch.transpose(samples, 0, 1)
-        wandb.log({'Acmb_std': torch.std(acmb_array), 'Atsz_std': torch.std(atsz_array)})
+        a_arrays = torch.transpose(samples, 0, 1)
+        wandb_log_dict = {}
+        for a, a_array in enumerate(a_arrays):
+            wandb_log_dict[f'A{inp.comps[a]}_std'] = torch.std(a_array)
+        wandb.log(wandb_log_dict)
         sweep_results.append((best_val_log_prob, samples))
         return
     
@@ -132,17 +137,15 @@ def run_sweep(inp, prior, simulator, observation, pipeline):
         nsweeps_to_use = 1
     best_sweep_results = heapq.nlargest(nsweeps_to_use, sweep_results, key=lambda x: x[0])
     best_samples = [s[1] for s in best_sweep_results]
-    acmb_stds, atsz_stds = [], []
-    for sample in best_samples:
-        acmb_arr, atsz_arr = torch.transpose(sample, 0, 1)
-        acmb_stds.append(torch.std(acmb_arr))
-        atsz_stds.append(torch.std(atsz_arr))
+    std_devs = torch.zeros(len(inp.comps), inp.Nsweeps//4)
+    for s, sample in enumerate(best_samples):
+        a_arrays = torch.transpose(sample, 0, 1)
+        for a, a_array in enumerate(a_arrays):
+            std_devs[a, s] = torch.std(a_array)
 
     # get final samples, average std dev over top 25% of sweeps, and std dev of std devs of 25% of sweeps
     final_samples = torch.cat(best_samples, 0)
-    acmb_stds = torch.tensor(acmb_stds)
-    atsz_stds = torch.tensor(atsz_stds)
-    mean_stds = [torch.mean(acmb_stds), torch.mean(atsz_stds)]
-    error_of_stds = [torch.std(acmb_stds), torch.std(atsz_stds)]
+    mean_stds = [torch.mean(std_devs[a]) for a in range(len(inp.comps))]
+    error_of_stds = [torch.std(std_devs[a]) for a in range(len(inp.comps))]
 
     return final_samples, mean_stds, error_of_stds

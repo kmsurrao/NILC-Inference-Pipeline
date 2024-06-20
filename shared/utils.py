@@ -155,22 +155,24 @@ def get_naming_str(inp, pipeline):
     '''
     assert pipeline in {'multifrequency', 'HILC', 'NILC'}, "pipeline must be 'multifrequency', 'HILC', or 'NILC'"
     name = f'{pipeline}_'
-    tsz_idx = inp.comps.index('tsz')
-    gaussian_str = 'gaussiantsz_' if inp.use_Gaussian[tsz_idx] else 'nongaussiantsz_'
-    name += gaussian_str
+    if 'tsz' in inp.comps:
+        tsz_idx = inp.comps.index('tsz')
+        gaussian_str = 'gaussiantsz_' if inp.use_Gaussian[tsz_idx] else 'nongaussiantsz_'
+        name += gaussian_str
     if pipeline == 'HILC':
         wts_str = 'weightsonce_' if inp.compute_weights_once else 'weightsvary_'
         name += wts_str
     if inp.Nsims % 1000 == 0:
-        sims_str = f'{inp.Nsims//1000}ksims_'
+        sims_str = f'{inp.Nsims//1000}ksims'
     else:
-        sims_str = f'{int(inp.Nsims)}sims_'
+        sims_str = f'{int(inp.Nsims)}sims'
     name += sims_str
-    name += f'tszamp{int(inp.amp_factors[tsz_idx])}_'
+    if 'tsz' in inp.comps:
+        name += f'_tszamp{int(inp.amp_factors[tsz_idx])}'
     if inp.use_lfi:
-        name += 'lfi'
+        name += '_lfi'
     else:
-        name += 'gaussianlkl'
+        name += '_gaussianlkl'
         if pipeline == 'HILC':
             if inp.compute_weights_once and not inp.use_symbolic_regression:
                 name += '_analytic'

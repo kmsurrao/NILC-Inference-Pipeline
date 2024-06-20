@@ -131,7 +131,7 @@ def get_posterior(inp, pipeline, env):
             '''
             ARGUMENTS
             ---------
-            pars: [Acmb, Atsz] parameters (floats)
+            pars: [Acomp1, Acomp2, etc.] parameters (floats)
 
             RETURNS
             -------

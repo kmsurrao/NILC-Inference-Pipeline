@@ -86,7 +86,7 @@ verbose: False
 save_files: True 
 
 # Path to pyilc code
-pyilc_path: '/work2/09334/ksurrao/stampede2/GitHub/pyilc' 
+pyilc_path: '/work2/09334/ksurrao/stampede3/Github/pyilc' 
 
 # Path to folder to store outputs
 # n.b. see note in README about setting this variable

@@ -47,7 +47,9 @@ def call_fit(A_vec, expr):
     -------
     numerical evaluation of expr at the point given by A_vec
     '''
-    return expr.subs('x0', A_vec[0]).subs('x1', A_vec[1])
+    for i in range(len(A_vec)):
+        expr = expr.subs(f'x{i}', A_vec[i])
+    return expr
 
 
 def get_parameter_dependence(inp, Clpq, HILC=False):
