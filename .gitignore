@@ -10,7 +10,7 @@ jupyter_notebooks/pipeline_plotting_examples.ipynb
 */example_yaml_files/laptop.yaml
 */*/.ipynb_checkpoints
 */*/*/sbi-logs
-mathematica_notebooks/*
+mathematica_notebooks/old
 */sbi_logs
 *copy*
 .DS_Store
