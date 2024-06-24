@@ -44,7 +44,9 @@ amp_factors: [1., 150.]
 # the code will generate several Gaussian realizations of the power spectrum in the file.
 # The second path should correspond to the second component in comps (tsz).
 # Since the path provided is a directory, the code will look for 
-# tsz_00000.fits, tsz_00001.fits, etc. All maps are assumed to be in units of K_CMB.
+# tsz_00000.fits, tsz_00001.fits, etc. CMB maps are assumed to be in units of K_CMB.
+# All other maps are assumed to have the assumed frequency dependence factored out
+# (e.g. tSZ maps should be in dimensionless Compton-y units).
 paths_to_comps: [
   '/scratch/09334/ksurrao/NILC/inputs/cmb_lensed_nside1024_K.fits',
   '/scratch/09334/ksurrao/NILC/inputs/halosky_maps'

@@ -5,7 +5,7 @@ For each pipeline, there are options for two types of inference: inference based
 
 ## Requirements and Set-up
  - Requires a clone of the pyilc repository (https://github.com/jcolinhill/pyilc). 
- - Requires map files for all the components being included in the problem. See the yaml files for details on required files and naming conventions. For the CMB map, a .fits file in Kelvin is required (lensed alm can be downloaded from WebSky at https://mocks.cita.utoronto.ca/data/websky/v0.0/). tSZ maps in .fits file format in dimensionless Compton-$y$ units can be generated via halosky (https://github.com/marcelo-alvarez/halosky) on NERSC.  
+ - Requires map files for all the components being included in the problem. See the yaml files for details on required files and naming conventions. For the CMB map, a .fits file in Kelvin is required (lensed alm can be downloaded from WebSky at https://mocks.cita.utoronto.ca/data/websky/v0.0/). tSZ maps in .fits file format in dimensionless Compton-y units can be generated via halosky (https://github.com/marcelo-alvarez/halosky) on NERSC.  
 
 ## Running
 To run any of the main pipelines, one first needs to modify the appropriate yaml files. There are several examples for various set-ups. See the subsections below for details. For all variants of the needlet ILC pipeline and for some variants of the harmonic ILC pipeline (specifically, when using symbolic regression to estimate parameter dependence in likelihood-based inference), there is a large amount of I/O from running the program. This is handled by the python tempfile module. Temporary files and directories will be created in the directory specificed as "output_dir" in the yaml files. It is highly recommended to run on an HPC cluster and to set the output_dir parameter in the yaml files to be a directory in a *SCRATCH* space.  
@@ -30,7 +30,7 @@ Modify a yaml file in [harmonic_ILC_pipeline/example_yaml_files](harmonic_ILC_pi
 ```python main.py --config=example_yaml_files/[FILENAME]```  
 
 ### Other Tools
-The [plotting_notebooks](plotting_notebooks/) folder contains example Jupyter notebooks for producing plots after running the above pipelines. The [toy_model](toy_model/) folder runs inference using various methods (numerical and analytic MLE, Fisher matrix, MCMC, and likelihood-free inference) to verify that the results are the same on a simple toy model $A \cos(x) + Bx$, where $A$ and $B$ are free parameters to fit, and Gaussian noise is added to each realization. There are also various tests in the individual subdirectories.  
+The [plotting_notebooks](plotting_notebooks/) folder contains example Jupyter notebooks for producing plots after running the above pipelines. The [mathematica_notebooks](mathematica_notebooks/) folder contains Mathematica notebooks demonstrating analytic comparisons of the HILC and multifrequency power spectrum approaches in a Gaussian likelihood. The [toy_model](toy_model/) folder runs inference using various methods (numerical and analytic MLE, Fisher matrix, MCMC, and likelihood-free inference) to verify that the results are the same on a simple toy model $A \cos(x) + Bx$, where $A$ and $B$ are free parameters to fit, and Gaussian noise is added to each realization. There are also various tests in the individual subdirectories.  
 
 ## Dependencies
 python >= 3.7   
